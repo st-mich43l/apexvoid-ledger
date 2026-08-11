@@ -161,8 +161,8 @@ export function LoanForm({ onSubmit }: LoanFormProps) {
 
         <Field label="Loan type">
           <select value={form.loanType} onChange={handleLoanTypeChange} className={inputClass}>
-            <option value="unsecured">Unsecured (fixed balance)</option>
-            <option value="secured">Secured (declining balance)</option>
+            <option value="unsecured">Unsecured (declining balance)</option>
+            <option value="secured">Secured (fixed balance)</option>
           </select>
         </Field>
       </div>

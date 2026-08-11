@@ -68,7 +68,7 @@ def calculate_loan(
 
     daily_rate = interest_rate_per_year / Decimal(100) / Decimal(365)
 
-    if loan_type == "secured":
+    if loan_type == "unsecured":
         # Declining balance: standard EMI/annuity amortization. Each elapsed
         # month, a fixed total installment splits into interest (on the
         # principal still outstanding) and principal; the principal portion
@@ -93,7 +93,7 @@ def calculate_loan(
         days_since_installment = max(0, (now - last_installment_date).days)
         accrued_interest = outstanding_principal * daily_rate * days_since_installment
         current_balance = outstanding_principal
-        monthly_interest = outstanding_principal * monthly_rate
+        monthly_interest = emi
     else:
         # Fixed balance: principal stays at the full disbursement amount until
         # maturity; interest simply accrues on top of it.

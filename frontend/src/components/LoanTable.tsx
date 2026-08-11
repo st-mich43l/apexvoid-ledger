@@ -40,7 +40,7 @@ export function LoanTable({ loans, onDelete }: LoanTableProps) {
             <Th align="right">Days elapsed</Th>
             <Th align="right">Accrued interest</Th>
             <Th align="right">Current balance</Th>
-            <Th align="right">Monthly interest</Th>
+            <Th align="right">Monthly payment</Th>
             <Th />
           </tr>
         </thead>
