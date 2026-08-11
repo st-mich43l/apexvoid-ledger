@@ -3,7 +3,11 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal
 
-CENTS = Decimal("0.01")
+# Loan amounts round to whole currency units (no VND has minor decimal units in
+# practice, and the reference bank schedule this was calibrated against rounds
+# each period to whole VND - a fixed-point cents granularity introduced a
+# rounding drift that whole-unit rounding does not).
+UNIT = Decimal("1")
 
 
 @dataclass
@@ -35,10 +39,10 @@ def _next_business_day(dt: datetime) -> datetime:
 def _calculate_emi(principal: Decimal, monthly_rate: Decimal, duration_months: int) -> Decimal:
     """Standard equal-monthly-installment (annuity) amortization payment."""
     if monthly_rate == 0:
-        return (principal / Decimal(duration_months)).quantize(CENTS, rounding=ROUND_HALF_UP)
+        return (principal / Decimal(duration_months)).quantize(UNIT, rounding=ROUND_HALF_UP)
     growth = (1 + monthly_rate) ** duration_months
     emi = principal * monthly_rate * growth / (growth - 1)
-    return emi.quantize(CENTS, rounding=ROUND_HALF_UP)
+    return emi.quantize(UNIT, rounding=ROUND_HALF_UP)
 
 
 def calculate_loan(
@@ -81,7 +85,7 @@ def calculate_loan(
                 break
             days_in_period = (scheduled_date - previous_date).days
             interest_for_period = (outstanding_principal * daily_rate * days_in_period).quantize(
-                CENTS, rounding=ROUND_HALF_UP
+                UNIT, rounding=ROUND_HALF_UP
             )
             principal_for_period = emi - interest_for_period
             outstanding_principal -= principal_for_period
@@ -91,7 +95,7 @@ def calculate_loan(
 
         if periods_elapsed >= duration_months or is_matured:
             outstanding_principal = Decimal(0)
-        outstanding_principal = outstanding_principal.quantize(CENTS, rounding=ROUND_HALF_UP)
+        outstanding_principal = outstanding_principal.quantize(UNIT, rounding=ROUND_HALF_UP)
 
         days_since_installment = max(0, (now - last_installment_date).days)
         accrued_interest = outstanding_principal * daily_rate * days_since_installment
@@ -109,7 +113,7 @@ def calculate_loan(
         days_remaining=days_remaining,
         is_matured=is_matured,
         maturity_date=maturity_date,
-        accrued_interest=accrued_interest.quantize(CENTS, rounding=ROUND_HALF_UP),
-        current_balance=current_balance.quantize(CENTS, rounding=ROUND_HALF_UP),
-        monthly_interest=monthly_interest.quantize(CENTS, rounding=ROUND_HALF_UP),
+        accrued_interest=accrued_interest.quantize(UNIT, rounding=ROUND_HALF_UP),
+        current_balance=current_balance.quantize(UNIT, rounding=ROUND_HALF_UP),
+        monthly_interest=monthly_interest.quantize(UNIT, rounding=ROUND_HALF_UP),
     )
