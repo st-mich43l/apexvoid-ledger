@@ -59,15 +59,14 @@ CI/CD deploys via [`ansible-library`](https://github.com/st-mich43l/ansible-libr
 them to Docker Hub, then Ansible renders `deployment-template/docker-compose.yml.j2`
 on the VPS and pulls/starts the stack (backend + frontend + its own Postgres).
 
-**Not publicly routed yet.** The app has no authentication, so the frontend is
-bound to `127.0.0.1:8091` on the host — reachable only via SSH tunnel
-(`ssh -L 8080:localhost:8091 apexvoid@<host> -p <port>`), not attached to the
-shared `routing` nginx network. Once auth is added, flip this on by:
+Public at **https://ledger.apexvoid.net** via the shared [`routing`](https://github.com/st-mich43l/routing)
+nginx project — `backend` and `frontend` join the external `routing` Docker
+network, and `routing`'s `nginx/includes/apexvoid-ledger-routes.conf` proxies
+`/api/*` to `apexvoid-ledger-backend:4000` and everything else to
+`apexvoid-ledger-frontend:80`.
 
-1. Adding `frontend` to `routing_network` in `ansible-library`'s
-   `deploy_image` role output (join the `routing` docker network, drop the
-   `127.0.0.1:8091:80` port publish).
-2. Adding a server block for the chosen subdomain in the `routing` repo.
+**⚠️ The app currently ships with no authentication.** Anyone with the URL can
+read and edit loan data. Add auth before relying on this being deployed.
 
 **One-time setup before the first deploy:**
 

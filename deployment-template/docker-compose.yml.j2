@@ -1,8 +1,7 @@
 {# Rendered on the VPS by ansible (deploy_image role). Do not edit on the host. #}
-{# Vars: image_tag, registry_namespace, apexvoid_ledger_secrets (vault).       #}
-{# Not attached to routing_network yet — no public domain until the app has   #}
-{# auth. Frontend is published on localhost only; reach it via SSH tunnel:    #}
-{#   ssh -L 8080:localhost:8091 apexvoid@<host> -p <port>                     #}
+{# Vars: image_tag, registry_namespace, apexvoid_ledger_secrets (vault),       #}
+{# routing_network. Public at https://ledger.apexvoid.net via the shared       #}
+{# `routing` project — see routing repo's nginx/includes/apexvoid-ledger-routes.conf. #}
 name: apexvoid-ledger
 
 services:
@@ -33,6 +32,9 @@ services:
     environment:
       DATABASE_URL: {{ apexvoid_ledger_secrets.DATABASE_URL | to_json }}
       PORT: "4000"
+    networks:
+      - default
+      - routing
 
   frontend:
     image: "{{ registry_namespace }}/apexvoid-ledger-frontend:{{ image_tag }}"
@@ -40,8 +42,15 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
-    ports:
-      - "127.0.0.1:8091:80"
+    networks:
+      - default
+      - routing
 
 volumes:
   pgdata:
+
+networks:
+  default:
+  routing:
+    external: true
+    name: "{{ routing_network }}"
