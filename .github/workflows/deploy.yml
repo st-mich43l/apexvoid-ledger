@@ -1,0 +1,34 @@
+name: Build & Deploy
+
+# Build backend + frontend images, push to Docker Hub, then deploy on the VPS
+# by pulling the new tag (via ansible-library). This repo needs
+# DOCKERHUB_TOKEN + ANSIBLE_VAULT_PASSWORD as repo secrets.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "deployment-template/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: build-deploy-master
+  cancel-in-progress: false
+
+jobs:
+  release:
+    uses: st-mich43l/action-library/.github/workflows/build-push-deploy.yml@master
+    with:
+      project: apexvoid-ledger
+      registry-namespace: mich43l
+      images: >-
+        [
+          {"name": "apexvoid-ledger-backend", "context": "backend", "dockerfile": "backend/Dockerfile"},
+          {"name": "apexvoid-ledger-frontend", "context": "frontend", "dockerfile": "frontend/Dockerfile"}
+        ]
+    secrets:
+      registry-token: ${{ secrets.DOCKERHUB_TOKEN }}
+      vault-password: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}

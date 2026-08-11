@@ -1,0 +1,56 @@
+{# Rendered on the VPS by ansible (deploy_image role). Do not edit on the host. #}
+{# Vars: image_tag, registry_namespace, apexvoid_ledger_secrets (vault),       #}
+{# routing_network. Public at https://ledger.apexvoid.net via the shared       #}
+{# `routing` project — see routing repo's nginx/includes/apexvoid-ledger-routes.conf. #}
+name: apexvoid-ledger
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: apexvoid-ledger-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: {{ apexvoid_ledger_secrets.POSTGRES_USER | to_json }}
+      POSTGRES_PASSWORD: {{ apexvoid_ledger_secrets.POSTGRES_PASSWORD | to_json }}
+      POSTGRES_DB: {{ apexvoid_ledger_secrets.POSTGRES_DB | to_json }}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ apexvoid_ledger_secrets.POSTGRES_USER }} -d {{ apexvoid_ledger_secrets.POSTGRES_DB }}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  backend:
+    image: "{{ registry_namespace }}/apexvoid-ledger-backend:{{ image_tag }}"
+    container_name: apexvoid-ledger-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: {{ apexvoid_ledger_secrets.DATABASE_URL | to_json }}
+      PORT: "4000"
+    networks:
+      - default
+      - routing
+
+  frontend:
+    image: "{{ registry_namespace }}/apexvoid-ledger-frontend:{{ image_tag }}"
+    container_name: apexvoid-ledger-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - default
+      - routing
+
+volumes:
+  pgdata:
+
+networks:
+  default:
+  routing:
+    external: true
+    name: "{{ routing_network }}"
