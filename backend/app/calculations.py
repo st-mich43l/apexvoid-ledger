@@ -1,6 +1,6 @@
 import calendar
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal
 
 CENTS = Decimal("0.01")
@@ -25,19 +25,11 @@ def _add_months(dt: datetime, months: int) -> datetime:
     return dt.replace(year=year, month=month, day=day)
 
 
-def _installment_periods_elapsed(
-    open_date: datetime, now: datetime, duration_months: int
-) -> tuple[int, datetime]:
-    """Full monthly installment periods elapsed, and the most recent installment date."""
-    periods = 0
-    last_installment_date = open_date
-    while periods < duration_months:
-        next_installment_date = _add_months(open_date, periods + 1)
-        if next_installment_date > now:
-            break
-        last_installment_date = next_installment_date
-        periods += 1
-    return periods, last_installment_date
+def _next_business_day(dt: datetime) -> datetime:
+    """Push weekend due dates to the following Monday, as banks do."""
+    while dt.weekday() >= 5:  # 5 = Saturday, 6 = Sunday
+        dt += timedelta(days=1)
+    return dt
 
 
 def _calculate_emi(principal: Decimal, monthly_rate: Decimal, duration_months: int) -> Decimal:
@@ -69,24 +61,35 @@ def calculate_loan(
     daily_rate = interest_rate_per_year / Decimal(100) / Decimal(365)
 
     if loan_type == "unsecured":
-        # Declining balance: standard EMI/annuity amortization. Each elapsed
-        # month, a fixed total installment splits into interest (on the
-        # principal still outstanding) and principal; the principal portion
-        # grows each period as the outstanding balance shrinks.
-        periods_elapsed, last_installment_date = _installment_periods_elapsed(
-            open_date_utc, now, duration_months
-        )
+        # Declining balance: EMI/annuity amortization. The total installment
+        # (EMI) is fixed for the life of the loan, but each period's interest
+        # is charged on the actual calendar days since the previous
+        # installment - and installment dates that land on a weekend are
+        # pushed to the next business day (Monday), same as a real bank
+        # schedule - so the interest/principal split shifts slightly period
+        # to period even though EMI itself doesn't.
         monthly_rate = interest_rate_per_year / Decimal(1200)
         emi = _calculate_emi(disbursement_amount, monthly_rate, duration_months)
 
         outstanding_principal = disbursement_amount
-        for _ in range(periods_elapsed):
-            interest_for_period = (outstanding_principal * monthly_rate).quantize(
+        previous_date = open_date_utc
+        last_installment_date = open_date_utc
+        periods_elapsed = 0
+        for period in range(1, duration_months + 1):
+            scheduled_date = _next_business_day(_add_months(open_date_utc, period))
+            if scheduled_date > now:
+                break
+            days_in_period = (scheduled_date - previous_date).days
+            interest_for_period = (outstanding_principal * daily_rate * days_in_period).quantize(
                 CENTS, rounding=ROUND_HALF_UP
             )
             principal_for_period = emi - interest_for_period
             outstanding_principal -= principal_for_period
-        if is_matured:
+            previous_date = scheduled_date
+            last_installment_date = scheduled_date
+            periods_elapsed += 1
+
+        if periods_elapsed >= duration_months or is_matured:
             outstanding_principal = Decimal(0)
         outstanding_principal = outstanding_principal.quantize(CENTS, rounding=ROUND_HALF_UP)
 
