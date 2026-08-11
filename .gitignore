@@ -1,1 +1,21 @@
+# OS
 .DS_Store
+Thumbs.db
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.swp
+*.swo
+
+# Env files (backend/ and frontend/ have their own, more specific ignores)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+
+# Docker Compose local overrides
+docker-compose.override.yml
