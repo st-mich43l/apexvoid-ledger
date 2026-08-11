@@ -40,6 +40,15 @@ def _installment_periods_elapsed(
     return periods, last_installment_date
 
 
+def _calculate_emi(principal: Decimal, monthly_rate: Decimal, duration_months: int) -> Decimal:
+    """Standard equal-monthly-installment (annuity) amortization payment."""
+    if monthly_rate == 0:
+        return (principal / Decimal(duration_months)).quantize(CENTS, rounding=ROUND_HALF_UP)
+    growth = (1 + monthly_rate) ** duration_months
+    emi = principal * monthly_rate * growth / (growth - 1)
+    return emi.quantize(CENTS, rounding=ROUND_HALF_UP)
+
+
 def calculate_loan(
     disbursement_amount: Decimal,
     interest_rate_per_year: Decimal,
@@ -60,20 +69,31 @@ def calculate_loan(
     daily_rate = interest_rate_per_year / Decimal(100) / Decimal(365)
 
     if loan_type == "secured":
-        # Declining balance: principal is paid down in equal installments each
-        # month, and interest is charged only on the principal still outstanding.
+        # Declining balance: standard EMI/annuity amortization. Each elapsed
+        # month, a fixed total installment splits into interest (on the
+        # principal still outstanding) and principal; the principal portion
+        # grows each period as the outstanding balance shrinks.
         periods_elapsed, last_installment_date = _installment_periods_elapsed(
             open_date_utc, now, duration_months
         )
-        monthly_principal = disbursement_amount / Decimal(duration_months)
-        outstanding_principal = disbursement_amount - monthly_principal * periods_elapsed
+        monthly_rate = interest_rate_per_year / Decimal(1200)
+        emi = _calculate_emi(disbursement_amount, monthly_rate, duration_months)
+
+        outstanding_principal = disbursement_amount
+        for _ in range(periods_elapsed):
+            interest_for_period = (outstanding_principal * monthly_rate).quantize(
+                CENTS, rounding=ROUND_HALF_UP
+            )
+            principal_for_period = emi - interest_for_period
+            outstanding_principal -= principal_for_period
         if is_matured:
             outstanding_principal = Decimal(0)
+        outstanding_principal = outstanding_principal.quantize(CENTS, rounding=ROUND_HALF_UP)
 
         days_since_installment = max(0, (now - last_installment_date).days)
         accrued_interest = outstanding_principal * daily_rate * days_since_installment
-        current_balance = outstanding_principal + accrued_interest
-        monthly_interest = outstanding_principal * (interest_rate_per_year / Decimal(100)) / Decimal(12)
+        current_balance = outstanding_principal
+        monthly_interest = outstanding_principal * monthly_rate
     else:
         # Fixed balance: principal stays at the full disbursement amount until
         # maturity; interest simply accrues on top of it.
