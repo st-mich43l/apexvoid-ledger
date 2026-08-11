@@ -36,8 +36,8 @@ export function PremiumCard({ title, icon, accent, value, subtitle, to, comingSo
 
   const card = (
     <div
-      className={`group relative overflow-hidden rounded-3xl border border-neutral-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-transparent transition-all duration-300 dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none ${
-        comingSoon ? 'opacity-80' : `hover:-translate-y-0.5 hover:shadow-lg ${styles.ring}`
+      className={`group relative overflow-hidden rounded-3xl border border-neutral-200/80 bg-white p-6 shadow-[0_2px_8px_-2px_rgba(24,16,54,0.08),0_16px_32px_-12px_rgba(24,16,54,0.10)] ring-1 ring-transparent transition-all duration-300 dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none ${
+        comingSoon ? 'opacity-80' : `hover:-translate-y-0.5 hover:shadow-[0_4px_12px_-2px_rgba(24,16,54,0.10),0_24px_40px_-12px_rgba(24,16,54,0.14)] ${styles.ring}`
       }`}
     >
       <div
