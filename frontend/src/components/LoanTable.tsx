@@ -1,14 +1,11 @@
+import { useCurrency } from '../context/CurrencyContext'
+import { formatCurrency } from '../lib/currency'
 import type { Loan } from '../types'
 
 interface LoanTableProps {
   loans: Loan[]
   onDelete: (id: string) => void
 }
-
-const currencyFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-})
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
@@ -17,6 +14,8 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
 })
 
 export function LoanTable({ loans, onDelete }: LoanTableProps) {
+  const { currency } = useCurrency()
+
   if (loans.length === 0) {
     return (
       <p className="rounded-2xl border border-dashed border-neutral-300 p-10 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
@@ -46,14 +45,14 @@ export function LoanTable({ loans, onDelete }: LoanTableProps) {
             <tr key={loan.id} className="transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/60">
               <Td className="font-medium text-neutral-900 dark:text-neutral-50">{loan.bankName}</Td>
               <Td>{dateFormatter.format(new Date(loan.openDate))}</Td>
-              <Td align="right">{currencyFormatter.format(loan.disbursementAmount)}</Td>
+              <Td align="right">{formatCurrency(loan.disbursementAmount, currency)}</Td>
               <Td align="right">{loan.interestRatePerYear.toFixed(2)}%</Td>
               <Td align="right">{loan.daysElapsed}</Td>
-              <Td align="right">{currencyFormatter.format(loan.accruedInterest)}</Td>
+              <Td align="right">{formatCurrency(loan.accruedInterest, currency)}</Td>
               <Td align="right" className="font-semibold text-violet-600 dark:text-violet-400">
-                {currencyFormatter.format(loan.currentBalance)}
+                {formatCurrency(loan.currentBalance, currency)}
               </Td>
-              <Td align="right">{currencyFormatter.format(loan.monthlyInterest)}</Td>
+              <Td align="right">{formatCurrency(loan.monthlyInterest, currency)}</Td>
               <Td align="right">
                 <button
                   onClick={() => onDelete(loan.id)}
