@@ -1,0 +1,47 @@
+{# Rendered on the VPS by ansible (deploy_image role). Do not edit on the host. #}
+{# Vars: image_tag, registry_namespace, apexvoid_ledger_secrets (vault).       #}
+{# Not attached to routing_network yet — no public domain until the app has   #}
+{# auth. Frontend is published on localhost only; reach it via SSH tunnel:    #}
+{#   ssh -L 8080:localhost:8091 apexvoid@<host> -p <port>                     #}
+name: apexvoid-ledger
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: apexvoid-ledger-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: {{ apexvoid_ledger_secrets.POSTGRES_USER | to_json }}
+      POSTGRES_PASSWORD: {{ apexvoid_ledger_secrets.POSTGRES_PASSWORD | to_json }}
+      POSTGRES_DB: {{ apexvoid_ledger_secrets.POSTGRES_DB | to_json }}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ apexvoid_ledger_secrets.POSTGRES_USER }} -d {{ apexvoid_ledger_secrets.POSTGRES_DB }}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  backend:
+    image: "{{ registry_namespace }}/apexvoid-ledger-backend:{{ image_tag }}"
+    container_name: apexvoid-ledger-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: {{ apexvoid_ledger_secrets.DATABASE_URL | to_json }}
+      PORT: "4000"
+
+  frontend:
+    image: "{{ registry_namespace }}/apexvoid-ledger-frontend:{{ image_tag }}"
+    container_name: apexvoid-ledger-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:8091:80"
+
+volumes:
+  pgdata:

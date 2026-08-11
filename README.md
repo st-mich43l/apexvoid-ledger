@@ -50,3 +50,32 @@ From these, the dashboard calculates (simple interest, prorated daily):
    ```
 
 The frontend dev server proxies `/api/*` to the backend on port 4000.
+
+## Deployment
+
+CI/CD deploys via [`ansible-library`](https://github.com/st-mich43l/ansible-library)
+(project key `apexvoid-ledger`), same pattern as the other `apexvoid-*` services:
+`.github/workflows/deploy.yml` builds `backend/` and `frontend/` images, pushes
+them to Docker Hub, then Ansible renders `deployment-template/docker-compose.yml.j2`
+on the VPS and pulls/starts the stack (backend + frontend + its own Postgres).
+
+**Not publicly routed yet.** The app has no authentication, so the frontend is
+bound to `127.0.0.1:8091` on the host — reachable only via SSH tunnel
+(`ssh -L 8080:localhost:8091 apexvoid@<host> -p <port>`), not attached to the
+shared `routing` nginx network. Once auth is added, flip this on by:
+
+1. Adding `frontend` to `routing_network` in `ansible-library`'s
+   `deploy_image` role output (join the `routing` docker network, drop the
+   `127.0.0.1:8091:80` port publish).
+2. Adding a server block for the chosen subdomain in the `routing` repo.
+
+**One-time setup before the first deploy:**
+
+- Repo secrets (`Settings → Secrets and variables → Actions`):
+  - `DOCKERHUB_TOKEN` — Docker Hub access token for the `mich43l` namespace.
+  - `ANSIBLE_VAULT_PASSWORD` — same vault password used by the other
+    `apexvoid-*` repos.
+- In `ansible-library`, `inventory/group_vars/all/vault.yml` needs a
+  `vault_apexvoid_ledger_env` entry with `POSTGRES_USER`, `POSTGRES_PASSWORD`,
+  `POSTGRES_DB`, and `DATABASE_URL` (host must be `postgres`, the compose
+  service name).
