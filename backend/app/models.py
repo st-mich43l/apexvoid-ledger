@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Numeric, String
+from sqlalchemy import DateTime, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .database import Base
@@ -15,6 +15,7 @@ class Loan(Base):
     open_date: Mapped[datetime] = mapped_column("openDate", DateTime, nullable=False)
     disbursement_amount: Mapped[float] = mapped_column("disbursementAmount", Numeric(14, 2), nullable=False)
     interest_rate_per_year: Mapped[float] = mapped_column("interestRatePerYear", Numeric(6, 3), nullable=False)
+    duration_months: Mapped[int] = mapped_column("durationMonths", Integer, nullable=False, default=12)
     created_at: Mapped[datetime] = mapped_column(
         "createdAt", DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
     )

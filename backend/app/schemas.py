@@ -20,6 +20,7 @@ class LoanCreate(CamelModel):
     open_date: datetime
     disbursement_amount: Decimal
     interest_rate_per_year: Decimal
+    duration_months: int
 
 
 class LoanUpdate(CamelModel):
@@ -27,6 +28,7 @@ class LoanUpdate(CamelModel):
     open_date: datetime | None = None
     disbursement_amount: Decimal | None = None
     interest_rate_per_year: Decimal | None = None
+    duration_months: int | None = None
 
 
 class LoanRead(CamelModel):
@@ -35,13 +37,17 @@ class LoanRead(CamelModel):
     open_date: datetime
     disbursement_amount: float
     interest_rate_per_year: float
+    duration_months: int
     created_at: datetime
     updated_at: datetime
     days_elapsed: int
+    days_remaining: int
+    is_matured: bool
+    maturity_date: datetime
     accrued_interest: float
     current_balance: float
     monthly_interest: float
 
-    @field_serializer("open_date", "created_at", "updated_at")
+    @field_serializer("open_date", "created_at", "updated_at", "maturity_date")
     def _serialize_dt(self, dt: datetime, _info) -> str:
         return _to_js_iso(dt)

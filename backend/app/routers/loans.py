@@ -10,16 +10,25 @@ router = APIRouter(prefix="/api/loans", tags=["loans"])
 
 
 def _serialize(loan: Loan) -> LoanRead:
-    calc = calculate_loan(loan.disbursement_amount, loan.interest_rate_per_year, loan.open_date)
+    calc = calculate_loan(
+        loan.disbursement_amount,
+        loan.interest_rate_per_year,
+        loan.open_date,
+        loan.duration_months,
+    )
     return LoanRead(
         id=loan.id,
         bank_name=loan.bank_name,
         open_date=loan.open_date,
         disbursement_amount=loan.disbursement_amount,
         interest_rate_per_year=loan.interest_rate_per_year,
+        duration_months=loan.duration_months,
         created_at=loan.created_at,
         updated_at=loan.updated_at,
         days_elapsed=calc.days_elapsed,
+        days_remaining=calc.days_remaining,
+        is_matured=calc.is_matured,
+        maturity_date=calc.maturity_date,
         accrued_interest=calc.accrued_interest,
         current_balance=calc.current_balance,
         monthly_interest=calc.monthly_interest,
@@ -46,6 +55,7 @@ def create_loan(payload: LoanCreate, db: Session = Depends(get_db)):
         open_date=payload.open_date,
         disbursement_amount=payload.disbursement_amount,
         interest_rate_per_year=payload.interest_rate_per_year,
+        duration_months=payload.duration_months,
     )
     db.add(loan)
     db.commit()

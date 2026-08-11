@@ -18,19 +18,20 @@ export function LoanTable({ loans, onDelete }: LoanTableProps) {
 
   if (loans.length === 0) {
     return (
-      <p className="rounded-2xl border border-dashed border-neutral-300 p-10 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+      <p className="rounded-3xl border border-dashed border-neutral-300 p-10 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
         No loans yet. Add one above to start tracking it.
       </p>
     )
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-neutral-200 shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:border-neutral-800 dark:shadow-none">
+    <div className="overflow-x-auto rounded-3xl border border-neutral-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none">
       <table className="min-w-full divide-y divide-neutral-200 dark:divide-neutral-800">
-        <thead className="bg-neutral-50 dark:bg-neutral-900">
+        <thead className="bg-neutral-50 dark:bg-neutral-900/60">
           <tr>
             <Th>Bank</Th>
             <Th>Open date</Th>
+            <Th>Maturity</Th>
             <Th align="right">Disbursed</Th>
             <Th align="right">Rate / yr</Th>
             <Th align="right">Days elapsed</Th>
@@ -40,11 +41,25 @@ export function LoanTable({ loans, onDelete }: LoanTableProps) {
             <Th />
           </tr>
         </thead>
-        <tbody className="divide-y divide-neutral-200 bg-white dark:divide-neutral-800 dark:bg-neutral-950">
+        <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
           {loans.map((loan) => (
             <tr key={loan.id} className="transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/60">
               <Td className="font-medium text-neutral-900 dark:text-neutral-50">{loan.bankName}</Td>
               <Td>{dateFormatter.format(new Date(loan.openDate))}</Td>
+              <Td>
+                <div className="flex items-center gap-2">
+                  <span>{dateFormatter.format(new Date(loan.maturityDate))}</span>
+                  {loan.isMatured ? (
+                    <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+                      Matured
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                      {loan.daysRemaining}d left
+                    </span>
+                  )}
+                </div>
+              </Td>
               <Td align="right">{formatCurrency(loan.disbursementAmount, currency)}</Td>
               <Td align="right">{loan.interestRatePerYear.toFixed(2)}%</Td>
               <Td align="right">{loan.daysElapsed}</Td>
