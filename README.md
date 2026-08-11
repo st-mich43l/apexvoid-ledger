@@ -5,7 +5,7 @@ A personal dashboard for tracking loans across multiple banks: open date, disbur
 ## 🧱 Stack
 
 - 🖥️ `frontend/` — React + Vite + TypeScript + Tailwind CSS
-- ⚙️ `backend/` — Express + TypeScript + Prisma, backed by PostgreSQL
+- ⚙️ `backend/` — FastAPI + SQLAlchemy + Alembic, backed by PostgreSQL
 
 ## 🏦 Loan fields
 
@@ -36,9 +36,10 @@ From these, the dashboard calculates (simple interest, prorated daily):
    ```bash
    cd backend
    cp .env.example .env   # if not already present
-   npm install
-   npx prisma migrate dev
-   npm run dev             # http://localhost:4000
+   python3 -m venv .venv && source .venv/bin/activate
+   pip install -r requirements.txt
+   alembic upgrade head
+   uvicorn app.main:app --reload --port 4000   # http://localhost:4000
    ```
 
 3. Frontend:

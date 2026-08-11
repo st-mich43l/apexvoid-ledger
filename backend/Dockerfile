@@ -1,24 +1,14 @@
-FROM node:22-alpine AS build
+FROM python:3.13-slim
+
 WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 
-COPY package.json package-lock.json prisma.config.ts ./
-COPY prisma ./prisma
-RUN npm ci
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY tsconfig.json ./
-COPY src ./src
-RUN npx prisma generate
-RUN npm run build
-
-FROM node:22-alpine AS runtime
-WORKDIR /app
-ENV NODE_ENV=production
-
-COPY package.json package-lock.json prisma.config.ts ./
-RUN npm ci --omit=dev
-
-COPY prisma ./prisma
-COPY --from=build /app/dist ./dist
+COPY alembic.ini ./
+COPY alembic ./alembic
+COPY app ./app
 
 EXPOSE 4000
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-4000}"]
