@@ -15,6 +15,7 @@ def _serialize(loan: Loan) -> LoanRead:
         loan.interest_rate_per_year,
         loan.open_date,
         loan.duration_months,
+        loan.loan_type,
     )
     return LoanRead(
         id=loan.id,
@@ -23,6 +24,7 @@ def _serialize(loan: Loan) -> LoanRead:
         disbursement_amount=loan.disbursement_amount,
         interest_rate_per_year=loan.interest_rate_per_year,
         duration_months=loan.duration_months,
+        loan_type=loan.loan_type,
         created_at=loan.created_at,
         updated_at=loan.updated_at,
         days_elapsed=calc.days_elapsed,
@@ -56,6 +58,7 @@ def create_loan(payload: LoanCreate, db: Session = Depends(get_db)):
         disbursement_amount=payload.disbursement_amount,
         interest_rate_per_year=payload.interest_rate_per_year,
         duration_months=payload.duration_months,
+        loan_type=payload.loan_type,
     )
     db.add(loan)
     db.commit()

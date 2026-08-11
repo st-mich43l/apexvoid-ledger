@@ -32,6 +32,7 @@ export function LoanTable({ loans, onDelete }: LoanTableProps) {
         <thead className="bg-neutral-50 dark:bg-neutral-900/60">
           <tr>
             <Th>Bank</Th>
+            <Th>Type</Th>
             <Th>Open date</Th>
             <Th>Maturity</Th>
             <Th align="right">Disbursed</Th>
@@ -47,6 +48,17 @@ export function LoanTable({ loans, onDelete }: LoanTableProps) {
           {loans.map((loan) => (
             <tr key={loan.id} className="transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/60">
               <Td className="font-medium text-neutral-900 dark:text-neutral-50">{loan.bankName}</Td>
+              <Td>
+                {loan.loanType === 'secured' ? (
+                  <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[11px] font-medium text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400">
+                    Secured
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+                    Unsecured
+                  </span>
+                )}
+              </Td>
               <Td>{formatDate(loan.openDate)}</Td>
               <Td>
                 <div className="flex items-center gap-2">

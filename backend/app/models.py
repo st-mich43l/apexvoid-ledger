@@ -16,6 +16,7 @@ class Loan(Base):
     disbursement_amount: Mapped[float] = mapped_column("disbursementAmount", Numeric(14, 2), nullable=False)
     interest_rate_per_year: Mapped[float] = mapped_column("interestRatePerYear", Numeric(6, 3), nullable=False)
     duration_months: Mapped[int] = mapped_column("durationMonths", Integer, nullable=False, default=12)
+    loan_type: Mapped[str] = mapped_column("loanType", String, nullable=False, default="unsecured")
     created_at: Mapped[datetime] = mapped_column(
         "createdAt", DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
     )

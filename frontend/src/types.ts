@@ -1,3 +1,5 @@
+export type LoanType = 'secured' | 'unsecured'
+
 export interface Loan {
   id: string
   bankName: string
@@ -5,6 +7,7 @@ export interface Loan {
   disbursementAmount: number
   interestRatePerYear: number
   durationMonths: number
+  loanType: LoanType
   createdAt: string
   updatedAt: string
   daysElapsed: number
@@ -22,4 +25,5 @@ export interface LoanInput {
   disbursementAmount: number
   interestRatePerYear: number
   durationMonths: number
+  loanType: LoanType
 }

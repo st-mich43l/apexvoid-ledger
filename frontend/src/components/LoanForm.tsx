@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { LoanInput } from '../types'
+import type { LoanInput, LoanType } from '../types'
 
 interface LoanFormProps {
   onSubmit: (input: LoanInput) => Promise<void>
@@ -11,6 +11,7 @@ const emptyForm = {
   disbursementAmount: '',
   interestRatePerYear: '',
   durationMonths: '12',
+  loanType: 'unsecured' as LoanType,
 }
 
 function sanitizeAmountInput(value: string): string {
@@ -65,6 +66,10 @@ export function LoanForm({ onSubmit }: LoanFormProps) {
     setForm((prev) => ({ ...prev, openDate: digits }))
   }
 
+  const handleLoanTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setForm((prev) => ({ ...prev, loanType: e.target.value as LoanType }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
@@ -75,6 +80,7 @@ export function LoanForm({ onSubmit }: LoanFormProps) {
         disbursementAmount: Number(form.disbursementAmount),
         interestRatePerYear: Number(form.interestRatePerYear),
         durationMonths: Number(form.durationMonths),
+        loanType: form.loanType,
       })
       setForm(emptyForm)
     } finally {
@@ -151,6 +157,13 @@ export function LoanForm({ onSubmit }: LoanFormProps) {
             placeholder="12"
             className={inputClass}
           />
+        </Field>
+
+        <Field label="Loan type">
+          <select value={form.loanType} onChange={handleLoanTypeChange} className={inputClass}>
+            <option value="unsecured">Unsecured (fixed balance)</option>
+            <option value="secured">Secured (declining balance)</option>
+          </select>
         </Field>
       </div>
 
