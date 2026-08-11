@@ -37,7 +37,6 @@ export function LoanTable({ loans, onDelete }: LoanTableProps) {
             <Th>Maturity</Th>
             <Th align="right">Disbursed</Th>
             <Th align="right">Rate / yr</Th>
-            <Th align="right">Days elapsed</Th>
             <Th align="right">Accrued interest</Th>
             <Th align="right">Current balance</Th>
             <Th align="right">Monthly payment</Th>
@@ -76,7 +75,6 @@ export function LoanTable({ loans, onDelete }: LoanTableProps) {
               </Td>
               <Td align="right">{formatCurrency(loan.disbursementAmount, currency)}</Td>
               <Td align="right">{loan.interestRatePerYear.toFixed(2)}%</Td>
-              <Td align="right">{loan.daysElapsed}</Td>
               <Td align="right">{formatCurrency(loan.accruedInterest, currency)}</Td>
               <Td align="right" className="font-semibold text-violet-600 dark:text-violet-400">
                 {formatCurrency(loan.currentBalance, currency)}
