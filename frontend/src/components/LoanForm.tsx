@@ -13,6 +13,38 @@ const emptyForm = {
   durationMonths: '12',
 }
 
+function sanitizeAmountInput(value: string): string {
+  let cleaned = value.replace(/,/g, '').replace(/[^\d.]/g, '')
+  const firstDot = cleaned.indexOf('.')
+  if (firstDot !== -1) {
+    cleaned = cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, '')
+  }
+  return cleaned
+}
+
+function formatAmountDisplay(raw: string): string {
+  if (!raw) return ''
+  const [intPart, decPart] = raw.split('.')
+  const withCommas = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return decPart !== undefined ? `${withCommas}.${decPart}` : withCommas
+}
+
+// Date is stored as raw ddmmyyyy digits so display is always dd/mm/yyyy
+// regardless of the visitor's browser/OS locale, then converted to ISO on submit.
+function formatDateDisplay(digits: string): string {
+  const dd = digits.slice(0, 2)
+  const mm = digits.slice(2, 4)
+  const yyyy = digits.slice(4, 8)
+  return [dd, mm, yyyy].filter(Boolean).join('/')
+}
+
+function dateDigitsToIso(digits: string): string {
+  const dd = digits.slice(0, 2)
+  const mm = digits.slice(2, 4)
+  const yyyy = digits.slice(4, 8)
+  return yyyy.length === 4 ? `${yyyy}-${mm}-${dd}` : ''
+}
+
 export function LoanForm({ onSubmit }: LoanFormProps) {
   const [form, setForm] = useState(emptyForm)
   const [submitting, setSubmitting] = useState(false)
@@ -23,13 +55,23 @@ export function LoanForm({ onSubmit }: LoanFormProps) {
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
   }
 
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const cleaned = sanitizeAmountInput(e.target.value)
+    setForm((prev) => ({ ...prev, disbursementAmount: cleaned }))
+  }
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 8)
+    setForm((prev) => ({ ...prev, openDate: digits }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
     try {
       await onSubmit({
         bankName: form.bankName,
-        openDate: form.openDate,
+        openDate: dateDigitsToIso(form.openDate),
         disbursementAmount: Number(form.disbursementAmount),
         interestRatePerYear: Number(form.interestRatePerYear),
         durationMonths: Number(form.durationMonths),
@@ -43,7 +85,7 @@ export function LoanForm({ onSubmit }: LoanFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="relative overflow-hidden rounded-3xl border border-neutral-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none sm:p-7"
+      className="relative overflow-hidden rounded-3xl border border-neutral-200/80 bg-white p-6 shadow-[0_2px_8px_-2px_rgba(24,16,54,0.08),0_16px_32px_-12px_rgba(24,16,54,0.10)] transition-shadow sm:p-7 dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none"
     >
       <div className="pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full bg-gradient-to-br from-violet-500/10 to-transparent blur-2xl" />
 
@@ -62,9 +104,13 @@ export function LoanForm({ onSubmit }: LoanFormProps) {
         <Field label="Open date">
           <input
             required
-            type="date"
-            value={form.openDate}
-            onChange={handleChange('openDate')}
+            type="text"
+            inputMode="numeric"
+            pattern="\d{2}/\d{2}/\d{4}"
+            title="dd/mm/yyyy"
+            value={formatDateDisplay(form.openDate)}
+            onChange={handleDateChange}
+            placeholder="dd/mm/yyyy"
             className={inputClass}
           />
         </Field>
@@ -72,12 +118,11 @@ export function LoanForm({ onSubmit }: LoanFormProps) {
         <Field label="Disbursement amount">
           <input
             required
-            type="number"
-            min="0"
-            step="0.01"
-            value={form.disbursementAmount}
-            onChange={handleChange('disbursementAmount')}
-            placeholder="10000"
+            type="text"
+            inputMode="decimal"
+            value={formatAmountDisplay(form.disbursementAmount)}
+            onChange={handleAmountChange}
+            placeholder="10,000"
             className={inputClass}
           />
         </Field>

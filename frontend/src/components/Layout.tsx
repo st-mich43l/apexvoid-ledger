@@ -9,9 +9,9 @@ export function Layout() {
   const showBackButton = pathname !== '/dashboard'
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-violet-50/60 via-neutral-50 to-neutral-50 dark:from-violet-950/20 dark:via-neutral-950 dark:to-neutral-950">
+    <div className="min-h-screen bg-neutral-50 [background-image:radial-gradient(60%_50%_at_50%_-10%,rgba(139,92,246,0.16),transparent_70%)] dark:bg-neutral-950 dark:[background-image:radial-gradient(60%_50%_at_50%_-10%,rgba(139,92,246,0.10),transparent_70%)]">
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-        <header className="relative mb-10 overflow-hidden rounded-3xl border border-neutral-200 bg-white/70 p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)] backdrop-blur-sm sm:p-8 dark:border-neutral-800 dark:bg-neutral-900/60 dark:shadow-none">
+        <header className="relative mb-10 overflow-hidden rounded-3xl border border-neutral-200/80 bg-white/80 p-6 shadow-[0_2px_8px_-2px_rgba(24,16,54,0.08),0_16px_32px_-12px_rgba(24,16,54,0.10)] backdrop-blur-sm sm:p-8 dark:border-neutral-800 dark:bg-neutral-900/60 dark:shadow-none">
           <div className="pointer-events-none absolute -top-20 -left-10 h-56 w-56 rounded-full bg-gradient-to-br from-violet-500/10 to-transparent blur-3xl" />
 
           <div className="relative flex items-start justify-between gap-4">
