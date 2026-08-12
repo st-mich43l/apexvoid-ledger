@@ -322,3 +322,47 @@ class TestLoanDetail:
         current = [item for item in detail.schedule if item.status == "current"]
         assert len(completed) == detail.terms_elapsed
         assert len(current) == 1
+
+
+class TestTermsRemaining:
+    def test_calculate_loan_exposes_terms_elapsed_and_remaining(self):
+        calc = calculate_loan(
+            Decimal("596000000"), Decimal("12"), dt(2026, 5, 7), 60, "unsecured", as_of=dt(2026, 8, 11)
+        )
+        assert calc.terms_elapsed == 3
+        assert calc.terms_remaining == 57
+        assert calc.terms_elapsed + calc.terms_remaining == 60
+
+    def test_terms_remaining_hits_zero_at_maturity(self):
+        calc = calculate_loan(
+            Decimal("60000000"), Decimal("6"), dt(2026, 1, 1), 12, "unsecured", as_of=dt(2028, 1, 1)
+        )
+        assert calc.terms_remaining == 0
+        assert calc.is_matured is True
+
+    def test_weekend_adjusted_due_date_keeps_term_not_elapsed(self):
+        # 2026-06-07 (the *nominal*, unadjusted 1-month anniversary of
+        # 2026-05-07) is a Sunday; the actual due date is pushed to Monday
+        # 2026-06-08. Querying exactly on that Sunday must NOT count the
+        # term as elapsed yet, even though the nominal anniversary date has
+        # technically passed - only the real (adjusted) due date matters.
+        as_of_sunday = dt(2026, 6, 7)
+        assert as_of_sunday.weekday() == 6  # sanity check: this really is a Sunday
+
+        calc = calculate_loan(
+            Decimal("596000000"), Decimal("12"), dt(2026, 5, 7), 60, "unsecured", as_of=as_of_sunday
+        )
+        assert calc.terms_elapsed == 0
+        assert calc.terms_remaining == 60
+
+        schedule = generate_loan_schedule(
+            Decimal("596000000"), Decimal("12"), dt(2026, 5, 7), 60, "unsecured", as_of=as_of_sunday
+        )
+        assert schedule.items[0].status == "current"
+
+        # One day later (the adjusted Monday due date), the term is elapsed.
+        calc_monday = calculate_loan(
+            Decimal("596000000"), Decimal("12"), dt(2026, 5, 7), 60, "unsecured", as_of=dt(2026, 6, 8)
+        )
+        assert calc_monday.terms_elapsed == 1
+        assert calc_monday.terms_remaining == 59

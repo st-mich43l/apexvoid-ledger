@@ -5,7 +5,7 @@ import type { Loan } from '../types'
 
 interface LoanTableProps {
   loans: Loan[]
-  onDelete: (id: string) => void
+  onRequestDelete: (loan: Loan) => void
 }
 
 function formatDate(iso: string): string {
@@ -16,28 +16,7 @@ function formatDate(iso: string): string {
   return `${dd}/${mm}/${yyyy}`
 }
 
-// Remaining terms = total term minus terms already elapsed since the open
-// date (a term counts as elapsed once its monthly anniversary of the open
-// date has passed) — not the distance from today to the maturity date,
-// which is a different, off-by-one-prone question whenever the open day
-// and maturity day don't line up with "today". E.g. opened 07/05/2026,
-// today the 12th: the 7 Jun/7 Jul/7 Aug anniversaries have all passed, so
-// 3 terms are done, however many months "away" the maturity date is.
-function formatTermRemaining(loan: Loan): string {
-  const now = new Date()
-  const open = new Date(loan.openDate)
-
-  let termsElapsed = (now.getUTCFullYear() - open.getUTCFullYear()) * 12 + (now.getUTCMonth() - open.getUTCMonth())
-  if (now.getUTCDate() < open.getUTCDate()) termsElapsed -= 1
-  termsElapsed = Math.max(termsElapsed, 0)
-
-  const remaining = Math.max(loan.durationMonths - termsElapsed, 0)
-
-  if (remaining === 0) return `${loan.daysRemaining}d left`
-  return `${remaining} ${remaining === 1 ? 'term' : 'terms'} left`
-}
-
-export function LoanTable({ loans, onDelete }: LoanTableProps) {
+export function LoanTable({ loans, onRequestDelete }: LoanTableProps) {
   const { currency } = useCurrency()
 
   if (loans.length === 0) {
@@ -94,7 +73,8 @@ export function LoanTable({ loans, onDelete }: LoanTableProps) {
                     </span>
                   ) : (
                     <span className="rounded-full bg-emerald-50 px-1.5 py-px text-[10px] font-medium text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-                      {formatTermRemaining(loan)}
+                      {/* termsRemaining is backend-derived — see calculate_loan() */}
+                      {loan.termsRemaining} {loan.termsRemaining === 1 ? 'term' : 'terms'} left
                     </span>
                   )}
                 </div>
@@ -115,7 +95,7 @@ export function LoanTable({ loans, onDelete }: LoanTableProps) {
                     Details
                   </Link>
                   <button
-                    onClick={() => onDelete(loan.id)}
+                    onClick={() => onRequestDelete(loan)}
                     className="text-sm text-neutral-400 transition-colors hover:text-red-500 dark:text-neutral-500 dark:hover:text-red-400"
                   >
                     Delete

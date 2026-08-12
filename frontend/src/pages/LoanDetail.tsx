@@ -1,5 +1,9 @@
-import { Link, useParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { deleteLoan } from '../api'
 import { PremiumCard } from '../components/PremiumCard'
+import { DeleteLoanDialog } from '../components/loan/DeleteLoanDialog'
+import { EditLoanDialog } from '../components/loan/EditLoanDialog'
 import { LoanBalanceChart } from '../components/loan/LoanBalanceChart'
 import { LoanCostSummary } from '../components/loan/LoanCostSummary'
 import { LoanPaymentBreakdownChart } from '../components/loan/LoanPaymentBreakdownChart'
@@ -12,8 +16,11 @@ import { formatCurrency } from '../lib/currency'
 
 export function LoanDetailPage() {
   const { loanId } = useParams<{ loanId: string }>()
-  const { detail, schedule, loading, notFound, error } = useLoanDetail(loanId ?? '')
+  const { detail, schedule, loading, notFound, error, refetch } = useLoanDetail(loanId ?? '')
   const { currency } = useCurrency()
+  const navigate = useNavigate()
+  const [editOpen, setEditOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   if (notFound) {
     return (
@@ -36,6 +43,9 @@ export function LoanDetailPage() {
     return <p className="text-sm text-neutral-500 dark:text-neutral-400">Loading…</p>
   }
 
+  const monthlyPaymentSubtitle = detail.loanType === 'unsecured' ? 'Fixed EMI' : 'Interest only'
+  const monthlyPaymentTitle = detail.loanType === 'unsecured' ? 'Monthly payment' : 'Est. monthly interest'
+
   return (
     <section className="space-y-4">
       {error && (
@@ -44,7 +54,7 @@ export function LoanDetailPage() {
         </p>
       )}
 
-      <LoanSummary detail={detail} />
+      <LoanSummary detail={detail} onEdit={() => setEditOpen(true)} onDelete={() => setDeleteOpen(true)} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <PremiumCard
@@ -55,10 +65,10 @@ export function LoanDetailPage() {
           icon={<BankIcon />}
         />
         <PremiumCard
-          title="Monthly payment"
+          title={monthlyPaymentTitle}
           accent="cyan"
           value={formatCurrency(detail.monthlyPayment, currency)}
-          subtitle={detail.loanType === 'unsecured' ? 'Fixed EMI' : 'Interest only'}
+          subtitle={monthlyPaymentSubtitle}
           icon={<RepeatIcon />}
         />
         <PremiumCard
@@ -86,6 +96,28 @@ export function LoanDetailPage() {
       </div>
 
       <LoanScheduleTable schedule={schedule} />
+
+      {editOpen && (
+        <EditLoanDialog
+          loan={detail}
+          onClose={() => setEditOpen(false)}
+          onSaved={async () => {
+            setEditOpen(false)
+            await refetch()
+          }}
+        />
+      )}
+
+      {deleteOpen && (
+        <DeleteLoanDialog
+          loan={detail}
+          onCancel={() => setDeleteOpen(false)}
+          onConfirm={async () => {
+            await deleteLoan(detail.id)
+            navigate('/loan')
+          }}
+        />
+      )}
     </section>
   )
 }
