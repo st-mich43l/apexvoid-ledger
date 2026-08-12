@@ -1,8 +1,9 @@
 name: Build & Deploy
 
-# Build backend + frontend images, push to Docker Hub, then deploy on the VPS
-# by pulling the new tag (via ansible-library). This repo needs
-# DOCKERHUB_TOKEN + ANSIBLE_VAULT_PASSWORD as repo secrets.
+# Quality gate (backend tests, frontend lint + build) runs on every PR and
+# push touching backend/frontend/this workflow. Deployment - the existing
+# reusable build-push-deploy pipeline via action-library - only runs for
+# pushes to master, and only after the quality gate passes.
 
 on:
   push:
@@ -12,14 +13,49 @@ on:
       - "frontend/**"
       - "deployment-template/**"
       - ".github/workflows/deploy.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
 concurrency:
-  group: build-deploy-master
+  group: build-deploy-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  backend-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt
+        working-directory: backend
+      - run: pytest
+        working-directory: backend
+
+  frontend-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run lint
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+
   release:
+    # Quality-checked on every PR, but only deployed from master - a PR run
+    # stops after the two jobs above.
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: [backend-test, frontend-check]
     uses: st-mich43l/action-library/.github/workflows/build-push-deploy.yml@master
     with:
       project: apexvoid-ledger
