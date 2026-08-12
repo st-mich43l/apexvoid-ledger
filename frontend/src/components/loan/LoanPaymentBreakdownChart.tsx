@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { useCurrency } from '../../context/CurrencyContext'
+import type { CurrencyCode } from '../../lib/currency'
 import { formatCurrency } from '../../lib/currency'
 import { formatDate } from '../../lib/date'
 import type { LoanScheduleItem } from '../../types'
 
 interface LoanPaymentBreakdownChartProps {
   schedule: LoanScheduleItem[]
+  currency: CurrencyCode
 }
 
 const BAR_WIDTH = 6
@@ -17,8 +18,7 @@ const PADDING_BOTTOM = 24
 const PRINCIPAL_COLOR = '#8b5cf6' // violet-500
 const INTEREST_COLOR = '#d97706' // amber-600 — both validated together for light + dark
 
-export function LoanPaymentBreakdownChart({ schedule }: LoanPaymentBreakdownChartProps) {
-  const { currency } = useCurrency()
+export function LoanPaymentBreakdownChart({ schedule, currency }: LoanPaymentBreakdownChartProps) {
   const [hovered, setHovered] = useState<LoanScheduleItem | null>(null)
 
   if (schedule.length === 0) return null

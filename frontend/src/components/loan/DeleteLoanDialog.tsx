@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ApiError } from '../../api'
-import { useCurrency } from '../../context/CurrencyContext'
+import type { CurrencyCode } from '../../lib/currency'
 import { formatCurrency } from '../../lib/currency'
 import { formatDate } from '../../lib/date'
 import { Modal } from '../Modal'
@@ -8,6 +8,7 @@ import { Modal } from '../Modal'
 interface DeletableLoan {
   bankName: string
   disbursementAmount: number
+  currency: CurrencyCode
   openDate: string
 }
 
@@ -20,7 +21,6 @@ interface DeleteLoanDialogProps {
 // Shared by /loan (list row) and /loan/:loanId (detail page) — both pass
 // their own onConfirm (delete-then-refresh-list vs delete-then-navigate).
 export function DeleteLoanDialog({ loan, onCancel, onConfirm }: DeleteLoanDialogProps) {
-  const { currency } = useCurrency()
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -42,7 +42,7 @@ export function DeleteLoanDialog({ loan, onCancel, onConfirm }: DeleteLoanDialog
       <div className="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-800/40">
         <p className="font-medium text-neutral-900 dark:text-neutral-50">{loan.bankName}</p>
         <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-          Disbursed: {formatCurrency(loan.disbursementAmount, currency)}
+          Disbursed: {formatCurrency(loan.disbursementAmount, loan.currency)}
         </p>
         <p className="text-sm text-neutral-500 dark:text-neutral-400">Opened: {formatDate(loan.openDate)}</p>
       </div>

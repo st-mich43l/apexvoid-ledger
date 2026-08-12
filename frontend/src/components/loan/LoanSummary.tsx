@@ -1,4 +1,3 @@
-import { useCurrency } from '../../context/CurrencyContext'
 import { formatDate } from '../../lib/date'
 import { formatCurrency } from '../../lib/currency'
 import type { LoanDetail } from '../../types'
@@ -10,7 +9,6 @@ interface LoanSummaryProps {
 }
 
 export function LoanSummary({ detail, onEdit, onDelete }: LoanSummaryProps) {
-  const { currency } = useCurrency()
   const monthlyPaymentLabel = detail.loanType === 'unsecured' ? 'Monthly payment' : 'Est. monthly interest'
 
   return (
@@ -39,7 +37,7 @@ export function LoanSummary({ detail, onEdit, onDelete }: LoanSummaryProps) {
             )}
           </div>
           <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-            {formatCurrency(detail.disbursementAmount, currency)} · {detail.interestRatePerYear.toFixed(2)}% / yr ·{' '}
+            {formatCurrency(detail.disbursementAmount, detail.currency)} · {detail.interestRatePerYear.toFixed(2)}% / yr ·{' '}
             {detail.durationMonths} month term
           </p>
         </div>
@@ -65,7 +63,7 @@ export function LoanSummary({ detail, onEdit, onDelete }: LoanSummaryProps) {
             Estimated outstanding
           </p>
           <p className="mt-1 text-3xl font-semibold tracking-tight text-violet-600 dark:text-violet-400">
-            {formatCurrency(detail.estimatedOutstandingBalance, currency)}
+            {formatCurrency(detail.estimatedOutstandingBalance, detail.currency)}
           </p>
         </div>
       </div>
@@ -76,7 +74,7 @@ export function LoanSummary({ detail, onEdit, onDelete }: LoanSummaryProps) {
         <Fact label="Term" value={`${detail.durationMonths} mo`} />
         <Fact label="Terms elapsed" value={String(detail.termsElapsed)} />
         <Fact label="Terms remaining" value={String(detail.termsRemaining)} />
-        <Fact label={monthlyPaymentLabel} value={formatCurrency(detail.monthlyPayment, currency)} />
+        <Fact label={monthlyPaymentLabel} value={formatCurrency(detail.monthlyPayment, detail.currency)} />
       </dl>
 
       <p className="relative mt-6 text-xs text-neutral-400 dark:text-neutral-500">

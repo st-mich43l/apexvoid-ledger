@@ -1,4 +1,18 @@
-import type { AuthUser, Loan, LoanDetail, LoanInput, LoanScheduleItem } from './types'
+import type {
+  AuthUser,
+  CashFlowMonthlySummary,
+  Category,
+  CategoryInput,
+  LedgerTransaction,
+  Loan,
+  LoanDetail,
+  LoanInput,
+  LoanScheduleItem,
+  TransactionInput,
+  TransactionType,
+  WeeklyExpenseBatchInput,
+} from './types'
+import type { CurrencyCode } from './lib/currency'
 
 export class ApiError extends Error {
   status: number
@@ -79,6 +93,85 @@ export function fetchLoanDetail(id: string): Promise<LoanDetail> {
 
 export function fetchLoanSchedule(id: string): Promise<LoanScheduleItem[]> {
   return authedRequest<LoanScheduleItem[]>(`${LOANS_URL}/${id}/schedule`)
+}
+
+const CATEGORIES_URL = '/api/categories'
+const TRANSACTIONS_URL = '/api/transactions'
+
+export function fetchCategories(includeInactive = false): Promise<Category[]> {
+  const query = new URLSearchParams({ includeInactive: String(includeInactive) })
+  return authedRequest<Category[]>(`${CATEGORIES_URL}?${query}`)
+}
+
+export function createCategory(input: CategoryInput): Promise<Category> {
+  return authedRequest<Category>(CATEGORIES_URL, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export function updateCategory(
+  id: string,
+  input: Partial<CategoryInput> & { isActive?: boolean },
+): Promise<Category> {
+  return authedRequest<Category>(`${CATEGORIES_URL}/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  })
+}
+
+export function deleteCategory(id: string): Promise<void> {
+  return authedRequest<void>(`${CATEGORIES_URL}/${id}`, { method: 'DELETE' })
+}
+
+interface TransactionFilters {
+  year: number
+  month: number
+  type?: TransactionType
+  categoryId?: string
+}
+
+export function fetchTransactions(filters: TransactionFilters): Promise<LedgerTransaction[]> {
+  const query = new URLSearchParams({ year: String(filters.year), month: String(filters.month) })
+  if (filters.type) query.set('type', filters.type)
+  if (filters.categoryId) query.set('categoryId', filters.categoryId)
+  return authedRequest<LedgerTransaction[]>(`${TRANSACTIONS_URL}?${query}`)
+}
+
+export function createTransaction(input: TransactionInput): Promise<LedgerTransaction> {
+  return authedRequest<LedgerTransaction>(TRANSACTIONS_URL, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export function createWeeklyExpenses(
+  input: WeeklyExpenseBatchInput,
+): Promise<LedgerTransaction[]> {
+  return authedRequest<LedgerTransaction[]>(`${TRANSACTIONS_URL}/weekly-expenses`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export function updateTransaction(id: string, input: TransactionInput): Promise<LedgerTransaction> {
+  return authedRequest<LedgerTransaction>(`${TRANSACTIONS_URL}/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  })
+}
+
+export function deleteTransaction(id: string): Promise<void> {
+  return authedRequest<void>(`${TRANSACTIONS_URL}/${id}`, { method: 'DELETE' })
+}
+
+export function fetchCashFlowSummary(
+  year: number,
+  month: number,
+  currency: CurrencyCode,
+): Promise<CashFlowMonthlySummary> {
+  const query = new URLSearchParams({ year: String(year), month: String(month), currency })
+  return authedRequest<CashFlowMonthlySummary>(`/api/cashflow/summary?${query}`)
 }
 
 const AUTH_URL = '/api/auth'

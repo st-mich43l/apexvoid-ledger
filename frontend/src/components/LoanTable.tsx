@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { useCurrency } from '../context/CurrencyContext'
 import { formatCurrency } from '../lib/currency'
 import type { Loan } from '../types'
 
@@ -17,8 +16,6 @@ function formatDate(iso: string): string {
 }
 
 export function LoanTable({ loans, onRequestDelete }: LoanTableProps) {
-  const { currency } = useCurrency()
-
   if (loans.length === 0) {
     return (
       <p className="rounded-3xl border border-dashed border-neutral-300 p-10 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
@@ -79,13 +76,13 @@ export function LoanTable({ loans, onRequestDelete }: LoanTableProps) {
                   )}
                 </div>
               </Td>
-              <Td align="right">{formatCurrency(loan.disbursementAmount, currency)}</Td>
+              <Td align="right">{formatCurrency(loan.disbursementAmount, loan.currency)}</Td>
               <Td align="right">{loan.interestRatePerYear.toFixed(2)}%</Td>
-              <Td align="right">{formatCurrency(loan.accruedInterest, currency)}</Td>
+              <Td align="right">{formatCurrency(loan.accruedInterest, loan.currency)}</Td>
               <Td align="right" className="font-semibold text-violet-600 dark:text-violet-400">
-                {formatCurrency(loan.currentBalance, currency)}
+                {formatCurrency(loan.currentBalance, loan.currency)}
               </Td>
-              <Td align="right">{formatCurrency(loan.monthlyPayment, currency)}</Td>
+              <Td align="right">{formatCurrency(loan.monthlyPayment, loan.currency)}</Td>
               <Td align="right">
                 <div className="flex items-center justify-end gap-3">
                   <Link

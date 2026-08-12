@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { useCurrency } from '../../context/CurrencyContext'
+import type { CurrencyCode } from '../../lib/currency'
 import { formatCurrency } from '../../lib/currency'
 import { formatMonthYear } from '../../lib/date'
 import type { LoanScheduleItem } from '../../types'
@@ -8,6 +8,7 @@ interface LoanBalanceChartProps {
   schedule: LoanScheduleItem[]
   openDate: string
   disbursementAmount: number
+  currency: CurrencyCode
 }
 
 const WIDTH = 640
@@ -15,8 +16,7 @@ const HEIGHT = 240
 const PADDING = { top: 16, right: 16, bottom: 28, left: 16 }
 const LINE_COLOR = '#8b5cf6' // violet-500 — validated for light + dark chart surfaces
 
-export function LoanBalanceChart({ schedule, openDate, disbursementAmount }: LoanBalanceChartProps) {
-  const { currency } = useCurrency()
+export function LoanBalanceChart({ schedule, openDate, disbursementAmount, currency }: LoanBalanceChartProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
 

@@ -1,5 +1,7 @@
 import { useState, type ChangeEvent } from 'react'
 import type { LoanInput, LoanType } from '../types'
+import { dateDigitsToIso, formatDateInput, isValidDateDigits, isoDateToDigits } from '../lib/date'
+import type { CurrencyCode } from '../lib/currency'
 
 export interface LoanFormValues {
   bankName: string
@@ -7,43 +9,22 @@ export interface LoanFormValues {
   openDate: string
   // Raw numeric string (no commas) — see formatAmountDisplay below.
   disbursementAmount: string
+  currency: CurrencyCode
   interestRatePerYear: string
   durationMonths: string
   loanType: LoanType
 }
 
-const EMPTY_VALUES: LoanFormValues = {
-  bankName: '',
-  openDate: '',
-  disbursementAmount: '',
-  interestRatePerYear: '',
-  durationMonths: '12',
-  loanType: 'unsecured',
-}
-
-function isoDateToDigits(iso: string): string {
-  const [y, m, d] = iso.slice(0, 10).split('-')
-  return y && m && d ? `${d}${m}${y}` : ''
-}
-
-function dateDigitsToIso(digits: string): string {
-  const dd = digits.slice(0, 2)
-  const mm = digits.slice(2, 4)
-  const yyyy = digits.slice(4, 8)
-  return yyyy.length === 4 ? `${yyyy}-${mm}-${dd}` : ''
-}
-
-export function isValidDateDigits(digits: string): boolean {
-  if (!/^\d{8}$/.test(digits)) return false
-
-  const day = Number(digits.slice(0, 2))
-  const month = Number(digits.slice(2, 4))
-  const year = Number(digits.slice(4, 8))
-  if (year < 1 || month < 1 || month > 12 || day < 1) return false
-
-  const isLeapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
-  const daysInMonth = [31, isLeapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-  return day <= daysInMonth[month - 1]
+function emptyValues(currency: CurrencyCode): LoanFormValues {
+  return {
+    bankName: '',
+    openDate: '',
+    disbursementAmount: '',
+    currency,
+    interestRatePerYear: '',
+    durationMonths: '12',
+    loanType: 'unsecured',
+  }
 }
 
 export function validateLoanForm(values: LoanFormValues): string | null {
@@ -86,10 +67,7 @@ export function validateLoanForm(values: LoanFormValues): string | null {
 }
 
 export function formatDateDisplay(digits: string): string {
-  const dd = digits.slice(0, 2)
-  const mm = digits.slice(2, 4)
-  const yyyy = digits.slice(4, 8)
-  return [dd, mm, yyyy].filter(Boolean).join('/')
+  return formatDateInput(digits)
 }
 
 function sanitizeAmountInput(value: string): string {
@@ -116,6 +94,7 @@ export function loanToFormValues(loan: {
   bankName: string
   openDate: string
   disbursementAmount: number
+  currency: CurrencyCode
   interestRatePerYear: number
   durationMonths: number
   loanType: LoanType
@@ -124,6 +103,7 @@ export function loanToFormValues(loan: {
     bankName: loan.bankName,
     openDate: isoDateToDigits(loan.openDate),
     disbursementAmount: String(loan.disbursementAmount),
+    currency: loan.currency,
     interestRatePerYear: String(loan.interestRatePerYear),
     durationMonths: String(loan.durationMonths),
     loanType: loan.loanType,
@@ -132,8 +112,8 @@ export function loanToFormValues(loan: {
 
 // Shared field state + input handlers for both the create form and the edit
 // dialog, so the amount/date formatting logic exists in exactly one place.
-export function useLoanFormState(initial?: LoanFormValues) {
-  const [values, setValues] = useState<LoanFormValues>(initial ?? EMPTY_VALUES)
+export function useLoanFormState(defaultCurrency: CurrencyCode, initial?: LoanFormValues) {
+  const [values, setValues] = useState<LoanFormValues>(initial ?? emptyValues(defaultCurrency))
 
   const handleChange = (field: keyof LoanFormValues) => (e: ChangeEvent<HTMLInputElement>) => {
     setValues((prev) => ({ ...prev, [field]: e.target.value }))
@@ -152,8 +132,12 @@ export function useLoanFormState(initial?: LoanFormValues) {
     setValues((prev) => ({ ...prev, loanType: e.target.value as LoanType }))
   }
 
+  const handleCurrencyChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    setValues((prev) => ({ ...prev, currency: e.target.value as CurrencyCode }))
+  }
+
   function reset() {
-    setValues(initial ?? EMPTY_VALUES)
+    setValues(initial ?? emptyValues(defaultCurrency))
   }
 
   function toLoanInput(): LoanInput {
@@ -161,6 +145,7 @@ export function useLoanFormState(initial?: LoanFormValues) {
       bankName: values.bankName.trim(),
       openDate: dateDigitsToIso(values.openDate),
       disbursementAmount: Number(values.disbursementAmount),
+      currency: values.currency,
       interestRatePerYear: Number(values.interestRatePerYear),
       durationMonths: Number(values.durationMonths),
       loanType: values.loanType,
@@ -177,6 +162,7 @@ export function useLoanFormState(initial?: LoanFormValues) {
     handleAmountChange,
     handleDateChange,
     handleLoanTypeChange,
+    handleCurrencyChange,
     validate,
     toLoanInput,
     reset,

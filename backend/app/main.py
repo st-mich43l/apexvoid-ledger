@@ -4,7 +4,10 @@ from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
 
 from .routers.auth import router as auth_router
+from .routers.cashflow import router as cashflow_router
+from .routers.categories import router as categories_router
 from .routers.loans import router as loans_router
+from .routers.transactions import router as transactions_router
 
 app = FastAPI(title="apexvoid-ledger backend")
 
@@ -22,6 +25,9 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(loans_router)
+app.include_router(categories_router)
+app.include_router(transactions_router)
+app.include_router(cashflow_router)
 
 
 @app.get("/api/health")

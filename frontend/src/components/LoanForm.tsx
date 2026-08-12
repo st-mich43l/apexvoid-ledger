@@ -3,22 +3,25 @@ import { ApiError } from '../api'
 import { useLoanFormState } from '../hooks/useLoanFormState'
 import { LoanFormFields } from './loan/LoanFormFields'
 import type { LoanInput } from '../types'
+import { useCurrency } from '../context/CurrencyContext'
 
 interface LoanFormProps {
   onSubmit: (input: LoanInput) => Promise<void>
 }
 
 export function LoanForm({ onSubmit }: LoanFormProps) {
+  const { currency } = useCurrency()
   const {
     values,
     handleChange,
     handleAmountChange,
     handleDateChange,
     handleLoanTypeChange,
+    handleCurrencyChange,
     validate,
     toLoanInput,
     reset,
-  } = useLoanFormState()
+  } = useLoanFormState(currency)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -56,6 +59,7 @@ export function LoanForm({ onSubmit }: LoanFormProps) {
         onAmountChange={handleAmountChange}
         onDateChange={handleDateChange}
         onLoanTypeChange={handleLoanTypeChange}
+        onCurrencyChange={handleCurrencyChange}
         disabled={submitting}
       />
 

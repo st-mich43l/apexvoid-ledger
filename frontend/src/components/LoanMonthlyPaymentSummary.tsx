@@ -8,9 +8,8 @@ interface LoanMonthlyPaymentSummaryProps {
 }
 
 export function LoanMonthlyPaymentSummary({ loans }: LoanMonthlyPaymentSummaryProps) {
-  const { currency } = useCurrency()
+  const { currency: accountCurrency } = useCurrency()
   const summary = summarizeMonthlyPayments(loans)
-  const hasActiveSecuredLoan = loans.some((loan) => !loan.isMatured && loan.loanType === 'secured')
   const activeLoanLabel = `${summary.activeLoanCount} active ${summary.activeLoanCount === 1 ? 'loan' : 'loans'}`
 
   return (
@@ -28,30 +27,33 @@ export function LoanMonthlyPaymentSummary({ loans }: LoanMonthlyPaymentSummaryPr
           Contractual payments across non-matured loans.
         </p>
 
-        <div className="mt-6">
-          <p className="text-3xl font-semibold tracking-tight text-violet-600 sm:text-4xl dark:text-violet-400">
-            {formatCurrency(summary.total, currency)}
-            <span className="ml-1.5 text-sm font-medium tracking-normal text-neutral-400 dark:text-neutral-500">
-              / month
-            </span>
-          </p>
-          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">{activeLoanLabel}</p>
-        </div>
+        {summary.currencies.length <= 1 ? (
+          <>
+            <div className="mt-6">
+              <p className="text-3xl font-semibold tracking-tight text-violet-600 sm:text-4xl dark:text-violet-400">
+                {formatCurrency(summary.currencies[0]?.total ?? 0, summary.currencies[0]?.currency ?? accountCurrency)}
+                <span className="ml-1.5 text-sm font-medium tracking-normal text-neutral-400 dark:text-neutral-500">/ month</span>
+              </p>
+              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">{activeLoanLabel}</p>
+            </div>
 
-        <dl className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-          <PaymentType
-            label="Unsecured installments"
-            value={formatCurrency(summary.unsecured, currency)}
-            accentClass="bg-violet-500"
-          />
-          <PaymentType
-            label="Secured interest-only"
-            value={formatCurrency(summary.secured, currency)}
-            accentClass="bg-cyan-500"
-          />
-        </dl>
+            <dl className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              <PaymentType label="Unsecured installments" value={formatCurrency(summary.currencies[0]?.unsecured ?? 0, summary.currencies[0]?.currency ?? accountCurrency)} accentClass="bg-violet-500" />
+              <PaymentType label="Secured interest-only" value={formatCurrency(summary.currencies[0]?.secured ?? 0, summary.currencies[0]?.currency ?? accountCurrency)} accentClass="bg-cyan-500" />
+            </dl>
+          </>
+        ) : (
+          <div className="mt-6">
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">{activeLoanLabel} across multiple currencies</p>
+            <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              {summary.currencies.map((currencySummary) => (
+                <PaymentType key={currencySummary.currency} label={`${currencySummary.currency} payments`} value={`${formatCurrency(currencySummary.total, currencySummary.currency)} / month`} accentClass="bg-violet-500" />
+              ))}
+            </dl>
+          </div>
+        )}
 
-        {hasActiveSecuredLoan && (
+        {summary.hasActiveSecuredLoan && (
           <p className="mt-5 border-t border-neutral-100 pt-4 text-xs leading-5 text-neutral-400 dark:border-neutral-800 dark:text-neutral-500">
             Secured-loan principal due at maturity is not included.
           </p>

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from ..auth import get_current_user, hash_password, require_admin, verify_password
 from ..database import get_db
-from ..models import Loan, User
+from ..models import Category, Loan, Transaction, User
 from ..schemas import ChangePasswordRequest, LoginRequest, SetCurrencyRequest, UserCreate, UserRead
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -111,6 +111,16 @@ def delete_user(
         raise HTTPException(
             status_code=409, detail="Cannot delete a user who still owns loans"
         )
+
+    if db.query(Transaction).filter(Transaction.user_id == user_id).count() > 0:
+        raise HTTPException(
+            status_code=409, detail="Cannot delete a user who still owns transactions"
+        )
+
+    # Categories are lazily seeded on first cash-flow access. They carry no
+    # financial history by themselves, so clean them up when the account is
+    # otherwise deletable instead of making defaults permanently block it.
+    db.query(Category).filter(Category.user_id == user_id).delete()
 
     db.delete(user)
     db.commit()

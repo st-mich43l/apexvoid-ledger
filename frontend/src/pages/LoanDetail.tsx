@@ -10,14 +10,12 @@ import { LoanPaymentBreakdownChart } from '../components/loan/LoanPaymentBreakdo
 import { LoanProgress } from '../components/loan/LoanProgress'
 import { LoanScheduleTable } from '../components/loan/LoanScheduleTable'
 import { LoanSummary } from '../components/loan/LoanSummary'
-import { useCurrency } from '../context/CurrencyContext'
 import { useLoanDetail } from '../hooks/useLoanDetail'
 import { formatCurrency } from '../lib/currency'
 
 export function LoanDetailPage() {
   const { loanId } = useParams<{ loanId: string }>()
   const { detail, schedule, loading, notFound, error, refetch } = useLoanDetail(loanId ?? '')
-  const { currency } = useCurrency()
   const navigate = useNavigate()
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -60,14 +58,14 @@ export function LoanDetailPage() {
         <PremiumCard
           title="Estimated outstanding"
           accent="violet"
-          value={formatCurrency(detail.estimatedOutstandingBalance, currency)}
+          value={formatCurrency(detail.estimatedOutstandingBalance, detail.currency)}
           subtitle={detail.isMatured ? 'Matured' : `${detail.termsRemaining} terms left`}
           icon={<BankIcon />}
         />
         <PremiumCard
           title={monthlyPaymentTitle}
           accent="cyan"
-          value={formatCurrency(detail.monthlyPayment, currency)}
+          value={formatCurrency(detail.monthlyPayment, detail.currency)}
           subtitle={monthlyPaymentSubtitle}
           icon={<RepeatIcon />}
         />
@@ -81,21 +79,21 @@ export function LoanDetailPage() {
         <PremiumCard
           title="Total estimated interest"
           accent="emerald"
-          value={formatCurrency(detail.totalInterest, currency)}
+          value={formatCurrency(detail.totalInterest, detail.currency)}
           subtitle="Over the full term"
           icon={<TrendingUpIcon />}
         />
       </div>
 
-      <LoanBalanceChart schedule={schedule} openDate={detail.openDate} disbursementAmount={detail.disbursementAmount} />
-      <LoanPaymentBreakdownChart schedule={schedule} />
+      <LoanBalanceChart schedule={schedule} openDate={detail.openDate} disbursementAmount={detail.disbursementAmount} currency={detail.currency} />
+      <LoanPaymentBreakdownChart schedule={schedule} currency={detail.currency} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <LoanProgress detail={detail} />
         <LoanCostSummary detail={detail} />
       </div>
 
-      <LoanScheduleTable schedule={schedule} />
+      <LoanScheduleTable schedule={schedule} currency={detail.currency} />
 
       {editOpen && (
         <EditLoanDialog

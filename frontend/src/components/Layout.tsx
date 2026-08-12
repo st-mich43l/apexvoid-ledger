@@ -11,6 +11,7 @@ import { useTheme } from '../hooks/useTheme'
 function getBackTarget(pathname: string, isAdmin: boolean): { path: string; label: string } | null {
   if (pathname.startsWith('/loan/')) return { path: '/loan', label: 'Loans' }
   if (pathname === '/loan') return { path: '/dashboard', label: 'Dashboard' }
+  if (pathname === '/cashflow') return { path: '/dashboard', label: 'Dashboard' }
   if (pathname === '/settings/users') return { path: '/home', label: 'Home' }
   if (pathname === '/dashboard') return isAdmin ? { path: '/home', label: 'Home' } : null
   return null
@@ -55,7 +56,7 @@ export function Layout() {
                 </h1>
               </div>
               <p className="mt-2 max-w-xl text-sm text-neutral-500 dark:text-neutral-400">
-                A single place to see where your money stands, starting with your loans.
+                A single place to see where your money stands across loans and cash flow.
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">

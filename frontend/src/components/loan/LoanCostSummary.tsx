@@ -1,4 +1,3 @@
-import { useCurrency } from '../../context/CurrencyContext'
 import { formatCurrency } from '../../lib/currency'
 import type { LoanDetail } from '../../types'
 
@@ -7,7 +6,6 @@ interface LoanCostSummaryProps {
 }
 
 export function LoanCostSummary({ detail }: LoanCostSummaryProps) {
-  const { currency } = useCurrency()
   const principal = detail.disbursementAmount
   const total = detail.totalRepayment
   const principalShare = total > 0 ? (principal / total) * 100 : 100
@@ -18,15 +16,15 @@ export function LoanCostSummary({ detail }: LoanCostSummaryProps) {
       <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">Total cost of the loan</h2>
 
       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <CostFigure label="Principal" value={formatCurrency(principal, currency)} accent="text-neutral-900 dark:text-neutral-50" />
+        <CostFigure label="Principal" value={formatCurrency(principal, detail.currency)} accent="text-neutral-900 dark:text-neutral-50" />
         <CostFigure
           label="Estimated interest"
-          value={formatCurrency(detail.totalInterest, currency)}
+          value={formatCurrency(detail.totalInterest, detail.currency)}
           accent="text-amber-600 dark:text-amber-400"
         />
         <CostFigure
           label="Estimated total repayment"
-          value={formatCurrency(total, currency)}
+          value={formatCurrency(total, detail.currency)}
           accent="text-violet-600 dark:text-violet-400"
         />
       </div>

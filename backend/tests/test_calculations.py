@@ -262,6 +262,28 @@ class TestRounding:
         for value in (calc.accrued_interest, calc.current_balance, calc.monthly_payment):
             assert value == value.to_integral_value()
 
+    def test_decimal_currency_preserves_cents_and_reconciles_principal(self):
+        schedule = generate_loan_schedule(
+            Decimal("1000"),
+            Decimal("0"),
+            dt(2026, 1, 1),
+            12,
+            "unsecured",
+            as_of=dt(2026, 1, 1),
+            currency="USD",
+        )
+
+        assert schedule.monthly_payment == Decimal("83.33")
+        assert schedule.items[0].payment == Decimal("83.33")
+        assert schedule.items[-1].payment == Decimal("83.37")
+        assert sum((item.principal for item in schedule.items), Decimal(0)) == Decimal("1000.00")
+        assert all(value.as_tuple().exponent >= -2 for item in schedule.items for value in (
+            item.payment,
+            item.principal,
+            item.interest,
+            item.closing_principal,
+        ))
+
 
 class TestLoanDetail:
     def test_matches_real_world_reference_scenario(self):

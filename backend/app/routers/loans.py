@@ -17,12 +17,14 @@ def _serialize(loan: Loan) -> LoanRead:
         loan.open_date,
         loan.duration_months,
         loan.loan_type,
+        currency=loan.currency,
     )
     return LoanRead(
         id=loan.id,
         bank_name=loan.bank_name,
         open_date=loan.open_date,
         disbursement_amount=loan.disbursement_amount,
+        currency=loan.currency,
         interest_rate_per_year=loan.interest_rate_per_year,
         duration_months=loan.duration_months,
         loan_type=loan.loan_type,
@@ -75,12 +77,14 @@ def get_loan_detail(
         loan.open_date,
         loan.duration_months,
         loan.loan_type,
+        currency=loan.currency,
     )
     return LoanDetailRead(
         id=loan.id,
         bank_name=loan.bank_name,
         loan_type=loan.loan_type,
         disbursement_amount=loan.disbursement_amount,
+        currency=loan.currency,
         interest_rate_per_year=loan.interest_rate_per_year,
         open_date=detail.open_date,
         maturity_date=detail.maturity_date,
@@ -112,6 +116,7 @@ def get_loan_schedule(
         loan.open_date,
         loan.duration_months,
         loan.loan_type,
+        currency=loan.currency,
     )
     return [
         LoanScheduleItemRead(
@@ -139,6 +144,7 @@ def create_loan(
         bank_name=payload.bank_name,
         open_date=payload.open_date,
         disbursement_amount=payload.disbursement_amount,
+        currency=payload.currency or current_user.preferred_currency or "VND",
         interest_rate_per_year=payload.interest_rate_per_year,
         duration_months=payload.duration_months,
         loan_type=payload.loan_type,

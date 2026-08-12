@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useCurrency } from '../context/CurrencyContext'
 import { formatCurrency } from '../lib/currency'
 import type { Loan } from '../types'
 
@@ -56,11 +55,34 @@ function groupLoansByBank(loans: Loan[]): BankGroup[] {
 }
 
 export function LoanBreakdownChart({ loans }: LoanBreakdownChartProps) {
-  const { currency } = useCurrency()
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
+
+  const balancesByCurrency = loans.reduce((groups, loan) => {
+    if (loan.currentBalance <= 0) return groups
+    groups.set(loan.currency, (groups.get(loan.currency) ?? 0) + loan.currentBalance)
+    return groups
+  }, new Map<Loan['currency'], number>())
+
+  if (balancesByCurrency.size > 1) {
+    return (
+      <div className="rounded-3xl border border-neutral-200/80 bg-white p-6 shadow-[0_2px_8px_-2px_rgba(24,16,54,0.08),0_16px_32px_-12px_rgba(24,16,54,0.10)] sm:p-7 dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none">
+        <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">Loan balance by currency</h2>
+        <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">Native balances are kept separate so unlike currencies are never added together.</p>
+        <dl className="mt-5 space-y-3">
+          {[...balancesByCurrency].map(([currency, amount]) => (
+            <div key={currency} className="flex items-center justify-between rounded-2xl bg-neutral-50 px-4 py-3 dark:bg-neutral-800/50">
+              <dt className="text-sm font-medium text-neutral-500 dark:text-neutral-400">{currency}</dt>
+              <dd className="font-semibold text-neutral-900 dark:text-neutral-50">{formatCurrency(amount, currency)}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    )
+  }
 
   const total = loans.reduce((sum, loan) => sum + loan.currentBalance, 0)
   if (loans.length === 0 || total <= 0) return null
+  const currency = loans[0].currency
 
   const grouped = groupLoansByBank(loans).sort((a, b) => b.amount - a.amount)
   const maxSlices = 4

@@ -1,10 +1,113 @@
+import type { CurrencyCode } from './lib/currency'
+
 export type LoanType = 'secured' | 'unsecured'
+export type TransactionType = 'income' | 'expense'
+
+export interface Category {
+  id: string
+  name: string
+  type: TransactionType
+  icon: string | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CategoryInput {
+  name: string
+  type: TransactionType
+  icon: string | null
+}
+
+export interface LedgerTransaction {
+  id: string
+  type: TransactionType
+  categoryId: string
+  categoryName: string
+  categoryIcon: string | null
+  amount: number
+  currency: CurrencyCode
+  occurredAt: string
+  description: string | null
+  source: 'manual'
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TransactionInput {
+  type: TransactionType
+  categoryId: string
+  amount: number
+  currency: CurrencyCode
+  occurredAt: string
+  description: string | null
+}
+
+export interface WeeklyExpenseEntryInput {
+  categoryId: string
+  amount: number
+  description: string | null
+}
+
+export interface WeeklyExpenseBatchInput {
+  weekEnding: string
+  currency: CurrencyCode
+  entries: WeeklyExpenseEntryInput[]
+}
+
+export interface CategorySpendingSummary {
+  categoryId: string
+  name: string
+  icon: string | null
+  amount: number
+  percent: number
+}
+
+export interface CurrencyConversionRate {
+  sourceCurrency: CurrencyCode
+  targetCurrency: CurrencyCode
+  rate: number
+  rateDate: string
+}
+
+export interface LoanPaymentActivity {
+  id: string
+  loanId: string
+  bankName: string
+  term: number
+  dueAt: string
+  amount: number
+  currency: CurrencyCode
+  reportingAmount: number | null
+  reportingCurrency: CurrencyCode
+}
+
+export interface CashFlowMonthlySummary {
+  year: number
+  month: number
+  currency: CurrencyCode
+  income: number
+  expenses: number
+  netCashFlow: number
+  savingsRatePercent: number | null
+  transactionCount: number
+  loanPaymentCount: number
+  loanPayments: LoanPaymentActivity[]
+  categoryBreakdown: CategorySpendingSummary[]
+  convertedCurrencies: CurrencyCode[]
+  unconvertedCurrencies: CurrencyCode[]
+  conversionRates: CurrencyConversionRate[]
+  exchangeRateProvider: string | null
+  exchangeRateProviderUrl: string | null
+  excludedCurrencies: CurrencyCode[]
+}
 
 export interface Loan {
   id: string
   bankName: string
   openDate: string
   disbursementAmount: number
+  currency: CurrencyCode
   interestRatePerYear: number
   durationMonths: number
   loanType: LoanType
@@ -25,6 +128,7 @@ export interface LoanInput {
   bankName: string
   openDate: string
   disbursementAmount: number
+  currency: CurrencyCode
   interestRatePerYear: number
   durationMonths: number
   loanType: LoanType
@@ -62,6 +166,7 @@ export interface LoanDetail {
   bankName: string
   loanType: LoanType
   disbursementAmount: number
+  currency: CurrencyCode
   interestRatePerYear: number
   openDate: string
   maturityDate: string
