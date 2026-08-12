@@ -15,22 +15,25 @@ function formatDate(iso: string): string {
   return `${dd}/${mm}/${yyyy}`
 }
 
-// Remaining terms (a term = one month, same unit as the "Term (months)"
-// field the loan was created with) — calendar-accurate, not
-// daysRemaining / 30 which drifts. Falls back to exact days only once
-// there's under a full term left, where "0 terms" would hide the
-// remaining time entirely.
+// Remaining terms = total term minus terms already elapsed since the open
+// date (a term counts as elapsed once its monthly anniversary of the open
+// date has passed) — not the distance from today to the maturity date,
+// which is a different, off-by-one-prone question whenever the open day
+// and maturity day don't line up with "today". E.g. opened 07/05/2026,
+// today the 12th: the 7 Jun/7 Jul/7 Aug anniversaries have all passed, so
+// 3 terms are done, however many months "away" the maturity date is.
 function formatTermRemaining(loan: Loan): string {
   const now = new Date()
-  const maturity = new Date(loan.maturityDate)
+  const open = new Date(loan.openDate)
 
-  let months =
-    (maturity.getUTCFullYear() - now.getUTCFullYear()) * 12 + (maturity.getUTCMonth() - now.getUTCMonth())
-  if (maturity.getUTCDate() < now.getUTCDate()) months -= 1
-  months = Math.max(months, 0)
+  let termsElapsed = (now.getUTCFullYear() - open.getUTCFullYear()) * 12 + (now.getUTCMonth() - open.getUTCMonth())
+  if (now.getUTCDate() < open.getUTCDate()) termsElapsed -= 1
+  termsElapsed = Math.max(termsElapsed, 0)
 
-  if (months === 0) return `${loan.daysRemaining}d left`
-  return `${months} ${months === 1 ? 'term' : 'terms'} left`
+  const remaining = Math.max(loan.durationMonths - termsElapsed, 0)
+
+  if (remaining === 0) return `${loan.daysRemaining}d left`
+  return `${remaining} ${remaining === 1 ? 'term' : 'terms'} left`
 }
 
 export function LoanTable({ loans, onDelete }: LoanTableProps) {
