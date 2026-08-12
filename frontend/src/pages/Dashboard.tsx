@@ -1,4 +1,3 @@
-import { LoanBreakdownChart } from '../components/LoanBreakdownChart'
 import { PremiumCard } from '../components/PremiumCard'
 import { useCurrency } from '../context/CurrencyContext'
 import { formatCurrency } from '../lib/currency'
@@ -50,12 +49,6 @@ export function Dashboard() {
           icon={<BankIcon />}
         />
       </div>
-
-      {!loading && (
-        <div className="mt-4">
-          <LoanBreakdownChart loans={loans} />
-        </div>
-      )}
     </section>
   )
 }
