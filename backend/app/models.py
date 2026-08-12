@@ -11,7 +11,7 @@ class User(Base):
     __tablename__ = "User"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    email: Mapped[str] = mapped_column("email", String, nullable=False, unique=True)
+    username: Mapped[str] = mapped_column("username", String, nullable=False, unique=True)
     hashed_password: Mapped[str] = mapped_column("hashedPassword", String, nullable=False)
     is_admin: Mapped[bool] = mapped_column("isAdmin", Boolean, nullable=False, default=False)
     must_change_password: Mapped[bool] = mapped_column(

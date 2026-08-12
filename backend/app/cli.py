@@ -38,9 +38,9 @@ def _read_password() -> str:
 
 
 def create_user() -> None:
-    email = input("Email: ").strip().lower()
-    if not email:
-        print("Email cannot be empty.", file=sys.stderr)
+    username = input("Username: ").strip().lower()
+    if not username:
+        print("Username cannot be empty.", file=sys.stderr)
         raise SystemExit(1)
 
     password = _read_password()
@@ -48,35 +48,35 @@ def create_user() -> None:
 
     db = SessionLocal()
     try:
-        if db.query(User).filter(User.email == email).first() is not None:
-            print(f"A user with email {email!r} already exists.", file=sys.stderr)
+        if db.query(User).filter(User.username == username).first() is not None:
+            print(f"A user named {username!r} already exists.", file=sys.stderr)
             raise SystemExit(1)
 
         # Chosen interactively by whoever's running this command, not a
         # handed-off temp password — no forced change needed.
-        user = User(email=email, hashed_password=hash_password(password), is_admin=is_admin)
+        user = User(username=username, hashed_password=hash_password(password), is_admin=is_admin)
         db.add(user)
         db.commit()
-        print(f"Created {'admin' if is_admin else 'user'} {email}.")
+        print(f"Created {'admin' if is_admin else 'user'} {username}.")
     finally:
         db.close()
 
 
 def reset_password() -> None:
-    email = input("Email: ").strip().lower()
+    username = input("Username: ").strip().lower()
 
     db = SessionLocal()
     try:
-        user = db.query(User).filter(User.email == email).first()
+        user = db.query(User).filter(User.username == username).first()
         if user is None:
-            print(f"No user with email {email!r}.", file=sys.stderr)
+            print(f"No user named {username!r}.", file=sys.stderr)
             raise SystemExit(1)
 
         password = _read_password()
         user.hashed_password = hash_password(password)
         user.must_change_password = False
         db.commit()
-        print(f"Password reset for {email}.")
+        print(f"Password reset for {username}.")
     finally:
         db.close()
 

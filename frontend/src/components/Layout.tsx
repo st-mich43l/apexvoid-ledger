@@ -61,7 +61,7 @@ export function Layout() {
               {user && (
                 <div className="ml-1 flex items-center gap-2 border-l border-neutral-200 pl-3 dark:border-neutral-800">
                   <span className="hidden max-w-[10rem] truncate text-sm text-neutral-500 sm:inline dark:text-neutral-400">
-                    {user.email}
+                    {user.username}
                   </span>
                   <button
                     onClick={handleLogout}

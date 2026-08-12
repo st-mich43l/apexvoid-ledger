@@ -9,7 +9,7 @@ interface AuthContextValue {
   // make an immediate routing decision (e.g. isAdmin) can't rely on `user`
   // from the render closure, since the setUser() below won't have re-rendered
   // this component yet by the time the async call resolves.
-  login: (email: string, password: string) => Promise<AuthUser>
+  login: (username: string, password: string) => Promise<AuthUser>
   logout: () => Promise<void>
   changePassword: (currentPassword: string, newPassword: string) => Promise<AuthUser>
   refresh: () => Promise<void>
@@ -26,8 +26,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     api.fetchMe().then(setUser).finally(() => setLoading(false))
   }, [])
 
-  async function login(email: string, password: string) {
-    const updated = await api.login(email, password)
+  async function login(username: string, password: string) {
+    const updated = await api.login(username, password)
     setUser(updated)
     return updated
   }

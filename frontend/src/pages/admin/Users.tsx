@@ -57,7 +57,7 @@ export function AdminUsersPage() {
 }
 
 function CreateUserForm({ onCreated }: { onCreated: () => void }) {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -68,13 +68,13 @@ function CreateUserForm({ onCreated }: { onCreated: () => void }) {
     setSubmitting(true)
     setError(null)
     try {
-      await createUser(email, password, isAdmin)
-      setEmail('')
+      await createUser(username, password, isAdmin)
+      setUsername('')
       setPassword('')
       setIsAdmin(false)
       onCreated()
     } catch {
-      setError('Could not create user — email may already be in use.')
+      setError('Could not create user — username may already be in use.')
     } finally {
       setSubmitting(false)
     }
@@ -95,13 +95,16 @@ function CreateUserForm({ onCreated }: { onCreated: () => void }) {
 
       <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-neutral-600 dark:text-neutral-300">Email</label>
+          <label className="text-sm font-medium text-neutral-600 dark:text-neutral-300">Username</label>
           <input
             required
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="family@example.com"
+            type="text"
+            minLength={3}
+            pattern="[a-zA-Z0-9_.-]+"
+            title="Letters, numbers, underscore, dot, and hyphen only"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="family"
             className={inputClass}
           />
         </div>
@@ -155,7 +158,7 @@ function UsersTable({
       <table className="min-w-full divide-y divide-neutral-200 dark:divide-neutral-800">
         <thead className="bg-neutral-50 dark:bg-neutral-900/60">
           <tr>
-            <Th>Email</Th>
+            <Th>Username</Th>
             <Th>Role</Th>
             <Th>Status</Th>
             <Th>Created</Th>
@@ -193,7 +196,7 @@ function UserRow({ user, isSelf, onChange }: { user: AuthUser; isSelf: boolean; 
   return (
     <tr className="transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/60">
       <Td className="font-medium text-neutral-900 dark:text-neutral-50">
-        {user.email}
+        {user.username}
         {isSelf && <span className="ml-2 text-xs font-normal text-neutral-400 dark:text-neutral-500">(you)</span>}
       </Td>
       <Td>

@@ -7,7 +7,7 @@ export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -22,11 +22,11 @@ export function LoginPage() {
     setSubmitting(true)
     setError(null)
     try {
-      const updated = await login(email, password)
+      const updated = await login(username, password)
       const from = (location.state as { from?: Location })?.from?.pathname ?? (updated.isAdmin ? '/home' : '/dashboard')
       navigate(from, { replace: true })
     } catch {
-      setError('Invalid email or password.')
+      setError('Invalid username or password.')
     } finally {
       setSubmitting(false)
     }
@@ -58,14 +58,14 @@ export function LoginPage() {
             )}
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-neutral-600 dark:text-neutral-300">Email</label>
+              <label className="text-sm font-medium text-neutral-600 dark:text-neutral-300">Username</label>
               <input
                 required
                 autoFocus
                 type="text"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="admin"
                 className={inputClass}
               />
             </div>

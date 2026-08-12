@@ -11,12 +11,12 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 @router.post("/login", response_model=UserRead)
 def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
-    email = payload.email.lower()
-    user = db.query(User).filter(User.email == email).first()
+    username = payload.username.lower()
+    user = db.query(User).filter(User.username == username).first()
 
     if user is None or not verify_password(payload.password, user.hashed_password):
-        # Deliberately generic — don't reveal whether the email exists.
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        # Deliberately generic — don't reveal whether the username exists.
+        raise HTTPException(status_code=401, detail="Invalid username or password")
 
     request.session["user_id"] = user.id
     return user
@@ -59,12 +59,12 @@ def create_user(
     db: Session = Depends(get_db),
     _admin: User = Depends(require_admin),
 ):
-    email = payload.email.lower()
-    if db.query(User).filter(User.email == email).first() is not None:
-        raise HTTPException(status_code=409, detail="A user with this email already exists")
+    username = payload.username.lower()
+    if db.query(User).filter(User.username == username).first() is not None:
+        raise HTTPException(status_code=409, detail="A user with this username already exists")
 
     user = User(
-        email=email,
+        username=username,
         hashed_password=hash_password(payload.password),
         is_admin=payload.is_admin,
         # Admin-created accounts always start with a forced change — the

@@ -30,7 +30,7 @@ export interface LoanInput {
 
 export interface AuthUser {
   id: string
-  email: string
+  username: string
   isAdmin: boolean
   mustChangePassword: boolean
   createdAt: string

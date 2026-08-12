@@ -78,10 +78,10 @@ export async function fetchMe(): Promise<AuthUser | null> {
   }
 }
 
-export function login(email: string, password: string): Promise<AuthUser> {
+export function login(username: string, password: string): Promise<AuthUser> {
   return request<AuthUser>(`${AUTH_URL}/login`, {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ username, password }),
   })
 }
 
@@ -100,10 +100,10 @@ export function fetchUsers(): Promise<AuthUser[]> {
   return authedRequest<AuthUser[]>(`${AUTH_URL}/users`)
 }
 
-export function createUser(email: string, password: string, isAdmin: boolean): Promise<AuthUser> {
+export function createUser(username: string, password: string, isAdmin: boolean): Promise<AuthUser> {
   return authedRequest<AuthUser>(`${AUTH_URL}/users`, {
     method: 'POST',
-    body: JSON.stringify({ email, password, isAdmin }),
+    body: JSON.stringify({ username, password, isAdmin }),
   })
 }
 

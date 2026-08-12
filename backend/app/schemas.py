@@ -2,10 +2,12 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 from pydantic.alias_generators import to_camel
 
 LoanType = Literal["secured", "unsecured"]
+
+USERNAME_PATTERN = r"^[a-zA-Z0-9_.-]+$"
 
 
 def _to_js_iso(dt: datetime) -> str:
@@ -60,16 +62,14 @@ class LoanRead(CamelModel):
 
 
 class UserCreate(CamelModel):
-    email: EmailStr
+    username: str = Field(min_length=3, max_length=50, pattern=USERNAME_PATTERN)
     # bcrypt silently ignores bytes past 72 — reject early instead of truncating.
     password: str = Field(min_length=8, max_length=72)
     is_admin: bool = False
 
 
 class LoginRequest(CamelModel):
-    # Plain str, not EmailStr: the seeded default account logs in as "admin",
-    # not an email address.
-    email: str
+    username: str
     password: str
 
 
@@ -80,7 +80,7 @@ class ChangePasswordRequest(CamelModel):
 
 class UserRead(CamelModel):
     id: str
-    email: str
+    username: str
     is_admin: bool
     must_change_password: bool
     created_at: datetime
