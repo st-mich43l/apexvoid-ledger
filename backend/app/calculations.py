@@ -38,6 +38,8 @@ class LoanSchedule:
 class LoanCalculations:
     days_elapsed: int
     days_remaining: int
+    terms_elapsed: int
+    terms_remaining: int
     is_matured: bool
     maturity_date: datetime
     accrued_interest: Decimal
@@ -283,6 +285,8 @@ def calculate_loan(
     return LoanCalculations(
         days_elapsed=days_elapsed,
         days_remaining=days_remaining,
+        terms_elapsed=state.terms_elapsed,
+        terms_remaining=max(0, duration_months - state.terms_elapsed),
         is_matured=state.is_matured,
         maturity_date=schedule.maturity_date,
         accrued_interest=state.accrued_interest,

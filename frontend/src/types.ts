@@ -12,6 +12,8 @@ export interface Loan {
   updatedAt: string
   daysElapsed: number
   daysRemaining: number
+  termsElapsed: number
+  termsRemaining: number
   isMatured: boolean
   maturityDate: string
   accruedInterest: number

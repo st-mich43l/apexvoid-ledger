@@ -30,6 +30,8 @@ def _serialize(loan: Loan) -> LoanRead:
         updated_at=loan.updated_at,
         days_elapsed=calc.days_elapsed,
         days_remaining=calc.days_remaining,
+        terms_elapsed=calc.terms_elapsed,
+        terms_remaining=calc.terms_remaining,
         is_matured=calc.is_matured,
         maturity_date=calc.maturity_date,
         accrued_interest=calc.accrued_interest,

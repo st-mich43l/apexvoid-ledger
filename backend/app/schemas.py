@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_serializer
 from pydantic.alias_generators import to_camel
 
 LoanType = Literal["secured", "unsecured"]
@@ -12,6 +12,13 @@ USERNAME_PATTERN = r"^[a-zA-Z0-9_.-]+$"
 
 # Mirrors frontend/src/lib/currency.ts's SUPPORTED_CURRENCIES — keep in sync.
 CurrencyCode = Literal["USD", "EUR", "GBP", "AUD", "JPY", "CNY", "VND"]
+
+# Trims whitespace before the length check runs, so "   " is caught by
+# min_length just like "" is — not just rejected-if-literally-empty.
+BankName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+DisbursementAmount = Annotated[Decimal, Field(gt=0)]
+InterestRatePerYear = Annotated[Decimal, Field(ge=0, le=100)]
+DurationMonths = Annotated[int, Field(ge=1, le=600)]
 
 
 def _to_js_iso(dt: datetime) -> str:
@@ -25,20 +32,23 @@ class CamelModel(BaseModel):
 
 
 class LoanCreate(CamelModel):
-    bank_name: str
+    bank_name: BankName
     open_date: datetime
-    disbursement_amount: Decimal
-    interest_rate_per_year: Decimal
-    duration_months: int
+    disbursement_amount: DisbursementAmount
+    interest_rate_per_year: InterestRatePerYear
+    duration_months: DurationMonths
     loan_type: LoanType = "unsecured"
 
 
 class LoanUpdate(CamelModel):
-    bank_name: str | None = None
+    # Same constraints as LoanCreate, just optional - a field that IS supplied
+    # must satisfy the same rules as at creation time; only its absence is
+    # allowed (a partial update, via exclude_unset in the router).
+    bank_name: BankName | None = None
     open_date: datetime | None = None
-    disbursement_amount: Decimal | None = None
-    interest_rate_per_year: Decimal | None = None
-    duration_months: int | None = None
+    disbursement_amount: DisbursementAmount | None = None
+    interest_rate_per_year: InterestRatePerYear | None = None
+    duration_months: DurationMonths | None = None
     loan_type: LoanType | None = None
 
 
@@ -54,6 +64,8 @@ class LoanRead(CamelModel):
     updated_at: datetime
     days_elapsed: int
     days_remaining: int
+    terms_elapsed: int
+    terms_remaining: int
     is_matured: bool
     maturity_date: datetime
     accrued_interest: float
