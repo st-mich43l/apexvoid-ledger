@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..auth import require_password_changed
-from ..calculations import calculate_loan
+from ..calculations import build_loan_detail, calculate_loan, generate_loan_schedule
 from ..database import get_db
 from ..models import Loan, User
-from ..schemas import LoanCreate, LoanRead, LoanUpdate
+from ..schemas import LoanCreate, LoanDetailRead, LoanRead, LoanScheduleItemRead, LoanUpdate
 
 router = APIRouter(prefix="/api/loans", tags=["loans"])
 
@@ -57,6 +57,72 @@ def list_loans(db: Session = Depends(get_db), current_user: User = Depends(requi
         .all()
     )
     return [_serialize(loan) for loan in loans]
+
+
+@router.get("/{loan_id}", response_model=LoanDetailRead)
+def get_loan_detail(
+    loan_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_password_changed),
+):
+    loan = _get_or_404(db, loan_id, current_user.id)
+    detail = build_loan_detail(
+        loan.disbursement_amount,
+        loan.interest_rate_per_year,
+        loan.open_date,
+        loan.duration_months,
+        loan.loan_type,
+    )
+    return LoanDetailRead(
+        id=loan.id,
+        bank_name=loan.bank_name,
+        loan_type=loan.loan_type,
+        disbursement_amount=loan.disbursement_amount,
+        interest_rate_per_year=loan.interest_rate_per_year,
+        open_date=detail.open_date,
+        maturity_date=detail.maturity_date,
+        duration_months=detail.duration_months,
+        terms_elapsed=detail.terms_elapsed,
+        terms_remaining=detail.terms_remaining,
+        days_remaining=detail.days_remaining,
+        is_matured=detail.is_matured,
+        current_principal=detail.current_principal,
+        estimated_outstanding_balance=detail.estimated_outstanding_balance,
+        monthly_payment=detail.monthly_payment,
+        total_interest=detail.total_interest,
+        total_repayment=detail.total_repayment,
+        principal_repaid=detail.principal_repaid,
+        principal_repaid_percent=detail.principal_repaid_percent,
+    )
+
+
+@router.get("/{loan_id}/schedule", response_model=list[LoanScheduleItemRead])
+def get_loan_schedule(
+    loan_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_password_changed),
+):
+    loan = _get_or_404(db, loan_id, current_user.id)
+    schedule = generate_loan_schedule(
+        loan.disbursement_amount,
+        loan.interest_rate_per_year,
+        loan.open_date,
+        loan.duration_months,
+        loan.loan_type,
+    )
+    return [
+        LoanScheduleItemRead(
+            term=item.term,
+            due_date=item.due_date,
+            opening_principal=item.opening_principal,
+            payment=item.payment,
+            principal=item.principal,
+            interest=item.interest,
+            closing_principal=item.closing_principal,
+            status=item.status,
+        )
+        for item in schedule.items
+    ]
 
 
 @router.post("", response_model=LoanRead, status_code=201)

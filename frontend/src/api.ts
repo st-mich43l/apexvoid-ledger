@@ -1,4 +1,4 @@
-import type { AuthUser, Loan, LoanInput } from './types'
+import type { AuthUser, Loan, LoanDetail, LoanInput, LoanScheduleItem } from './types'
 
 export class ApiError extends Error {
   status: number
@@ -62,6 +62,14 @@ export function createLoan(input: LoanInput): Promise<Loan> {
 
 export function deleteLoan(id: string): Promise<void> {
   return authedRequest<void>(`${LOANS_URL}/${id}`, { method: 'DELETE' })
+}
+
+export function fetchLoanDetail(id: string): Promise<LoanDetail> {
+  return authedRequest<LoanDetail>(`${LOANS_URL}/${id}`)
+}
+
+export function fetchLoanSchedule(id: string): Promise<LoanScheduleItem[]> {
+  return authedRequest<LoanScheduleItem[]>(`${LOANS_URL}/${id}/schedule`)
 }
 
 const AUTH_URL = '/api/auth'

@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_serializer
 from pydantic.alias_generators import to_camel
 
 LoanType = Literal["secured", "unsecured"]
+ScheduleStatus = Literal["completed", "current", "upcoming"]
 
 USERNAME_PATTERN = r"^[a-zA-Z0-9_.-]+$"
 
@@ -60,6 +61,55 @@ class LoanRead(CamelModel):
     monthly_interest: float
 
     @field_serializer("open_date", "created_at", "updated_at", "maturity_date")
+    def _serialize_dt(self, dt: datetime, _info) -> str:
+        return _to_js_iso(dt)
+
+
+class LoanScheduleItemRead(CamelModel):
+    term: int
+    due_date: datetime
+    opening_principal: float
+    payment: float
+    principal: float
+    interest: float
+    closing_principal: float
+    status: ScheduleStatus
+
+    @field_serializer("due_date")
+    def _serialize_dt(self, dt: datetime, _info) -> str:
+        return _to_js_iso(dt)
+
+
+class LoanDetailRead(CamelModel):
+    """Loan detail summary — everything the analytics page's header, summary
+    cards, charts, and progress section need, minus the term-by-term
+    schedule (see GET /api/loans/{id}/schedule). Self-sufficient (includes
+    the loan's static fields, not just the schedule-derived ones) so the
+    frontend can load this page directly - e.g. a refresh or a bookmarked
+    link - without depending on already having fetched the loan list.
+    """
+
+    id: str
+    bank_name: str
+    loan_type: LoanType
+    disbursement_amount: float
+    interest_rate_per_year: float
+    open_date: datetime
+    maturity_date: datetime
+    duration_months: int
+    terms_elapsed: int
+    terms_remaining: int
+    days_remaining: int
+    is_matured: bool
+    current_principal: float
+    estimated_outstanding_balance: float
+    monthly_payment: float
+    total_interest: float
+    total_repayment: float
+    principal_repaid: float
+    principal_repaid_percent: float
+
+    @field_serializer("open_date", "maturity_date")
     def _serialize_dt(self, dt: datetime, _info) -> str:
         return _to_js_iso(dt)
 

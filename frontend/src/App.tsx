@@ -8,6 +8,7 @@ import { ChangePasswordPage } from './pages/ChangePassword'
 import { Dashboard } from './pages/Dashboard'
 import { HomePage } from './pages/Home'
 import { LoanPage } from './pages/Loan'
+import { LoanDetailPage } from './pages/LoanDetail'
 import { LoginPage } from './pages/Login'
 import { SelectCurrencyPage } from './pages/SelectCurrency'
 
@@ -34,6 +35,7 @@ function App() {
           <Route index element={<DefaultRoute />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="loan" element={<LoanPage />} />
+          <Route path="loan/:loanId" element={<LoanDetailPage />} />
 
           <Route element={<RequireAdmin />}>
             <Route path="home" element={<HomePage />} />

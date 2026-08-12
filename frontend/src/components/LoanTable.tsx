@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useCurrency } from '../context/CurrencyContext'
 import { formatCurrency } from '../lib/currency'
 import type { Loan } from '../types'
@@ -67,7 +68,11 @@ export function LoanTable({ loans, onDelete }: LoanTableProps) {
         <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
           {loans.map((loan) => (
             <tr key={loan.id} className="transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/60">
-              <Td className="font-medium text-neutral-900 dark:text-neutral-50">{loan.bankName}</Td>
+              <Td className="font-medium text-neutral-900 dark:text-neutral-50">
+                <Link to={`/loan/${loan.id}`} className="transition-colors hover:text-violet-600 hover:underline dark:hover:text-violet-400">
+                  {loan.bankName}
+                </Link>
+              </Td>
               <Td>
                 {loan.loanType === 'secured' ? (
                   <span className="rounded-full bg-cyan-50 px-1.5 py-px text-[10px] font-medium text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400">
@@ -102,12 +107,20 @@ export function LoanTable({ loans, onDelete }: LoanTableProps) {
               </Td>
               <Td align="right">{formatCurrency(loan.monthlyInterest, currency)}</Td>
               <Td align="right">
-                <button
-                  onClick={() => onDelete(loan.id)}
-                  className="text-sm text-neutral-400 transition-colors hover:text-red-500 dark:text-neutral-500 dark:hover:text-red-400"
-                >
-                  Delete
-                </button>
+                <div className="flex items-center justify-end gap-3">
+                  <Link
+                    to={`/loan/${loan.id}`}
+                    className="text-sm text-neutral-400 transition-colors hover:text-violet-600 dark:text-neutral-500 dark:hover:text-violet-400"
+                  >
+                    Details
+                  </Link>
+                  <button
+                    onClick={() => onDelete(loan.id)}
+                    className="text-sm text-neutral-400 transition-colors hover:text-red-500 dark:text-neutral-500 dark:hover:text-red-400"
+                  >
+                    Delete
+                  </button>
+                </div>
               </Td>
             </tr>
           ))}

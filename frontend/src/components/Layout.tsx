@@ -6,9 +6,10 @@ import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../hooks/useTheme'
 
 // The back link goes to the immediate parent in the nav hierarchy
-// (/loan -> /dashboard -> /home for admins), not always straight to the
-// top-level home base.
+// (/loan/:id -> /loan -> /dashboard -> /home for admins), not always
+// straight to the top-level home base.
 function getBackTarget(pathname: string, isAdmin: boolean): { path: string; label: string } | null {
+  if (pathname.startsWith('/loan/')) return { path: '/loan', label: 'Loans' }
   if (pathname === '/loan') return { path: '/dashboard', label: 'Dashboard' }
   if (pathname === '/settings/users') return { path: '/home', label: 'Home' }
   if (pathname === '/dashboard') return isAdmin ? { path: '/home', label: 'Home' } : null
