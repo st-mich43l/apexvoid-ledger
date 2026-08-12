@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, field_serializer
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_serializer
 from pydantic.alias_generators import to_camel
 
 LoanType = Literal["secured", "unsecured"]
@@ -55,5 +55,26 @@ class LoanRead(CamelModel):
     monthly_interest: float
 
     @field_serializer("open_date", "created_at", "updated_at", "maturity_date")
+    def _serialize_dt(self, dt: datetime, _info) -> str:
+        return _to_js_iso(dt)
+
+
+class UserCreate(CamelModel):
+    email: EmailStr
+    # bcrypt silently ignores bytes past 72 — reject early instead of truncating.
+    password: str = Field(min_length=8, max_length=72)
+
+
+class LoginRequest(CamelModel):
+    email: EmailStr
+    password: str
+
+
+class UserRead(CamelModel):
+    id: str
+    email: str
+    created_at: datetime
+
+    @field_serializer("created_at")
     def _serialize_dt(self, dt: datetime, _info) -> str:
         return _to_js_iso(dt)

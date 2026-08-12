@@ -7,10 +7,30 @@ from sqlalchemy.orm import Mapped, mapped_column
 from .database import Base
 
 
+class User(Base):
+    __tablename__ = "User"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    email: Mapped[str] = mapped_column("email", String, nullable=False, unique=True)
+    hashed_password: Mapped[str] = mapped_column("hashedPassword", String, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        "createdAt", DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        "updatedAt",
+        DateTime,
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
 class Loan(Base):
     __tablename__ = "Loan"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    # Nullable until migration 0006 backfills existing rows and flips this to NOT NULL.
+    user_id: Mapped[str | None] = mapped_column("userId", String, nullable=True)
     bank_name: Mapped[str] = mapped_column("bankName", String, nullable=False)
     open_date: Mapped[datetime] = mapped_column("openDate", DateTime, nullable=False)
     disbursement_amount: Mapped[float] = mapped_column("disbursementAmount", Numeric(14, 2), nullable=False)
