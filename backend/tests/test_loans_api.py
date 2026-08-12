@@ -7,6 +7,7 @@ LOAN_PAYLOAD = {
     "bankName": "Shinhan",
     "openDate": "2026-05-07",
     "disbursementAmount": 596000000,
+    "currency": "VND",
     "interestRatePerYear": 12,
     "durationMonths": 60,
     "loanType": "unsecured",
@@ -111,6 +112,22 @@ class TestLoanDetailContent:
 
 
 class TestLoanCreateValidation:
+    def test_currency_defaults_to_account_preference(self, auth_client: TestClient):
+        payload = {key: value for key, value in LOAN_PAYLOAD.items() if key != "currency"}
+        response = auth_client.post("/api/loans", json=payload)
+        assert response.status_code == 201
+        assert response.json()["currency"] == "USD"
+
+    def test_explicit_currency_is_preserved(self, auth_client: TestClient):
+        loan = create_loan(auth_client, currency="VND")
+        assert loan["currency"] == "VND"
+
+    def test_invalid_currency_is_rejected(self, auth_client: TestClient):
+        response = auth_client.post(
+            "/api/loans", json={**LOAN_PAYLOAD, "currency": "BTC"}
+        )
+        assert response.status_code == 422
+
     def test_blank_bank_name_rejected(self, auth_client: TestClient):
         res = auth_client.post("/api/loans", json={**LOAN_PAYLOAD, "bankName": ""})
         assert res.status_code == 422
@@ -224,6 +241,14 @@ class TestLoanUpdateValidation:
         assert body["interestRatePerYear"] == 9.5
         assert body["bankName"] == loan["bankName"]
         assert body["disbursementAmount"] == loan["disbursementAmount"]
+
+    def test_currency_can_be_updated(self, auth_client: TestClient):
+        loan = create_loan(auth_client)
+        response = auth_client.put(
+            f"/api/loans/{loan['id']}", json={"currency": "EUR"}
+        )
+        assert response.status_code == 200
+        assert response.json()["currency"] == "EUR"
 
     def test_full_update_of_all_fields_succeeds(self, auth_client: TestClient):
         loan = create_loan(auth_client)

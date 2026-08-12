@@ -3,12 +3,14 @@ import { ApiError, updateLoan } from '../../api'
 import { loanToFormValues, useLoanFormState } from '../../hooks/useLoanFormState'
 import { Modal } from '../Modal'
 import { LoanFormFields } from './LoanFormFields'
+import type { CurrencyCode } from '../../lib/currency'
 
 interface EditableLoan {
   id: string
   bankName: string
   openDate: string
   disbursementAmount: number
+  currency: CurrencyCode
   interestRatePerYear: number
   durationMonths: number
   loanType: 'secured' | 'unsecured'
@@ -21,8 +23,8 @@ interface EditLoanDialogProps {
 }
 
 export function EditLoanDialog({ loan, onClose, onSaved }: EditLoanDialogProps) {
-  const { values, handleChange, handleAmountChange, handleDateChange, handleLoanTypeChange, validate, toLoanInput } =
-    useLoanFormState(loanToFormValues(loan))
+  const { values, handleChange, handleAmountChange, handleDateChange, handleLoanTypeChange, handleCurrencyChange, validate, toLoanInput } =
+    useLoanFormState(loan.currency, loanToFormValues(loan))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -58,6 +60,7 @@ export function EditLoanDialog({ loan, onClose, onSaved }: EditLoanDialogProps) 
             onAmountChange={handleAmountChange}
             onDateChange={handleDateChange}
             onLoanTypeChange={handleLoanTypeChange}
+            onCurrencyChange={handleCurrencyChange}
             disabled={saving}
           />
         </div>

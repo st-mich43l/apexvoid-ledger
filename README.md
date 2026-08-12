@@ -1,8 +1,8 @@
 # 💰 apexvoid-ledger
 
-A personal finance dashboard, starting with loan tracking across multiple banks:
-open date, disbursement amount, interest rate, term, and a calculated running
-balance. Session-based accounts gate access — see [Accounts & access](#-accounts--access) below.
+A personal finance dashboard for monthly cash-flow tracking and loans across
+multiple banks. Session-based accounts gate access — see
+[Accounts & access](#-accounts--access) below.
 
 ## 🧱 Stack
 
@@ -17,6 +17,8 @@ Each loan tracks:
 - 🏛️ Bank name
 - 📅 Open date
 - 💵 Disbursement amount
+- 💱 Native loan currency (defaults to the account preference and remains
+  attached to the loan if that preference later changes)
 - 📈 Interest rate per year
 - 🔁 Term (months) — Vietnamese banking's "kỳ hạn": the loan's total count of
   monthly payment periods
@@ -31,6 +33,40 @@ From these, the dashboard calculates:
 - 🗓️ Monthly interest / EMI
 - ⏳ Terms remaining until maturity (elapsed terms measured from the open
   date's monthly anniversary, not distance to the maturity date)
+
+## 💸 Cash flow
+
+`/cashflow` provides a transaction-backed monthly ledger with:
+
+- Manual income and expense entries, using positive stored amounts and a
+  unified transaction model.
+- A weekend-friendly weekly review with generated Monday–Sunday groups for the
+  selected month (including clipped first/last weeks), saving several category
+  expense totals atomically as ordinary manual transactions.
+- Per-user income/expense categories with normalized names, optional icons,
+  and soft-deactivation so historical transactions always retain a category.
+- Monthly income, expenses, net cash flow, and savings rate calculated by the
+  backend with decimal arithmetic.
+- Income-versus-expense and spending-by-category visualizations, plus a
+  responsive monthly transaction list.
+- Currency-aware totals that preserve every transaction's native amount while
+  converting monthly reports with historical daily reference rates from
+  [Frankfurter](https://frankfurter.dev). Weekend and holiday transactions use
+  the latest prior published rate, and the UI discloses every rate used.
+- Contractual loan installments linked automatically from each owned loan's
+  repayment schedule. They appear as read-only monthly activity under the Loan
+  category, update immediately when a loan changes, and are removed when the
+  loan is deleted. They are projections, not confirmation that a payment was
+  completed, and are converted using the same historical-rate path.
+
+Income and ordinary expenses remain manual in v0.3.0; bank synchronization,
+imports, general recurring transactions, payment reconciliation, and budgets
+are not included yet.
+
+Default categories are created lazily and idempotently the first time each
+account accesses cash flow. All categories and transactions are scoped to the
+authenticated account, and foreign resource IDs return `404` just like missing
+ones.
 
 ## 🔐 Accounts & access
 
@@ -50,19 +86,22 @@ From these, the dashboard calculates:
 - `/login` — sign in (username, not email)
 - `/home` — admin hub: portal shortcuts + overview (admins only; other users
   skip straight to `/dashboard`)
-- `/dashboard` — account overview (loan summary now; trading account and
-  other asset types are planned, currently shown as "coming soon")
+- `/dashboard` — account overview with current-month cash flow and loan summary
+  (trading and other asset types remain planned)
+- `/cashflow` — monthly cash-flow summary, visualizations, transaction CRUD,
+  and category management
 - `/loan` — the loan table + form (reached from `/dashboard`'s Loan card)
 - `/settings/users` — admin-only user management
 - `/change-password`, `/select-currency` — one-time onboarding gates,
   forced on first login before the app is reachable
 
-Loans are scoped to their owning account — `routers/loans.py` requires
-auth and filters every query by the logged-in user's id, so one account
-can never see or modify another's loans (a mismatched id 404s, same as a
-nonexistent one, rather than leaking that the loan belongs to someone
-else). Loans created before this existed were backfilled to whichever
-account was created first — see migration `0010`.
+Financial resources are scoped to their owning account. Loan, category, and
+transaction routers require authentication and filter every resource query by
+the logged-in user's id, so a mismatched id 404s instead of leaking that it
+belongs to someone else. Loans created before ownership existed were backfilled
+to whichever account was created first — see migration `0010`; migration `0011`
+adds the cash-flow schema, and migration `0012` adds native loan currency for
+safe cross-currency reporting.
 
 ## 🚀 Running locally
 

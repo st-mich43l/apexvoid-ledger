@@ -1,14 +1,15 @@
 import { useEffect, useRef } from 'react'
-import { useCurrency } from '../../context/CurrencyContext'
+import type { CurrencyCode } from '../../lib/currency'
 import { formatCurrency } from '../../lib/currency'
 import { formatDate } from '../../lib/date'
 import type { LoanScheduleItem, ScheduleStatus } from '../../types'
 
 interface LoanScheduleTableProps {
   schedule: LoanScheduleItem[]
+  currency: CurrencyCode
 }
 
-export function LoanScheduleTable({ schedule }: LoanScheduleTableProps) {
+export function LoanScheduleTable({ schedule, currency }: LoanScheduleTableProps) {
   const currentRowRef = useRef<HTMLTableRowElement>(null)
   const currentCardRef = useRef<HTMLDivElement>(null)
 
@@ -46,7 +47,7 @@ export function LoanScheduleTable({ schedule }: LoanScheduleTableProps) {
           </thead>
           <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
             {schedule.map((item) => (
-              <ScheduleRow key={item.term} item={item} rowRef={item.status === 'current' ? currentRowRef : undefined} />
+              <ScheduleRow key={item.term} item={item} currency={currency} rowRef={item.status === 'current' ? currentRowRef : undefined} />
             ))}
           </tbody>
         </table>
@@ -58,6 +59,7 @@ export function LoanScheduleTable({ schedule }: LoanScheduleTableProps) {
           <ScheduleCard
             key={item.term}
             item={item}
+            currency={currency}
             cardRef={item.status === 'current' ? currentCardRef : undefined}
           />
         ))}
@@ -69,12 +71,12 @@ export function LoanScheduleTable({ schedule }: LoanScheduleTableProps) {
 function ScheduleRow({
   item,
   rowRef,
+  currency,
 }: {
   item: LoanScheduleItem
+  currency: CurrencyCode
   rowRef?: React.RefObject<HTMLTableRowElement | null>
 }) {
-  const { currency } = useCurrency()
-
   return (
     <tr
       ref={rowRef}
@@ -105,12 +107,12 @@ function ScheduleRow({
 function ScheduleCard({
   item,
   cardRef,
+  currency,
 }: {
   item: LoanScheduleItem
+  currency: CurrencyCode
   cardRef?: React.RefObject<HTMLDivElement | null>
 }) {
-  const { currency } = useCurrency()
-
   return (
     <div ref={cardRef} className={`p-4 ${item.status === 'current' ? 'bg-violet-50/70 dark:bg-violet-500/10' : ''}`}>
       <div className="flex items-center justify-between">

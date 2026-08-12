@@ -1,12 +1,14 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_serializer, field_validator
 from pydantic.alias_generators import to_camel
 
 LoanType = Literal["secured", "unsecured"]
 ScheduleStatus = Literal["completed", "current", "upcoming"]
+CashFlowType = Literal["income", "expense"]
+TransactionSource = Literal["manual"]
 
 USERNAME_PATTERN = r"^[a-zA-Z0-9_.-]+$"
 
@@ -19,6 +21,8 @@ BankName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1,
 DisbursementAmount = Annotated[Decimal, Field(gt=0)]
 InterestRatePerYear = Annotated[Decimal, Field(ge=0, le=100)]
 DurationMonths = Annotated[int, Field(ge=1, le=600)]
+CategoryName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)]
+TransactionAmount = Annotated[Decimal, Field(gt=0)]
 
 
 def _to_js_iso(dt: datetime) -> str:
@@ -35,6 +39,7 @@ class LoanCreate(CamelModel):
     bank_name: BankName
     open_date: datetime
     disbursement_amount: DisbursementAmount
+    currency: CurrencyCode | None = None
     interest_rate_per_year: InterestRatePerYear
     duration_months: DurationMonths
     loan_type: LoanType = "unsecured"
@@ -47,6 +52,7 @@ class LoanUpdate(CamelModel):
     bank_name: BankName | None = None
     open_date: datetime | None = None
     disbursement_amount: DisbursementAmount | None = None
+    currency: CurrencyCode | None = None
     interest_rate_per_year: InterestRatePerYear | None = None
     duration_months: DurationMonths | None = None
     loan_type: LoanType | None = None
@@ -57,6 +63,7 @@ class LoanRead(CamelModel):
     bank_name: str
     open_date: datetime
     disbursement_amount: float
+    currency: CurrencyCode
     interest_rate_per_year: float
     duration_months: int
     loan_type: LoanType
@@ -108,6 +115,7 @@ class LoanDetailRead(CamelModel):
     bank_name: str
     loan_type: LoanType
     disbursement_amount: float
+    currency: CurrencyCode
     interest_rate_per_year: float
     open_date: datetime
     maturity_date: datetime
@@ -127,6 +135,180 @@ class LoanDetailRead(CamelModel):
     @field_serializer("open_date", "maturity_date")
     def _serialize_dt(self, dt: datetime, _info) -> str:
         return _to_js_iso(dt)
+
+
+class CategoryCreate(CamelModel):
+    name: CategoryName
+    type: CashFlowType
+    icon: str | None = Field(default=None, max_length=32)
+
+    @field_validator("icon")
+    @classmethod
+    def clean_icon(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip() or None
+
+
+class CategoryUpdate(CamelModel):
+    name: CategoryName | None = None
+    type: CashFlowType | None = None
+    icon: str | None = Field(default=None, max_length=32)
+    is_active: bool | None = None
+
+    @field_validator("icon")
+    @classmethod
+    def clean_icon(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip() or None
+
+
+class CategoryRead(CamelModel):
+    id: str
+    name: str
+    type: CashFlowType
+    icon: str | None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    @field_serializer("created_at", "updated_at")
+    def _serialize_dt(self, dt: datetime, _info) -> str:
+        return _to_js_iso(dt)
+
+
+class TransactionCreate(CamelModel):
+    type: CashFlowType
+    category_id: str
+    amount: TransactionAmount
+    currency: CurrencyCode | None = None
+    occurred_at: datetime
+    description: str | None = Field(default=None, max_length=240)
+
+    @field_validator("description")
+    @classmethod
+    def clean_description(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip() or None
+
+
+class TransactionUpdate(CamelModel):
+    type: CashFlowType | None = None
+    category_id: str | None = None
+    amount: TransactionAmount | None = None
+    currency: CurrencyCode | None = None
+    occurred_at: datetime | None = None
+    description: str | None = Field(default=None, max_length=240)
+
+    @field_validator("description")
+    @classmethod
+    def clean_description(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip() or None
+
+
+class WeeklyExpenseEntryCreate(CamelModel):
+    category_id: str
+    amount: TransactionAmount
+    description: str | None = Field(default=None, max_length=240)
+
+    @field_validator("description")
+    @classmethod
+    def clean_description(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip() or None
+
+
+class WeeklyExpenseBatchCreate(CamelModel):
+    week_ending: datetime
+    currency: CurrencyCode | None = None
+    entries: list[WeeklyExpenseEntryCreate] = Field(min_length=1, max_length=20)
+
+    @field_validator("entries")
+    @classmethod
+    def category_once_per_week(
+        cls, entries: list[WeeklyExpenseEntryCreate]
+    ) -> list[WeeklyExpenseEntryCreate]:
+        category_ids = [entry.category_id for entry in entries]
+        if len(category_ids) != len(set(category_ids)):
+            raise ValueError("Each category can appear only once in a weekly expense batch")
+        return entries
+
+
+class TransactionRead(CamelModel):
+    id: str
+    type: CashFlowType
+    category_id: str
+    category_name: str
+    category_icon: str | None
+    amount: float
+    currency: CurrencyCode
+    occurred_at: datetime
+    description: str | None
+    source: TransactionSource
+    created_at: datetime
+    updated_at: datetime
+
+    @field_serializer("occurred_at", "created_at", "updated_at")
+    def _serialize_dt(self, dt: datetime, _info) -> str:
+        return _to_js_iso(dt)
+
+
+class CategorySpendingSummary(CamelModel):
+    category_id: str
+    name: str
+    icon: str | None
+    amount: float
+    percent: float
+
+
+class CurrencyConversionRate(CamelModel):
+    source_currency: CurrencyCode
+    target_currency: CurrencyCode
+    rate: float
+    rate_date: date
+
+
+class LoanPaymentActivityRead(CamelModel):
+    id: str
+    loan_id: str
+    bank_name: str
+    term: int
+    due_at: datetime
+    amount: float
+    currency: CurrencyCode
+    reporting_amount: float | None
+    reporting_currency: CurrencyCode
+
+    @field_serializer("due_at")
+    def _serialize_dt(self, dt: datetime, _info) -> str:
+        return _to_js_iso(dt)
+
+
+class CashFlowMonthlySummary(CamelModel):
+    year: int
+    month: int
+    currency: CurrencyCode
+    income: float
+    expenses: float
+    net_cash_flow: float
+    savings_rate_percent: float | None
+    transaction_count: int
+    loan_payment_count: int
+    loan_payments: list[LoanPaymentActivityRead]
+    category_breakdown: list[CategorySpendingSummary]
+    converted_currencies: list[CurrencyCode]
+    unconverted_currencies: list[CurrencyCode]
+    conversion_rates: list[CurrencyConversionRate]
+    exchange_rate_provider: str | None
+    exchange_rate_provider_url: str | None
+    # Backward-compatible alias retained for older clients. Once conversion is
+    # enabled, only currencies that could not be converted remain excluded.
+    excluded_currencies: list[CurrencyCode]
 
 
 class UserCreate(CamelModel):

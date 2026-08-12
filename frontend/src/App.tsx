@@ -5,6 +5,7 @@ import { RequireAuth } from './components/RequireAuth'
 import { useAuth } from './context/AuthContext'
 import { AdminUsersPage } from './pages/admin/Users'
 import { ChangePasswordPage } from './pages/ChangePassword'
+import { CashFlowPage } from './pages/CashFlow'
 import { Dashboard } from './pages/Dashboard'
 import { HomePage } from './pages/Home'
 import { LoanPage } from './pages/Loan'
@@ -34,6 +35,7 @@ function App() {
         <Route element={<Layout />}>
           <Route index element={<DefaultRoute />} />
           <Route path="dashboard" element={<Dashboard />} />
+          <Route path="cashflow" element={<CashFlowPage />} />
           <Route path="loan" element={<LoanPage />} />
           <Route path="loan/:loanId" element={<LoanDetailPage />} />
 

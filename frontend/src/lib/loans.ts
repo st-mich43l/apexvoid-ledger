@@ -1,24 +1,40 @@
+import type { CurrencyCode } from './currency'
 import type { Loan } from '../types'
 
-export interface MonthlyPaymentSummary {
-  activeLoanCount: number
+export interface CurrencyMonthlyPaymentSummary {
+  currency: CurrencyCode
   total: number
   secured: number
   unsecured: number
 }
 
-// Per-loan payment formulas stay backend-owned. This helper only aggregates
-// the contractual values returned by the API and excludes completed loans.
-export function summarizeMonthlyPayments(loans: Loan[]): MonthlyPaymentSummary {
-  return loans.reduce<MonthlyPaymentSummary>(
-    (summary, loan) => {
-      if (loan.isMatured) return summary
+export interface MonthlyPaymentSummary {
+  activeLoanCount: number
+  hasActiveSecuredLoan: boolean
+  currencies: CurrencyMonthlyPaymentSummary[]
+}
 
-      summary.activeLoanCount += 1
-      summary.total += loan.monthlyPayment
-      summary[loan.loanType] += loan.monthlyPayment
-      return summary
-    },
-    { activeLoanCount: 0, total: 0, secured: 0, unsecured: 0 },
-  )
+// Per-loan payment formulas stay backend-owned. This helper groups the
+// contractual values returned by the API without ever adding unlike
+// currencies together, and excludes completed loans.
+export function summarizeMonthlyPayments(loans: Loan[]): MonthlyPaymentSummary {
+  const activeLoans = loans.filter((loan) => !loan.isMatured)
+  const grouped = activeLoans.reduce((groups, loan) => {
+    const summary = groups.get(loan.currency) ?? {
+      currency: loan.currency,
+      total: 0,
+      secured: 0,
+      unsecured: 0,
+    }
+    summary.total += loan.monthlyPayment
+    summary[loan.loanType] += loan.monthlyPayment
+    groups.set(loan.currency, summary)
+    return groups
+  }, new Map<CurrencyCode, CurrencyMonthlyPaymentSummary>())
+
+  return {
+    activeLoanCount: activeLoans.length,
+    hasActiveSecuredLoan: activeLoans.some((loan) => loan.loanType === 'secured'),
+    currencies: [...grouped.values()],
+  }
 }

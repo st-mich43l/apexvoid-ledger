@@ -4,11 +4,15 @@ from datetime import datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Literal
 
-# Loan amounts round to whole currency units (VND has no minor decimal unit in
-# practice, and the reference bank schedule this was calibrated against rounds
-# each period to whole VND - a fixed-point cents granularity introduced a
-# rounding drift that whole-unit rounding does not).
-UNIT = Decimal("1")
+# The original schedule was calibrated for VND and therefore rounded to whole
+# units. Loans now retain their native currency, so decimal currencies keep
+# cents while VND and JPY continue using whole-unit bank schedules.
+WHOLE_UNIT_CURRENCIES = {"VND", "JPY"}
+
+
+def _currency_quantum(currency: str) -> Decimal:
+    return Decimal("1") if currency in WHOLE_UNIT_CURRENCIES else Decimal("0.01")
+
 
 ScheduleStatus = Literal["completed", "current", "upcoming"]
 
@@ -30,6 +34,7 @@ class LoanSchedule:
     open_date: datetime
     maturity_date: datetime
     as_of: datetime
+    quantum: Decimal
     monthly_payment: Decimal
     items: list[LoanScheduleItem]
 
@@ -90,13 +95,18 @@ def _next_business_day(dt: datetime) -> datetime:
     return dt
 
 
-def _calculate_emi(principal: Decimal, monthly_rate: Decimal, duration_months: int) -> Decimal:
+def _calculate_emi(
+    principal: Decimal,
+    monthly_rate: Decimal,
+    duration_months: int,
+    quantum: Decimal,
+) -> Decimal:
     """Standard equal-monthly-installment (annuity) amortization payment."""
     if monthly_rate == 0:
-        return (principal / Decimal(duration_months)).quantize(UNIT, rounding=ROUND_HALF_UP)
+        return (principal / Decimal(duration_months)).quantize(quantum, rounding=ROUND_HALF_UP)
     growth = (1 + monthly_rate) ** duration_months
     emi = principal * monthly_rate * growth / (growth - 1)
-    return emi.quantize(UNIT, rounding=ROUND_HALF_UP)
+    return emi.quantize(quantum, rounding=ROUND_HALF_UP)
 
 
 def generate_loan_schedule(
@@ -106,6 +116,7 @@ def generate_loan_schedule(
     duration_months: int,
     loan_type: str,
     as_of: datetime | None = None,
+    currency: str = "VND",
 ) -> LoanSchedule:
     """The single source of truth for loan amortization.
 
@@ -136,13 +147,14 @@ def generate_loan_schedule(
     maturity_date = _add_months(open_date_utc, duration_months)
     daily_rate = interest_rate_per_year / Decimal(100) / Decimal(365)
     monthly_rate = interest_rate_per_year / Decimal(1200)
+    quantum = _currency_quantum(currency)
 
     is_unsecured = loan_type == "unsecured"
     monthly_payment = (
-        _calculate_emi(disbursement_amount, monthly_rate, duration_months)
+        _calculate_emi(disbursement_amount, monthly_rate, duration_months, quantum)
         if is_unsecured
         else (disbursement_amount * (interest_rate_per_year / Decimal(100)) / Decimal(12)).quantize(
-            UNIT, rounding=ROUND_HALF_UP
+            quantum, rounding=ROUND_HALF_UP
         )
     )
 
@@ -154,7 +166,9 @@ def generate_loan_schedule(
     for term in range(1, duration_months + 1):
         due_date = _next_business_day(_add_months(open_date_utc, term))
         days_in_period = (due_date - previous_date).days
-        interest = (outstanding * daily_rate * days_in_period).quantize(UNIT, rounding=ROUND_HALF_UP)
+        interest = (outstanding * daily_rate * days_in_period).quantize(
+            quantum, rounding=ROUND_HALF_UP
+        )
 
         if is_unsecured:
             if term == duration_months:
@@ -174,7 +188,7 @@ def generate_loan_schedule(
             principal = Decimal(0)
             payment = interest
 
-        closing = (outstanding - principal).quantize(UNIT, rounding=ROUND_HALF_UP)
+        closing = (outstanding - principal).quantize(quantum, rounding=ROUND_HALF_UP)
 
         if due_date <= resolved_as_of:
             status: ScheduleStatus = "completed"
@@ -188,9 +202,9 @@ def generate_loan_schedule(
             LoanScheduleItem(
                 term=term,
                 due_date=due_date,
-                opening_principal=outstanding.quantize(UNIT, rounding=ROUND_HALF_UP),
-                payment=payment.quantize(UNIT, rounding=ROUND_HALF_UP),
-                principal=principal.quantize(UNIT, rounding=ROUND_HALF_UP),
+                opening_principal=outstanding.quantize(quantum, rounding=ROUND_HALF_UP),
+                payment=payment.quantize(quantum, rounding=ROUND_HALF_UP),
+                principal=principal.quantize(quantum, rounding=ROUND_HALF_UP),
                 interest=interest,
                 closing_principal=closing,
                 status=status,
@@ -204,6 +218,7 @@ def generate_loan_schedule(
         open_date=open_date_utc,
         maturity_date=maturity_date,
         as_of=resolved_as_of,
+        quantum=quantum,
         monthly_payment=monthly_payment,
         items=items,
     )
@@ -235,13 +250,14 @@ def _resolve_current_state(
     is_matured = terms_elapsed >= duration_months
     last_due_date = completed[-1].due_date if completed else schedule.open_date
     days_since_installment = max(0, (schedule.as_of - last_due_date).days)
+    quantum = schedule.quantum
 
     if loan_type == "unsecured":
         current_principal = completed[-1].closing_principal if completed else disbursement_amount
         if is_matured:
             current_principal = Decimal(0)
         accrued_interest = (current_principal * daily_rate * days_since_installment).quantize(
-            UNIT, rounding=ROUND_HALF_UP
+            quantum, rounding=ROUND_HALF_UP
         )
         balance = current_principal
     else:
@@ -250,15 +266,19 @@ def _resolve_current_state(
         partial_interest = Decimal(0)
         if not is_matured:
             partial_interest = (disbursement_amount * daily_rate * days_since_installment).quantize(
-                UNIT, rounding=ROUND_HALF_UP
+                quantum, rounding=ROUND_HALF_UP
             )
-        accrued_interest = (completed_interest + partial_interest).quantize(UNIT, rounding=ROUND_HALF_UP)
-        balance = (disbursement_amount + accrued_interest).quantize(UNIT, rounding=ROUND_HALF_UP)
+        accrued_interest = (completed_interest + partial_interest).quantize(
+            quantum, rounding=ROUND_HALF_UP
+        )
+        balance = (disbursement_amount + accrued_interest).quantize(
+            quantum, rounding=ROUND_HALF_UP
+        )
 
     return _CurrentState(
         terms_elapsed=terms_elapsed,
         is_matured=is_matured,
-        current_principal=current_principal.quantize(UNIT, rounding=ROUND_HALF_UP),
+        current_principal=current_principal.quantize(quantum, rounding=ROUND_HALF_UP),
         accrued_interest=accrued_interest,
         balance=balance,
     )
@@ -271,9 +291,16 @@ def calculate_loan(
     duration_months: int,
     loan_type: str,
     as_of: datetime | None = None,
+    currency: str = "VND",
 ) -> LoanCalculations:
     schedule = generate_loan_schedule(
-        disbursement_amount, interest_rate_per_year, open_date, duration_months, loan_type, as_of
+        disbursement_amount,
+        interest_rate_per_year,
+        open_date,
+        duration_months,
+        loan_type,
+        as_of,
+        currency,
     )
     state = _resolve_current_state(schedule, disbursement_amount, interest_rate_per_year, duration_months, loan_type)
 
@@ -302,17 +329,28 @@ def build_loan_detail(
     duration_months: int,
     loan_type: str,
     as_of: datetime | None = None,
+    currency: str = "VND",
 ) -> LoanDetail:
     schedule = generate_loan_schedule(
-        disbursement_amount, interest_rate_per_year, open_date, duration_months, loan_type, as_of
+        disbursement_amount,
+        interest_rate_per_year,
+        open_date,
+        duration_months,
+        loan_type,
+        as_of,
+        currency,
     )
     state = _resolve_current_state(schedule, disbursement_amount, interest_rate_per_year, duration_months, loan_type)
 
     total_interest = sum((item.interest for item in schedule.items), Decimal(0)).quantize(
-        UNIT, rounding=ROUND_HALF_UP
+        schedule.quantum, rounding=ROUND_HALF_UP
     )
-    total_repayment = (disbursement_amount + total_interest).quantize(UNIT, rounding=ROUND_HALF_UP)
-    principal_repaid = (disbursement_amount - state.current_principal).quantize(UNIT, rounding=ROUND_HALF_UP)
+    total_repayment = (disbursement_amount + total_interest).quantize(
+        schedule.quantum, rounding=ROUND_HALF_UP
+    )
+    principal_repaid = (disbursement_amount - state.current_principal).quantize(
+        schedule.quantum, rounding=ROUND_HALF_UP
+    )
     principal_repaid_percent = (
         (principal_repaid / disbursement_amount * Decimal(100)) if disbursement_amount > 0 else Decimal(0)
     ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)

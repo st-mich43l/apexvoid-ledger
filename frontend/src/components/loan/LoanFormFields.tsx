@@ -1,5 +1,6 @@
 import { useId, type ChangeEvent } from 'react'
 import { formatAmountDisplay, formatDateDisplay, type LoanFormValues } from '../../hooks/useLoanFormState'
+import { SUPPORTED_CURRENCIES } from '../../lib/currency'
 
 interface LoanFormFieldsProps {
   values: LoanFormValues
@@ -7,6 +8,7 @@ interface LoanFormFieldsProps {
   onAmountChange: (e: ChangeEvent<HTMLInputElement>) => void
   onDateChange: (e: ChangeEvent<HTMLInputElement>) => void
   onLoanTypeChange: (e: ChangeEvent<HTMLSelectElement>) => void
+  onCurrencyChange: (e: ChangeEvent<HTMLSelectElement>) => void
   disabled?: boolean
 }
 
@@ -18,12 +20,14 @@ export function LoanFormFields({
   onAmountChange,
   onDateChange,
   onLoanTypeChange,
+  onCurrencyChange,
   disabled,
 }: LoanFormFieldsProps) {
   const formId = useId()
   const bankNameId = `${formId}-bank-name`
   const openDateId = `${formId}-open-date`
   const amountId = `${formId}-amount`
+  const currencyId = `${formId}-currency`
   const interestRateId = `${formId}-interest-rate`
   const termId = `${formId}-term`
   const loanTypeId = `${formId}-loan-type`
@@ -73,6 +77,20 @@ export function LoanFormFields({
           placeholder="10,000"
           className={inputClass}
         />
+      </Field>
+
+      <Field label="Loan currency" htmlFor={currencyId}>
+        <select
+          id={currencyId}
+          value={values.currency}
+          disabled={disabled}
+          onChange={onCurrencyChange}
+          className={inputClass}
+        >
+          {SUPPORTED_CURRENCIES.map((currency) => (
+            <option key={currency} value={currency}>{currency}</option>
+          ))}
+        </select>
       </Field>
 
       <Field label="Annual interest rate" htmlFor={interestRateId}>
