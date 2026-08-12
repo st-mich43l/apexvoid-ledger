@@ -23,11 +23,15 @@ function App() {
       <Route path="login" element={<LoginPage />} />
 
       <Route element={<RequireAuth />}>
+        {/* Standalone, like /login — this is a gate between login and the app
+            (only reachable via the forced-password-change redirect), not a
+            page within it, so it skips Layout's header/chrome entirely. */}
+        <Route path="change-password" element={<ChangePasswordPage />} />
+
         <Route element={<Layout />}>
           <Route index element={<DefaultRoute />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="loan" element={<LoanPage />} />
-          <Route path="change-password" element={<ChangePasswordPage />} />
 
           <Route element={<RequireAdmin />}>
             <Route path="home" element={<HomePage />} />
