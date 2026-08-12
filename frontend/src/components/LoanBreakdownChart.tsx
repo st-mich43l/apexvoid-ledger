@@ -25,6 +25,36 @@ interface Slice {
   color: string
 }
 
+interface BankGroup {
+  key: string
+  label: string
+  amount: number
+}
+
+// "Shinhan", "shinhan", "SHINHAN", " Shinhan " all denote the same bank —
+// group by a normalized key (trimmed, collapsed whitespace, lowercased) so
+// multiple loans at the same bank sum into one slice instead of splitting
+// across duplicates.
+function normalizeBankKey(name: string): string {
+  return name.trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+function groupLoansByBank(loans: Loan[]): BankGroup[] {
+  const groups = new Map<string, BankGroup>()
+  for (const loan of loans) {
+    const key = normalizeBankKey(loan.bankName)
+    const existing = groups.get(key)
+    if (existing) {
+      existing.amount += loan.currentBalance
+    } else {
+      // First-seen casing is the display name — a reasonable, simple choice
+      // when the same bank was typed inconsistently across loans.
+      groups.set(key, { key, label: loan.bankName.trim().replace(/\s+/g, ' '), amount: loan.currentBalance })
+    }
+  }
+  return [...groups.values()]
+}
+
 export function LoanBreakdownChart({ loans }: LoanBreakdownChartProps) {
   const { currency } = useCurrency()
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
@@ -32,20 +62,20 @@ export function LoanBreakdownChart({ loans }: LoanBreakdownChartProps) {
   const total = loans.reduce((sum, loan) => sum + loan.currentBalance, 0)
   if (loans.length === 0 || total <= 0) return null
 
-  const sorted = [...loans].sort((a, b) => b.currentBalance - a.currentBalance)
+  const grouped = groupLoansByBank(loans).sort((a, b) => b.amount - a.amount)
   const maxSlices = 4
-  const top = sorted.slice(0, maxSlices)
-  const rest = sorted.slice(maxSlices)
+  const top = grouped.slice(0, maxSlices)
+  const rest = grouped.slice(maxSlices)
 
-  const slices: Slice[] = top.map((loan, i) => ({
-    label: loan.bankName,
-    amount: loan.currentBalance,
+  const slices: Slice[] = top.map((group, i) => ({
+    label: group.label,
+    amount: group.amount,
     color: SLICE_COLORS[i],
   }))
   if (rest.length > 0) {
     slices.push({
       label: `Other (${rest.length})`,
-      amount: rest.reduce((sum, loan) => sum + loan.currentBalance, 0),
+      amount: rest.reduce((sum, group) => sum + group.amount, 0),
       color: OTHER_COLOR,
     })
   }
