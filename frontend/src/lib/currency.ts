@@ -8,20 +8,6 @@ export function currencyName(code: string): string {
   return currencyNames.of(code) ?? code
 }
 
-const CURRENCY_FLAGS: Record<CurrencyCode, string> = {
-  USD: '🇺🇸',
-  EUR: '🇪🇺',
-  GBP: '🇬🇧',
-  AUD: '🇦🇺',
-  JPY: '🇯🇵',
-  CNY: '🇨🇳',
-  VND: '🇻🇳',
-}
-
-export function currencyFlag(code: string): string {
-  return CURRENCY_FLAGS[code as CurrencyCode] ?? '🏳️'
-}
-
 const formatters = new Map<string, Intl.NumberFormat>()
 
 export function formatCurrency(amount: number, code: string): string {

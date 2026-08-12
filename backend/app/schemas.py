@@ -2,10 +2,15 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 from pydantic.alias_generators import to_camel
 
 LoanType = Literal["secured", "unsecured"]
+
+USERNAME_PATTERN = r"^[a-zA-Z0-9_.-]+$"
+
+# Mirrors frontend/src/lib/currency.ts's SUPPORTED_CURRENCIES — keep in sync.
+CurrencyCode = Literal["USD", "EUR", "GBP", "AUD", "JPY", "CNY", "VND"]
 
 
 def _to_js_iso(dt: datetime) -> str:
@@ -55,5 +60,39 @@ class LoanRead(CamelModel):
     monthly_interest: float
 
     @field_serializer("open_date", "created_at", "updated_at", "maturity_date")
+    def _serialize_dt(self, dt: datetime, _info) -> str:
+        return _to_js_iso(dt)
+
+
+class UserCreate(CamelModel):
+    username: str = Field(min_length=3, max_length=50, pattern=USERNAME_PATTERN)
+    # bcrypt silently ignores bytes past 72 — reject early instead of truncating.
+    password: str = Field(min_length=8, max_length=72)
+    is_admin: bool = False
+
+
+class LoginRequest(CamelModel):
+    username: str
+    password: str
+
+
+class ChangePasswordRequest(CamelModel):
+    current_password: str
+    new_password: str = Field(min_length=8, max_length=72)
+
+
+class SetCurrencyRequest(CamelModel):
+    currency: CurrencyCode
+
+
+class UserRead(CamelModel):
+    id: str
+    username: str
+    is_admin: bool
+    must_change_password: bool
+    preferred_currency: str | None
+    created_at: datetime
+
+    @field_serializer("created_at")
     def _serialize_dt(self, dt: datetime, _info) -> str:
         return _to_js_iso(dt)

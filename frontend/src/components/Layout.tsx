@@ -1,12 +1,24 @@
-import { Link, Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { CurrencySelector } from './CurrencySelector'
 import { ThemeToggle } from './ThemeToggle'
+import { BrandMark } from './BrandMark'
+import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../hooks/useTheme'
 
 export function Layout() {
   const { theme, toggleTheme } = useTheme()
+  const { user, logout } = useAuth()
   const { pathname } = useLocation()
-  const showBackButton = pathname !== '/dashboard'
+  const navigate = useNavigate()
+  // Admins' home base is /home (portal + dashboard hub); everyone else's is /dashboard.
+  const homePath = user?.isAdmin ? '/home' : '/dashboard'
+  const homeLabel = user?.isAdmin ? 'Home' : 'Dashboard'
+  const showBackButton = pathname !== homePath
+
+  async function handleLogout() {
+    await logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <div className="min-h-screen bg-neutral-50 [background-image:radial-gradient(60%_50%_at_50%_-10%,rgba(139,92,246,0.16),transparent_70%)] dark:bg-neutral-950 dark:[background-image:radial-gradient(60%_50%_at_50%_-10%,rgba(139,92,246,0.10),transparent_70%)]">
@@ -18,26 +30,51 @@ export function Layout() {
             <div>
               {showBackButton && (
                 <Link
-                  to="/dashboard"
+                  to={homePath}
                   className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-neutral-500 transition-colors hover:text-violet-600 dark:text-neutral-400 dark:hover:text-violet-400"
                 >
                   <ArrowLeftIcon className="h-4 w-4" />
-                  Dashboard
+                  {homeLabel}
                 </Link>
               )}
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-400">
                 Finance Management
               </p>
-              <h1 className="mt-1 text-3xl font-semibold tracking-tight text-neutral-900 sm:text-4xl dark:text-neutral-50">
-                apexvoid
-              </h1>
+              <div className="mt-1 flex items-center gap-2.5">
+                <BrandMark className="h-9 w-9" />
+                <h1 className="text-3xl font-semibold tracking-tight text-neutral-900 sm:text-4xl dark:text-neutral-50">
+                  ApexVoid Ledger
+                </h1>
+              </div>
               <p className="mt-2 max-w-xl text-sm text-neutral-500 dark:text-neutral-400">
                 A single place to see where your money stands, starting with your loans.
               </p>
             </div>
             <div className="flex items-center gap-2">
+              {user?.isAdmin && (
+                <Link
+                  to="/settings/users"
+                  aria-label="Manage users"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-50"
+                >
+                  <UsersIcon className="h-[18px] w-[18px]" />
+                </Link>
+              )}
               <CurrencySelector />
               <ThemeToggle theme={theme} onToggle={toggleTheme} />
+              {user && (
+                <div className="ml-1 flex items-center gap-2 border-l border-neutral-200 pl-3 dark:border-neutral-800">
+                  <span className="hidden max-w-[10rem] truncate text-sm text-neutral-500 sm:inline dark:text-neutral-400">
+                    {user.username}
+                  </span>
+                  <button
+                    onClick={handleLogout}
+                    className="text-sm font-medium text-neutral-500 transition-colors hover:text-violet-600 dark:text-neutral-400 dark:hover:text-violet-400"
+                  >
+                    Log out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -52,6 +89,16 @@ function ArrowLeftIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className={className}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5m0 0 6 6m-6-6 6-6" />
+    </svg>
+  )
+}
+
+function UsersIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   )
 }
