@@ -33,7 +33,7 @@ export function Layout() {
         <header className="relative mb-10 overflow-hidden rounded-3xl border border-neutral-200/80 bg-white/80 p-6 shadow-[0_2px_8px_-2px_rgba(24,16,54,0.08),0_16px_32px_-12px_rgba(24,16,54,0.10)] backdrop-blur-sm sm:p-8 dark:border-neutral-800 dark:bg-neutral-900/60 dark:shadow-none">
           <div className="pointer-events-none absolute -top-20 -left-10 h-56 w-56 rounded-full bg-gradient-to-br from-violet-500/10 to-transparent blur-3xl" />
 
-          <div className="relative flex items-start justify-between gap-4">
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               {back && (
                 <Link
@@ -57,7 +57,7 @@ export function Layout() {
                 A single place to see where your money stands, starting with your loans.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               {user?.isAdmin && (
                 <Link
                   to="/settings/users"
