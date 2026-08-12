@@ -15,6 +15,27 @@ function formatDate(iso: string): string {
   return `${dd}/${mm}/${yyyy}`
 }
 
+// Remaining terms = total term minus terms already elapsed since the open
+// date (a term counts as elapsed once its monthly anniversary of the open
+// date has passed) — not the distance from today to the maturity date,
+// which is a different, off-by-one-prone question whenever the open day
+// and maturity day don't line up with "today". E.g. opened 07/05/2026,
+// today the 12th: the 7 Jun/7 Jul/7 Aug anniversaries have all passed, so
+// 3 terms are done, however many months "away" the maturity date is.
+function formatTermRemaining(loan: Loan): string {
+  const now = new Date()
+  const open = new Date(loan.openDate)
+
+  let termsElapsed = (now.getUTCFullYear() - open.getUTCFullYear()) * 12 + (now.getUTCMonth() - open.getUTCMonth())
+  if (now.getUTCDate() < open.getUTCDate()) termsElapsed -= 1
+  termsElapsed = Math.max(termsElapsed, 0)
+
+  const remaining = Math.max(loan.durationMonths - termsElapsed, 0)
+
+  if (remaining === 0) return `${loan.daysRemaining}d left`
+  return `${remaining} ${remaining === 1 ? 'term' : 'terms'} left`
+}
+
 export function LoanTable({ loans, onDelete }: LoanTableProps) {
   const { currency } = useCurrency()
 
@@ -49,26 +70,26 @@ export function LoanTable({ loans, onDelete }: LoanTableProps) {
               <Td className="font-medium text-neutral-900 dark:text-neutral-50">{loan.bankName}</Td>
               <Td>
                 {loan.loanType === 'secured' ? (
-                  <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[11px] font-medium text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400">
+                  <span className="rounded-full bg-cyan-50 px-1.5 py-px text-[10px] font-medium text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400">
                     Secured
                   </span>
                 ) : (
-                  <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+                  <span className="rounded-full bg-neutral-100 px-1.5 py-px text-[10px] font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
                     Unsecured
                   </span>
                 )}
               </Td>
               <Td>{formatDate(loan.openDate)}</Td>
               <Td>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <span>{formatDate(loan.maturityDate)}</span>
                   {loan.isMatured ? (
-                    <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+                    <span className="rounded-full bg-neutral-100 px-1.5 py-px text-[10px] font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
                       Matured
                     </span>
                   ) : (
-                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-                      {loan.daysRemaining}d left
+                    <span className="rounded-full bg-emerald-50 px-1.5 py-px text-[10px] font-medium text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                      {formatTermRemaining(loan)}
                     </span>
                   )}
                 </div>
@@ -99,7 +120,7 @@ export function LoanTable({ loans, onDelete }: LoanTableProps) {
 function Th({ children, align = 'left' }: { children?: React.ReactNode; align?: 'left' | 'right' }) {
   return (
     <th
-      className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400 ${
+      className={`px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400 ${
         align === 'right' ? 'text-right' : 'text-left'
       }`}
     >
@@ -119,7 +140,7 @@ function Td({
 }) {
   return (
     <td
-      className={`whitespace-nowrap px-4 py-3 text-sm text-neutral-600 dark:text-neutral-300 ${
+      className={`whitespace-nowrap px-3 py-1.5 text-sm text-neutral-600 dark:text-neutral-300 ${
         align === 'right' ? 'text-right' : 'text-left'
       } ${className}`}
     >

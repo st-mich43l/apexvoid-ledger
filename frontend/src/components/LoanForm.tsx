@@ -146,7 +146,7 @@ export function LoanForm({ onSubmit }: LoanFormProps) {
           />
         </Field>
 
-        <Field label="Duration (months)">
+        <Field label="Term (months)">
           <input
             required
             type="number"

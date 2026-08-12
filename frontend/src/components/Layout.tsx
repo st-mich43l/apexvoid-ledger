@@ -5,15 +5,22 @@ import { BrandMark } from './BrandMark'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../hooks/useTheme'
 
+// The back link goes to the immediate parent in the nav hierarchy
+// (/loan -> /dashboard -> /home for admins), not always straight to the
+// top-level home base.
+function getBackTarget(pathname: string, isAdmin: boolean): { path: string; label: string } | null {
+  if (pathname === '/loan') return { path: '/dashboard', label: 'Dashboard' }
+  if (pathname === '/settings/users') return { path: '/home', label: 'Home' }
+  if (pathname === '/dashboard') return isAdmin ? { path: '/home', label: 'Home' } : null
+  return null
+}
+
 export function Layout() {
   const { theme, toggleTheme } = useTheme()
   const { user, logout } = useAuth()
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  // Admins' home base is /home (portal + dashboard hub); everyone else's is /dashboard.
-  const homePath = user?.isAdmin ? '/home' : '/dashboard'
-  const homeLabel = user?.isAdmin ? 'Home' : 'Dashboard'
-  const showBackButton = pathname !== homePath
+  const back = getBackTarget(pathname, user?.isAdmin ?? false)
 
   async function handleLogout() {
     await logout()
@@ -22,19 +29,19 @@ export function Layout() {
 
   return (
     <div className="min-h-screen bg-neutral-50 [background-image:radial-gradient(60%_50%_at_50%_-10%,rgba(139,92,246,0.16),transparent_70%)] dark:bg-neutral-950 dark:[background-image:radial-gradient(60%_50%_at_50%_-10%,rgba(139,92,246,0.10),transparent_70%)]">
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <header className="relative mb-10 overflow-hidden rounded-3xl border border-neutral-200/80 bg-white/80 p-6 shadow-[0_2px_8px_-2px_rgba(24,16,54,0.08),0_16px_32px_-12px_rgba(24,16,54,0.10)] backdrop-blur-sm sm:p-8 dark:border-neutral-800 dark:bg-neutral-900/60 dark:shadow-none">
           <div className="pointer-events-none absolute -top-20 -left-10 h-56 w-56 rounded-full bg-gradient-to-br from-violet-500/10 to-transparent blur-3xl" />
 
           <div className="relative flex items-start justify-between gap-4">
             <div>
-              {showBackButton && (
+              {back && (
                 <Link
-                  to={homePath}
+                  to={back.path}
                   className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-neutral-500 transition-colors hover:text-violet-600 dark:text-neutral-400 dark:hover:text-violet-400"
                 >
                   <ArrowLeftIcon className="h-4 w-4" />
-                  {homeLabel}
+                  {back.label}
                 </Link>
               )}
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-400">
