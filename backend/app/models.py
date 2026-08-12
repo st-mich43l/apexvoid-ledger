@@ -17,6 +17,8 @@ class User(Base):
     must_change_password: Mapped[bool] = mapped_column(
         "mustChangePassword", Boolean, nullable=False, default=False
     )
+    # NULL until they pick one on first login (see routers/auth.py's PATCH /currency).
+    preferred_currency: Mapped[str | None] = mapped_column("preferredCurrency", String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         "createdAt", DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
     )

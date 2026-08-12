@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_user, hash_password, require_admin, verify_password
 from ..database import get_db
 from ..models import Loan, User
-from ..schemas import ChangePasswordRequest, LoginRequest, UserCreate, UserRead
+from ..schemas import ChangePasswordRequest, LoginRequest, SetCurrencyRequest, UserCreate, UserRead
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -43,6 +43,18 @@ def change_password(
 
     current_user.hashed_password = hash_password(payload.new_password)
     current_user.must_change_password = False
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@router.patch("/currency", response_model=UserRead)
+def set_currency(
+    payload: SetCurrencyRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    current_user.preferred_currency = payload.currency
     db.commit()
     db.refresh(current_user)
     return current_user

@@ -9,6 +9,9 @@ LoanType = Literal["secured", "unsecured"]
 
 USERNAME_PATTERN = r"^[a-zA-Z0-9_.-]+$"
 
+# Mirrors frontend/src/lib/currency.ts's SUPPORTED_CURRENCIES — keep in sync.
+CurrencyCode = Literal["USD", "EUR", "GBP", "AUD", "JPY", "CNY", "VND"]
+
 
 def _to_js_iso(dt: datetime) -> str:
     if dt.tzinfo is None:
@@ -78,11 +81,16 @@ class ChangePasswordRequest(CamelModel):
     new_password: str = Field(min_length=8, max_length=72)
 
 
+class SetCurrencyRequest(CamelModel):
+    currency: CurrencyCode
+
+
 class UserRead(CamelModel):
     id: str
     username: str
     is_admin: bool
     must_change_password: bool
+    preferred_currency: str | None
     created_at: datetime
 
     @field_serializer("created_at")

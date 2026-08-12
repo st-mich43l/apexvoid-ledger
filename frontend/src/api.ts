@@ -110,3 +110,10 @@ export function createUser(username: string, password: string, isAdmin: boolean)
 export function deleteUser(id: string): Promise<void> {
   return authedRequest<void>(`${AUTH_URL}/users/${id}`, { method: 'DELETE' })
 }
+
+export function setPreferredCurrency(currency: string): Promise<AuthUser> {
+  return authedRequest<AuthUser>(`${AUTH_URL}/currency`, {
+    method: 'PATCH',
+    body: JSON.stringify({ currency }),
+  })
+}

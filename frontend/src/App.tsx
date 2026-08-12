@@ -9,6 +9,7 @@ import { Dashboard } from './pages/Dashboard'
 import { HomePage } from './pages/Home'
 import { LoanPage } from './pages/Loan'
 import { LoginPage } from './pages/Login'
+import { SelectCurrencyPage } from './pages/SelectCurrency'
 
 // Admins land on /home (admin portal + dashboard hub); everyone else goes
 // straight to /dashboard, since /home has nothing for them.
@@ -23,10 +24,11 @@ function App() {
       <Route path="login" element={<LoginPage />} />
 
       <Route element={<RequireAuth />}>
-        {/* Standalone, like /login — this is a gate between login and the app
-            (only reachable via the forced-password-change redirect), not a
-            page within it, so it skips Layout's header/chrome entirely. */}
+        {/* Standalone, like /login — these are gates between login and the app
+            (only reachable via RequireAuth's forced redirects), not pages
+            within it, so they skip Layout's header/chrome entirely. */}
         <Route path="change-password" element={<ChangePasswordPage />} />
+        <Route path="select-currency" element={<SelectCurrencyPage />} />
 
         <Route element={<Layout />}>
           <Route index element={<DefaultRoute />} />

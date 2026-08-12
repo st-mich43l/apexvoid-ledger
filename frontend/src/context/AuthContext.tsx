@@ -12,6 +12,7 @@ interface AuthContextValue {
   login: (username: string, password: string) => Promise<AuthUser>
   logout: () => Promise<void>
   changePassword: (currentPassword: string, newPassword: string) => Promise<AuthUser>
+  setPreferredCurrency: (currency: string) => Promise<AuthUser>
   refresh: () => Promise<void>
 }
 
@@ -43,12 +44,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return updated
   }
 
+  async function setPreferredCurrency(currency: string) {
+    const updated = await api.setPreferredCurrency(currency)
+    setUser(updated)
+    return updated
+  }
+
   async function refresh() {
     setUser(await api.fetchMe())
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, changePassword, refresh }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, logout, changePassword, setPreferredCurrency, refresh }}
+    >
       {children}
     </AuthContext.Provider>
   )

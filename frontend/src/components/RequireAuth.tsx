@@ -21,5 +21,11 @@ export function RequireAuth() {
     return <Navigate to="/change-password" replace />
   }
 
+  // Runs after the password gate, not before — no point picking a display
+  // currency before you're even properly logged in.
+  if (!user.mustChangePassword && !user.preferredCurrency && location.pathname !== '/select-currency') {
+    return <Navigate to="/select-currency" replace />
+  }
+
   return <Outlet />
 }

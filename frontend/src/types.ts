@@ -33,5 +33,6 @@ export interface AuthUser {
   username: string
   isAdmin: boolean
   mustChangePassword: boolean
+  preferredCurrency: string | null
   createdAt: string
 }
