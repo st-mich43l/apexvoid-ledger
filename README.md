@@ -67,8 +67,9 @@ network, and `routing`'s `nginx/includes/apexvoid-ledger-routes.conf` proxies
 `apexvoid-ledger-frontend:80`.
 
 > [!WARNING]
-> 🔓 The app currently ships with **no authentication**. Anyone with the URL
-> can read and edit loan data. Add auth before relying on this being deployed.
+> 🔓 `routers/loans.py` has no per-user scoping yet — every loan is visible
+> to every logged-in account. See [CHANGELOG.md](CHANGELOG.md)'s Unreleased
+> section.
 
 ### 🔧 One-time setup before the first deploy
 
@@ -78,8 +79,13 @@ network, and `routing`'s `nginx/includes/apexvoid-ledger-routes.conf` proxies
     `apexvoid-*` repos.
 - 🔐 In `ansible-library`, `inventory/group_vars/all/vault.yml` needs a
   `vault_apexvoid_ledger_env` entry with `POSTGRES_USER`, `POSTGRES_PASSWORD`,
-  `POSTGRES_DB`, and `DATABASE_URL` (host must be `postgres`, the compose
-  service name).
+  `POSTGRES_DB`, `DATABASE_URL` (host must be `postgres`, the compose service
+  name), and **`SECRET_KEY`** (session cookie signing key — generate with
+  `python -c "import secrets; print(secrets.token_urlsafe(32))"`). Missing
+  `SECRET_KEY` isn't cosmetic: `main.py` hard-requires it at startup and the
+  backend container crash-loops without it — `ansible-library`'s
+  `required_secret_keys` for this project now asserts it's present before
+  deploying, so this fails loudly instead of shipping a broken container.
 
 ## 📜 Changelog
 
