@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, fetchLoanDetail, fetchLoanSchedule } from '../api'
 import type { LoanDetail, LoanScheduleItem } from '../types'
 
@@ -10,6 +10,10 @@ interface UseLoanDetailResult {
   loading: boolean
   notFound: boolean
   error: string | null
+  // Silent (no loading flash) — for use after an edit/delete elsewhere on
+  // the page, where the previous data staying on screen while it refreshes
+  // reads better than a loading flicker.
+  refetch: () => Promise<void>
 }
 
 export function useLoanDetail(loanId: string): UseLoanDetailResult {
@@ -18,34 +22,37 @@ export function useLoanDetail(loanId: string): UseLoanDetailResult {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const cancelledRef = useRef(false)
 
-  useEffect(() => {
-    let cancelled = false
-
-    async function load(silent: boolean) {
+  const load = useCallback(
+    async (silent: boolean) => {
       if (!silent) setLoading(true)
       try {
         const [detailResult, scheduleResult] = await Promise.all([
           fetchLoanDetail(loanId),
           fetchLoanSchedule(loanId),
         ])
-        if (cancelled) return
+        if (cancelledRef.current) return
         setDetail(detailResult)
         setSchedule(scheduleResult)
         setNotFound(false)
         setError(null)
       } catch (err) {
-        if (cancelled) return
+        if (cancelledRef.current) return
         if (err instanceof ApiError && err.status === 404) {
           setNotFound(true)
         } else {
           setError('Failed to load this loan. Is the backend running?')
         }
       } finally {
-        if (!cancelled && !silent) setLoading(false)
+        if (!cancelledRef.current && !silent) setLoading(false)
       }
-    }
+    },
+    [loanId],
+  )
 
+  useEffect(() => {
+    cancelledRef.current = false
     load(false)
 
     // Same rationale as useLoans: balances/statuses depend on the current
@@ -57,11 +64,13 @@ export function useLoanDetail(loanId: string): UseLoanDetailResult {
     document.addEventListener('visibilitychange', onVisible)
 
     return () => {
-      cancelled = true
+      cancelledRef.current = true
       clearInterval(interval)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [loanId])
+  }, [load])
 
-  return { detail, schedule, loading, notFound, error }
+  const refetch = useCallback(() => load(true), [load])
+
+  return { detail, schedule, loading, notFound, error, refetch }
 }

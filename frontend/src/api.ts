@@ -60,6 +60,13 @@ export function createLoan(input: LoanInput): Promise<Loan> {
   })
 }
 
+export function updateLoan(id: string, input: LoanInput): Promise<Loan> {
+  return authedRequest<Loan>(`${LOANS_URL}/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  })
+}
+
 export function deleteLoan(id: string): Promise<void> {
   return authedRequest<void>(`${LOANS_URL}/${id}`, { method: 'DELETE' })
 }

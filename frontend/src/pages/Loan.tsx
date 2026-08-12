@@ -1,10 +1,14 @@
+import { useState } from 'react'
 import { LoanBreakdownChart } from '../components/LoanBreakdownChart'
 import { LoanForm } from '../components/LoanForm'
 import { LoanTable } from '../components/LoanTable'
+import { DeleteLoanDialog } from '../components/loan/DeleteLoanDialog'
 import { useLoans } from '../hooks/useLoans'
+import type { Loan } from '../types'
 
 export function LoanPage() {
   const { loans, loading, error, createLoan, deleteLoan } = useLoans()
+  const [pendingDelete, setPendingDelete] = useState<Loan | null>(null)
 
   return (
     <section>
@@ -34,7 +38,18 @@ export function LoanPage() {
       {loading ? (
         <p className="text-sm text-neutral-500 dark:text-neutral-400">Loading…</p>
       ) : (
-        <LoanTable loans={loans} onDelete={deleteLoan} />
+        <LoanTable loans={loans} onRequestDelete={setPendingDelete} />
+      )}
+
+      {pendingDelete && (
+        <DeleteLoanDialog
+          loan={pendingDelete}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={async () => {
+            await deleteLoan(pendingDelete.id)
+            setPendingDelete(null)
+          }}
+        />
       )}
     </section>
   )

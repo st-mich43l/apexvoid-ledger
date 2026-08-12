@@ -5,10 +5,13 @@ import type { LoanDetail } from '../../types'
 
 interface LoanSummaryProps {
   detail: LoanDetail
+  onEdit: () => void
+  onDelete: () => void
 }
 
-export function LoanSummary({ detail }: LoanSummaryProps) {
+export function LoanSummary({ detail, onEdit, onDelete }: LoanSummaryProps) {
   const { currency } = useCurrency()
+  const monthlyPaymentLabel = detail.loanType === 'unsecured' ? 'Monthly payment' : 'Est. monthly interest'
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-neutral-200/80 bg-white p-6 shadow-[0_2px_8px_-2px_rgba(24,16,54,0.08),0_16px_32px_-12px_rgba(24,16,54,0.10)] sm:p-7 dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none">
@@ -42,6 +45,22 @@ export function LoanSummary({ detail }: LoanSummaryProps) {
         </div>
 
         <div className="text-right">
+          <div className="mb-2 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={onEdit}
+              className="rounded-full border border-neutral-200 px-3 py-1 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={onDelete}
+              className="rounded-full border border-neutral-200 px-3 py-1 text-xs font-medium text-red-500 transition-colors hover:bg-red-50 dark:border-neutral-700 dark:text-red-400 dark:hover:bg-red-950/40"
+            >
+              Delete
+            </button>
+          </div>
           <p className="text-xs font-medium tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
             Estimated outstanding
           </p>
@@ -57,7 +76,7 @@ export function LoanSummary({ detail }: LoanSummaryProps) {
         <Fact label="Term" value={`${detail.durationMonths} mo`} />
         <Fact label="Terms elapsed" value={String(detail.termsElapsed)} />
         <Fact label="Terms remaining" value={String(detail.termsRemaining)} />
-        <Fact label="Monthly payment" value={formatCurrency(detail.monthlyPayment, currency)} />
+        <Fact label={monthlyPaymentLabel} value={formatCurrency(detail.monthlyPayment, currency)} />
       </dl>
 
       <p className="relative mt-6 text-xs text-neutral-400 dark:text-neutral-500">
