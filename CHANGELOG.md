@@ -6,17 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### 🔒 Security
-- ⚠️ `routers/loans.py` still has no per-user scoping — every loan is
-  visible to every logged-in account. Auth exists now (see 2026-08-12
-  below), but the loan data itself isn't gated to its owner yet. Needs a
-  backfill migration (existing loans have no owner) before it can ship,
-  tracked as the next PR.
-
 ### 📋 Deployment note
 - The auth work below needs `SECRET_KEY` (session signing key) added to
   `apexvoid_ledger_secrets` in `ansible-library`'s vault — `main.py`
   hard-requires it at startup and the container crash-loops without it.
+
+## [2026-08-12] — Per-user loan scoping
+
+### 🔒 Security
+- 🔐 `routers/loans.py` now requires auth and filters every query by the
+  logged-in user's id — closes the gap where every loan was visible to
+  every logged-in account. A loan id that belongs to someone else 404s
+  exactly like a nonexistent one, so it can't be used to probe whether an
+  id is valid for another account.
+- 🧬 Migration `0010` backfills every pre-existing (previously unowned)
+  loan to whichever account was created first, then enforces `userId`
+  `NOT NULL` — verified against a simulated legacy DB (a loan inserted
+  with no owner, then migrated and confirmed reassigned) before shipping.
 
 ## [2026-08-12] — Authentication, admin accounts, per-account preferences
 

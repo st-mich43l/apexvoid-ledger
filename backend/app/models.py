@@ -35,8 +35,7 @@ class Loan(Base):
     __tablename__ = "Loan"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    # Nullable until the backfill migration (post admin-seed) flips this to NOT NULL.
-    user_id: Mapped[str | None] = mapped_column("userId", String, nullable=True)
+    user_id: Mapped[str] = mapped_column("userId", String, nullable=False)
     bank_name: Mapped[str] = mapped_column("bankName", String, nullable=False)
     open_date: Mapped[datetime] = mapped_column("openDate", DateTime, nullable=False)
     disbursement_amount: Mapped[float] = mapped_column("disbursementAmount", Numeric(14, 2), nullable=False)
