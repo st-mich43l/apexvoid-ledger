@@ -32,7 +32,7 @@ export function BrandLockup({ className = '', markClassName = 'h-9 w-9' }: Brand
     <div className={`flex items-center gap-2.5 ${className}`}>
       <BrandMark className={markClassName} />
       <span className="text-3xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">
-        apexvoid
+        ApexVoid Ledger
       </span>
     </div>
   )

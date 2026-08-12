@@ -43,7 +43,7 @@ export function Layout() {
               <div className="mt-1 flex items-center gap-2.5">
                 <BrandMark className="h-9 w-9" />
                 <h1 className="text-3xl font-semibold tracking-tight text-neutral-900 sm:text-4xl dark:text-neutral-50">
-                  apexvoid
+                  ApexVoid Ledger
                 </h1>
               </div>
               <p className="mt-2 max-w-xl text-sm text-neutral-500 dark:text-neutral-400">
