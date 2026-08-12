@@ -7,20 +7,75 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### 🔒 Security
-- ⚠️ No authentication yet — anyone with the deployed URL can read and edit
-  loan data. Tracked as a required follow-up before the app is relied on.
+- ⚠️ `routers/loans.py` still has no per-user scoping — every loan is
+  visible to every logged-in account. Auth exists now (see 2026-08-12
+  below), but the loan data itself isn't gated to its owner yet. Needs a
+  backfill migration (existing loans have no owner) before it can ship,
+  tracked as the next PR.
 
-## [2026-08-11] — Initial dashboard + deployment
+### 📋 Deployment note
+- The auth work below needs `SECRET_KEY` (session signing key) added to
+  `apexvoid_ledger_secrets` in `ansible-library`'s vault — `main.py`
+  hard-requires it at startup and the container crash-loops without it.
+
+## [2026-08-12] — Authentication, admin accounts, per-account preferences
 
 ### ✨ Added
-- 💰 Loan tracking dashboard: React/Vite/Tailwind frontend, Express/Prisma
-  backend on PostgreSQL. Each loan tracks bank name, open date, disbursement
-  amount, and interest rate per year.
-- 🧮 Calculated fields per loan: days elapsed, accrued interest, current
-  balance, and monthly interest (simple interest, prorated daily).
-- 🐳 Multi-stage Docker images for backend (runs `prisma migrate deploy` on
-  boot) and frontend (nginx, proxies `/api` to the backend).
-- 🚢 CI/CD via [`ansible-library`](https://github.com/st-mich43l/ansible-library)'s
-  image-mode deploy pipeline (build → push → pull on the VPS).
-- 🌐 Public routing at `ledger.apexvoid.net` through the shared
-  [`routing`](https://github.com/st-mich43l/routing) nginx project.
+- 🔐 Session-based auth (Starlette `SessionMiddleware`, signed httpOnly
+  cookie) with `bcrypt` password hashing. Login is by **username**, not
+  email — the seeded admin account was never an email address to begin
+  with.
+- 👑 Admin role (`isAdmin`). Registration is admin-gated: no public
+  sign-up, only an existing admin can create accounts, from a dedicated
+  `/settings/users` portal (list, invite, delete — guarded against
+  deleting yourself, the last remaining admin, or a user who still owns
+  loans).
+- 🌱 First admin account (`admin` / `admin`) auto-seeds on first deploy,
+  only when the `User` table is completely empty — never re-seeds over a
+  real setup. Forced password change on first login, enforced
+  server-side, not just a frontend nudge.
+- 🏠 `/home` hub for admins — Admin Portal + Dashboard cards; regular
+  users still land on `/dashboard` directly.
+- 💱 Currency is now an account-level preference, not a per-browser one.
+  Chosen once on first login (same forced-gate pattern as the password
+  change) and changeable anytime from the header — persists across
+  devices since it's stored on the account, not `localStorage`.
+- 🎨 A real brand mark ("Rising Balance": the trending-up line every loan
+  card already draws, ending in an open ring) replacing the generic
+  placeholder favicon/logo. Brand renamed from `apexvoid` to **ApexVoid
+  Ledger** throughout the UI.
+- 🚩 Real SVG country flags (`flag-icons`) in the currency picker,
+  replacing emoji flags — emoji flags don't render on Windows, which was
+  showing raw two-letter codes instead of a flag.
+
+### 🔧 Changed
+- `/change-password` and the new `/select-currency` moved out of the
+  app's `Layout` chrome — both are one-time gates between login and the
+  app, not pages within it, so they're standalone like `/login` instead
+  of showing the full header around a form you can't back out of.
+
+## [2026-08-11] — Loan dashboard, Python backend, premium UI
+
+### ✨ Added
+- 💰 Loan tracking dashboard: React/Vite/Tailwind frontend, each loan
+  tracking bank name, open date, disbursement amount, and interest rate
+  per year. Calculated fields: accrued interest, current balance, and
+  monthly interest.
+- 🐳 Multi-stage Docker images, CI/CD via
+  [`ansible-library`](https://github.com/st-mich43l/ansible-library)'s
+  image-mode deploy pipeline, public routing at `ledger.apexvoid.net`
+  through the shared [`routing`](https://github.com/st-mich43l/routing)
+  project.
+- 🐍 Backend rewritten from Node/Express/Prisma to **FastAPI +
+  SQLAlchemy + Alembic** on the same Postgres schema — migrations adopt
+  the existing `Loan` table rather than resetting it.
+- 📅 Loan duration (term caps interest accrual) and secured vs.
+  unsecured loan types — unsecured loans amortize on a standard
+  EMI/annuity schedule, secured loans accrue interest against a fixed
+  balance.
+- 🖥️ `/dashboard` and `/loan` routes with premium stat cards, plus a
+  currency selector (display-only at this point — became a real
+  per-account preference in the 2026-08-12 entry above).
+- 💅 Premium light/dark visual pass: neutral + violet palette,
+  rounded-3xl cards, dd/mm/yyyy dates, live comma-formatted amount
+  input.
