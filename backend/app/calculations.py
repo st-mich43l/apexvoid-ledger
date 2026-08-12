@@ -44,7 +44,7 @@ class LoanCalculations:
     maturity_date: datetime
     accrued_interest: Decimal
     current_balance: Decimal
-    monthly_interest: Decimal
+    monthly_payment: Decimal
 
 
 @dataclass
@@ -291,7 +291,7 @@ def calculate_loan(
         maturity_date=schedule.maturity_date,
         accrued_interest=state.accrued_interest,
         current_balance=state.balance,
-        monthly_interest=schedule.monthly_payment,
+        monthly_payment=schedule.monthly_payment,
     )
 
 

@@ -85,7 +85,7 @@ export function LoanTable({ loans, onRequestDelete }: LoanTableProps) {
               <Td align="right" className="font-semibold text-violet-600 dark:text-violet-400">
                 {formatCurrency(loan.currentBalance, currency)}
               </Td>
-              <Td align="right">{formatCurrency(loan.monthlyInterest, currency)}</Td>
+              <Td align="right">{formatCurrency(loan.monthlyPayment, currency)}</Td>
               <Td align="right">
                 <div className="flex items-center justify-end gap-3">
                   <Link

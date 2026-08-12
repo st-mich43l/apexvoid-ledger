@@ -36,7 +36,8 @@ def _serialize(loan: Loan) -> LoanRead:
         maturity_date=calc.maturity_date,
         accrued_interest=calc.accrued_interest,
         current_balance=calc.current_balance,
-        monthly_interest=calc.monthly_interest,
+        monthly_payment=calc.monthly_payment,
+        monthly_interest=calc.monthly_payment,
     )
 
 

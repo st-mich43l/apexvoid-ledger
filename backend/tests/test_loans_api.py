@@ -100,6 +100,15 @@ class TestLoanDetailContent:
         assert all(item["openingPrincipal"] == 596000000 for item in items)
         assert all(item["principal"] == 0 for item in items)
 
+    def test_list_exposes_monthly_payment_with_legacy_alias(self, auth_client: TestClient):
+        loan = create_loan(auth_client)
+        res = auth_client.get("/api/loans")
+
+        assert res.status_code == 200
+        body = next(item for item in res.json() if item["id"] == loan["id"])
+        assert body["monthlyPayment"] > 0
+        assert body["monthlyPayment"] == body["monthlyInterest"]
+
 
 class TestLoanCreateValidation:
     def test_blank_bank_name_rejected(self, auth_client: TestClient):

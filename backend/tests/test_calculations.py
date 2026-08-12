@@ -259,7 +259,7 @@ class TestRounding:
         calc = calculate_loan(
             Decimal("123456789"), Decimal("13.37"), dt(2026, 2, 3), 37, "secured", as_of=dt(2026, 6, 1)
         )
-        for value in (calc.accrued_interest, calc.current_balance, calc.monthly_interest):
+        for value in (calc.accrued_interest, calc.current_balance, calc.monthly_payment):
             assert value == value.to_integral_value()
 
 

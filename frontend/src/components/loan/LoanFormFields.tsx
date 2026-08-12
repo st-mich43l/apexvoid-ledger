@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react'
+import { useId, type ChangeEvent } from 'react'
 import { formatAmountDisplay, formatDateDisplay, type LoanFormValues } from '../../hooks/useLoanFormState'
 
 interface LoanFormFieldsProps {
@@ -20,10 +20,20 @@ export function LoanFormFields({
   onLoanTypeChange,
   disabled,
 }: LoanFormFieldsProps) {
+  const formId = useId()
+  const bankNameId = `${formId}-bank-name`
+  const openDateId = `${formId}-open-date`
+  const amountId = `${formId}-amount`
+  const interestRateId = `${formId}-interest-rate`
+  const termId = `${formId}-term`
+  const loanTypeId = `${formId}-loan-type`
+  const loanTypeDescriptionId = `${formId}-loan-type-description`
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-      <Field label="Bank name">
+    <div className="grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2 md:grid-cols-3">
+      <Field label="Bank name" htmlFor={bankNameId}>
         <input
+          id={bankNameId}
           required
           type="text"
           disabled={disabled}
@@ -35,8 +45,9 @@ export function LoanFormFields({
         />
       </Field>
 
-      <Field label="Open date">
+      <Field label="Open date" htmlFor={openDateId}>
         <input
+          id={openDateId}
           required
           type="text"
           disabled={disabled}
@@ -50,8 +61,9 @@ export function LoanFormFields({
         />
       </Field>
 
-      <Field label="Disbursement amount">
+      <Field label="Disbursement amount" htmlFor={amountId}>
         <input
+          id={amountId}
           required
           type="text"
           disabled={disabled}
@@ -63,53 +75,81 @@ export function LoanFormFields({
         />
       </Field>
 
-      <Field label="Interest rate / year (%)">
-        <input
-          required
-          type="number"
-          disabled={disabled}
-          min="0"
-          max="100"
-          step="0.01"
-          value={values.interestRatePerYear}
-          onChange={onChange('interestRatePerYear')}
-          placeholder="6.5"
-          className={inputClass}
-        />
+      <Field label="Annual interest rate" htmlFor={interestRateId}>
+        <div className="relative">
+          <input
+            id={interestRateId}
+            required
+            type="number"
+            disabled={disabled}
+            inputMode="decimal"
+            min="0"
+            max="100"
+            step="0.01"
+            value={values.interestRatePerYear}
+            onChange={onChange('interestRatePerYear')}
+            placeholder="6.5"
+            className={`${numericInputClass} pr-10`}
+          />
+          <span className={suffixClass}>%</span>
+        </div>
       </Field>
 
-      <Field label="Term (months)">
-        <input
-          required
-          type="number"
-          disabled={disabled}
-          min="1"
-          max="600"
-          step="1"
-          value={values.durationMonths}
-          onChange={onChange('durationMonths')}
-          placeholder="12"
-          className={inputClass}
-        />
+      <Field label="Term" htmlFor={termId}>
+        <div className="relative">
+          <input
+            id={termId}
+            required
+            type="number"
+            disabled={disabled}
+            inputMode="numeric"
+            min="1"
+            max="600"
+            step="1"
+            value={values.durationMonths}
+            onChange={onChange('durationMonths')}
+            placeholder="12"
+            className={`${numericInputClass} pr-20`}
+          />
+          <span className={suffixClass}>months</span>
+        </div>
       </Field>
 
-      <Field label="Loan type">
-        <select value={values.loanType} disabled={disabled} onChange={onLoanTypeChange} className={inputClass}>
-          <option value="unsecured">Unsecured (declining balance)</option>
-          <option value="secured">Secured (fixed balance)</option>
+      <Field label="Loan type" htmlFor={loanTypeId}>
+        <select
+          id={loanTypeId}
+          value={values.loanType}
+          disabled={disabled}
+          onChange={onLoanTypeChange}
+          aria-describedby={loanTypeDescriptionId}
+          className={inputClass}
+        >
+          <option value="unsecured">Unsecured</option>
+          <option value="secured">Secured</option>
         </select>
+        <p id={loanTypeDescriptionId} className="text-xs text-neutral-400 dark:text-neutral-500">
+          {values.loanType === 'unsecured' ? 'Declining-balance EMI' : 'Fixed balance · interest-only'}
+        </p>
       </Field>
     </div>
   )
 }
 
 export const inputClass =
-  'rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500 dark:focus:border-violet-400'
+  'min-w-0 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500 dark:focus:border-violet-400'
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+const suffixClass =
+  'pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-medium text-neutral-400 dark:text-neutral-500'
+
+const numericInputClass =
+  `${inputClass} [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`
+
+function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-medium text-neutral-600 dark:text-neutral-300">{label}</label>
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <label htmlFor={htmlFor} className="text-sm font-medium text-neutral-600 dark:text-neutral-300">
+        {label}
+      </label>
       {children}
     </div>
   )
