@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
-type Accent = 'violet' | 'cyan' | 'emerald'
+type Accent = 'violet' | 'cyan' | 'emerald' | 'amber'
 
 const accentStyles: Record<Accent, { badge: string; ring: string; glow: string }> = {
   violet: {
@@ -18,6 +18,11 @@ const accentStyles: Record<Accent, { badge: string; ring: string; glow: string }
     badge: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400',
     ring: 'hover:ring-emerald-500/30 dark:hover:ring-emerald-400/30',
     glow: 'from-emerald-500/10',
+  },
+  amber: {
+    badge: 'bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400',
+    ring: 'hover:ring-amber-500/30 dark:hover:ring-amber-400/30',
+    glow: 'from-amber-500/10',
   },
 }
 

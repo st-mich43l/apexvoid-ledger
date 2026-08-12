@@ -1,3 +1,4 @@
+import { LoanBreakdownChart } from '../components/LoanBreakdownChart'
 import { LoanForm } from '../components/LoanForm'
 import { LoanTable } from '../components/LoanTable'
 import { useLoans } from '../hooks/useLoans'
@@ -18,6 +19,12 @@ export function LoanPage() {
         <p className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">
           {error}
         </p>
+      )}
+
+      {!loading && (
+        <div className="mb-6">
+          <LoanBreakdownChart loans={loans} />
+        </div>
       )}
 
       <div className="mb-6">
