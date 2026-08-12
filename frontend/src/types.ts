@@ -18,7 +18,7 @@ export interface Loan {
   maturityDate: string
   accruedInterest: number
   currentBalance: number
-  monthlyInterest: number
+  monthlyPayment: number
 }
 
 export interface LoanInput {

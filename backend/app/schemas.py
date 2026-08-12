@@ -70,6 +70,9 @@ class LoanRead(CamelModel):
     maturity_date: datetime
     accrued_interest: float
     current_balance: float
+    monthly_payment: float
+    # Backward-compatible alias for clients using the original, misleading
+    # field name. Both values are the schedule's contractual monthly payment.
     monthly_interest: float
 
     @field_serializer("open_date", "created_at", "updated_at", "maturity_date")

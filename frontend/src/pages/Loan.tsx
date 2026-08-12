@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { LoanBreakdownChart } from '../components/LoanBreakdownChart'
 import { LoanForm } from '../components/LoanForm'
+import { LoanMonthlyPaymentSummary } from '../components/LoanMonthlyPaymentSummary'
 import { LoanTable } from '../components/LoanTable'
 import { DeleteLoanDialog } from '../components/loan/DeleteLoanDialog'
 import { useLoans } from '../hooks/useLoans'
@@ -9,6 +10,7 @@ import type { Loan } from '../types'
 export function LoanPage() {
   const { loans, loading, error, createLoan, deleteLoan } = useLoans()
   const [pendingDelete, setPendingDelete] = useState<Loan | null>(null)
+  const hasBalanceBreakdown = loans.some((loan) => loan.currentBalance > 0)
 
   return (
     <section>
@@ -26,7 +28,8 @@ export function LoanPage() {
       )}
 
       {!loading && (
-        <div className="mb-6">
+        <div className={`mb-6 grid gap-4 ${hasBalanceBreakdown ? 'lg:grid-cols-2' : ''}`}>
+          <LoanMonthlyPaymentSummary loans={loans} />
           <LoanBreakdownChart loans={loans} />
         </div>
       )}
