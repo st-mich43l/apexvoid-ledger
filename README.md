@@ -57,10 +57,12 @@ From these, the dashboard calculates:
 - `/change-password`, `/select-currency` — one-time onboarding gates,
   forced on first login before the app is reachable
 
-> [!WARNING]
-> 🔓 `routers/loans.py` has no per-user scoping yet — every loan is visible
-> to every logged-in account. See [CHANGELOG.md](CHANGELOG.md)'s Unreleased
-> section.
+Loans are scoped to their owning account — `routers/loans.py` requires
+auth and filters every query by the logged-in user's id, so one account
+can never see or modify another's loans (a mismatched id 404s, same as a
+nonexistent one, rather than leaking that the loan belongs to someone
+else). Loans created before this existed were backfilled to whichever
+account was created first — see migration `0010`.
 
 ## 🚀 Running locally
 
