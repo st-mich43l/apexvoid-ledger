@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { BrandLockup } from '../components/BrandMark'
 
 export function LoginPage() {
   const { user, loading, login } = useAuth()
@@ -39,9 +40,7 @@ export function LoginPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-400">
             Finance Management
           </p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">
-            apexvoid
-          </h1>
+          <BrandLockup className="mt-3 justify-center" markClassName="h-11 w-11" />
         </div>
 
         <form

@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { CurrencySelector } from './CurrencySelector'
 import { ThemeToggle } from './ThemeToggle'
+import { BrandMark } from './BrandMark'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../hooks/useTheme'
 
@@ -39,9 +40,12 @@ export function Layout() {
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-400">
                 Finance Management
               </p>
-              <h1 className="mt-1 text-3xl font-semibold tracking-tight text-neutral-900 sm:text-4xl dark:text-neutral-50">
-                apexvoid
-              </h1>
+              <div className="mt-1 flex items-center gap-2.5">
+                <BrandMark className="h-9 w-9" />
+                <h1 className="text-3xl font-semibold tracking-tight text-neutral-900 sm:text-4xl dark:text-neutral-50">
+                  apexvoid
+                </h1>
+              </div>
               <p className="mt-2 max-w-xl text-sm text-neutral-500 dark:text-neutral-400">
                 A single place to see where your money stands, starting with your loans.
               </p>
