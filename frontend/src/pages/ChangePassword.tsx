@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export function ChangePasswordPage() {
-  const { user, changePassword } = useAuth()
+  const { user: currentUser, changePassword } = useAuth()
   const navigate = useNavigate()
 
   const [currentPassword, setCurrentPassword] = useState('')
@@ -27,8 +27,8 @@ export function ChangePasswordPage() {
 
     setSubmitting(true)
     try {
-      await changePassword(currentPassword, newPassword)
-      navigate('/dashboard', { replace: true })
+      const updated = await changePassword(currentPassword, newPassword)
+      navigate(updated.isAdmin ? '/home' : '/dashboard', { replace: true })
     } catch {
       setError('Current password is incorrect.')
     } finally {
@@ -40,7 +40,7 @@ export function ChangePasswordPage() {
     <section>
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">Change password</h2>
-        {user?.mustChangePassword && (
+        {currentUser?.mustChangePassword && (
           <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
             You're signed in with a temporary password. Set a new one to continue.
           </p>

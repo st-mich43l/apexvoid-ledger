@@ -9,7 +9,10 @@ export function Layout() {
   const { user, logout } = useAuth()
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  const showBackButton = pathname !== '/dashboard'
+  // Admins' home base is /home (portal + dashboard hub); everyone else's is /dashboard.
+  const homePath = user?.isAdmin ? '/home' : '/dashboard'
+  const homeLabel = user?.isAdmin ? 'Home' : 'Dashboard'
+  const showBackButton = pathname !== homePath
 
   async function handleLogout() {
     await logout()
@@ -26,11 +29,11 @@ export function Layout() {
             <div>
               {showBackButton && (
                 <Link
-                  to="/dashboard"
+                  to={homePath}
                   className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-neutral-500 transition-colors hover:text-violet-600 dark:text-neutral-400 dark:hover:text-violet-400"
                 >
                   <ArrowLeftIcon className="h-4 w-4" />
-                  Dashboard
+                  {homeLabel}
                 </Link>
               )}
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-400">

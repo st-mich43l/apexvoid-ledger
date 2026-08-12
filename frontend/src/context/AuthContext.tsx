@@ -5,9 +5,13 @@ import type { AuthUser } from '../types'
 interface AuthContextValue {
   user: AuthUser | null
   loading: boolean
-  login: (email: string, password: string) => Promise<void>
+  // Return the freshly-updated user, not just void — callers that need to
+  // make an immediate routing decision (e.g. isAdmin) can't rely on `user`
+  // from the render closure, since the setUser() below won't have re-rendered
+  // this component yet by the time the async call resolves.
+  login: (email: string, password: string) => Promise<AuthUser>
   logout: () => Promise<void>
-  changePassword: (currentPassword: string, newPassword: string) => Promise<void>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<AuthUser>
   refresh: () => Promise<void>
 }
 
@@ -23,7 +27,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function login(email: string, password: string) {
-    setUser(await api.login(email, password))
+    const updated = await api.login(email, password)
+    setUser(updated)
+    return updated
   }
 
   async function logout() {
@@ -32,7 +38,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function changePassword(currentPassword: string, newPassword: string) {
-    setUser(await api.changePassword(currentPassword, newPassword))
+    const updated = await api.changePassword(currentPassword, newPassword)
+    setUser(updated)
+    return updated
   }
 
   async function refresh() {

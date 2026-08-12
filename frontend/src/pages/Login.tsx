@@ -13,7 +13,7 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
 
   if (!loading && user) {
-    const from = (location.state as { from?: Location })?.from?.pathname ?? '/dashboard'
+    const from = (location.state as { from?: Location })?.from?.pathname ?? (user.isAdmin ? '/home' : '/dashboard')
     return <Navigate to={from} replace />
   }
 
@@ -22,8 +22,9 @@ export function LoginPage() {
     setSubmitting(true)
     setError(null)
     try {
-      await login(email, password)
-      navigate((location.state as { from?: Location })?.from?.pathname ?? '/dashboard', { replace: true })
+      const updated = await login(email, password)
+      const from = (location.state as { from?: Location })?.from?.pathname ?? (updated.isAdmin ? '/home' : '/dashboard')
+      navigate(from, { replace: true })
     } catch {
       setError('Invalid email or password.')
     } finally {
