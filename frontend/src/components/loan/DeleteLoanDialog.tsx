@@ -36,7 +36,7 @@ export function DeleteLoanDialog({ loan, onCancel, onConfirm }: DeleteLoanDialog
   }
 
   return (
-    <Modal label="Delete loan" onClose={deleting ? () => {} : onCancel}>
+    <Modal label="Delete loan" onClose={onCancel} dismissible={!deleting}>
       <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">Delete loan?</h2>
 
       <div className="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-800/40">
@@ -50,7 +50,10 @@ export function DeleteLoanDialog({ loan, onCancel, onConfirm }: DeleteLoanDialog
       <p className="mt-4 text-sm font-medium text-red-600 dark:text-red-400">This action cannot be undone.</p>
 
       {error && (
-        <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">
+        <p
+          role="alert"
+          className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300"
+        >
           {error}
         </p>
       )}

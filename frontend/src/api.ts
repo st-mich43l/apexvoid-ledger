@@ -28,7 +28,9 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => null)
-    throw new ApiError(res.status, body?.detail ?? `Request failed: ${res.status}`)
+    const detail =
+      body && typeof body === 'object' && 'detail' in body && typeof body.detail === 'string' ? body.detail : null
+    throw new ApiError(res.status, detail ?? `Request failed: ${res.status}`)
   }
 
   if (res.status === 204) {
