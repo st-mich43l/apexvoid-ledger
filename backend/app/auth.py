@@ -26,3 +26,21 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     return user
+
+
+def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
+
+def require_password_changed(current_user: User = Depends(get_current_user)) -> User:
+    """Blocks routes (loans, etc.) until a forced password change is done.
+
+    Deliberately NOT applied to /me, /logout, or /change-password itself —
+    those must stay reachable while must_change_password is set, or the user
+    would have no way to satisfy the requirement.
+    """
+    if current_user.must_change_password:
+        raise HTTPException(status_code=403, detail="Password change required")
+    return current_user

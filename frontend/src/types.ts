@@ -27,3 +27,11 @@ export interface LoanInput {
   durationMonths: number
   loanType: LoanType
 }
+
+export interface AuthUser {
+  id: string
+  email: string
+  isAdmin: boolean
+  mustChangePassword: boolean
+  createdAt: string
+}

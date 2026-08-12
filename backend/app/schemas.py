@@ -63,16 +63,26 @@ class UserCreate(CamelModel):
     email: EmailStr
     # bcrypt silently ignores bytes past 72 — reject early instead of truncating.
     password: str = Field(min_length=8, max_length=72)
+    is_admin: bool = False
 
 
 class LoginRequest(CamelModel):
-    email: EmailStr
+    # Plain str, not EmailStr: the seeded default account logs in as "admin",
+    # not an email address.
+    email: str
     password: str
+
+
+class ChangePasswordRequest(CamelModel):
+    current_password: str
+    new_password: str = Field(min_length=8, max_length=72)
 
 
 class UserRead(CamelModel):
     id: str
     email: str
+    is_admin: bool
+    must_change_password: bool
     created_at: datetime
 
     @field_serializer("created_at")
