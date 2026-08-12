@@ -15,6 +15,27 @@ function formatDate(iso: string): string {
   return `${dd}/${mm}/${yyyy}`
 }
 
+// Calendar-accurate years/months remaining (not daysRemaining / 30, which
+// drifts) — falls back to exact days only once there's under a month left,
+// where "Xy Ymo" would round away all the useful precision.
+function formatTermRemaining(loan: Loan): string {
+  const now = new Date()
+  const maturity = new Date(loan.maturityDate)
+
+  let months =
+    (maturity.getUTCFullYear() - now.getUTCFullYear()) * 12 + (maturity.getUTCMonth() - now.getUTCMonth())
+  if (maturity.getUTCDate() < now.getUTCDate()) months -= 1
+  months = Math.max(months, 0)
+
+  const years = Math.floor(months / 12)
+  const remainingMonths = months % 12
+
+  if (years === 0 && remainingMonths === 0) return `${loan.daysRemaining}d left`
+  if (years === 0) return `${remainingMonths}mo left`
+  if (remainingMonths === 0) return `${years}y left`
+  return `${years}y ${remainingMonths}mo left`
+}
+
 export function LoanTable({ loans, onDelete }: LoanTableProps) {
   const { currency } = useCurrency()
 
@@ -68,7 +89,7 @@ export function LoanTable({ loans, onDelete }: LoanTableProps) {
                     </span>
                   ) : (
                     <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-                      {loan.daysRemaining}d left
+                      {formatTermRemaining(loan)}
                     </span>
                   )}
                 </div>
