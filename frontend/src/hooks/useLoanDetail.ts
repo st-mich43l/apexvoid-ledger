@@ -22,37 +22,46 @@ export function useLoanDetail(loanId: string): UseLoanDetailResult {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const cancelledRef = useRef(false)
+  const [responseLoanId, setResponseLoanId] = useState<string | null>(null)
+  const requestIdRef = useRef(0)
 
   const load = useCallback(
     async (silent: boolean) => {
-      if (!silent) setLoading(true)
+      const requestId = ++requestIdRef.current
+      if (!silent) {
+        setLoading(true)
+        setNotFound(false)
+        setError(null)
+      }
       try {
         const [detailResult, scheduleResult] = await Promise.all([
           fetchLoanDetail(loanId),
           fetchLoanSchedule(loanId),
         ])
-        if (cancelledRef.current) return
+        if (requestId !== requestIdRef.current) return
         setDetail(detailResult)
         setSchedule(scheduleResult)
+        setResponseLoanId(loanId)
         setNotFound(false)
         setError(null)
       } catch (err) {
-        if (cancelledRef.current) return
+        if (requestId !== requestIdRef.current) return
+        setResponseLoanId(loanId)
         if (err instanceof ApiError && err.status === 404) {
           setNotFound(true)
+          setError(null)
         } else {
+          setNotFound(false)
           setError('Failed to load this loan. Is the backend running?')
         }
       } finally {
-        if (!cancelledRef.current && !silent) setLoading(false)
+        if (requestId === requestIdRef.current) setLoading(false)
       }
     },
     [loanId],
   )
 
   useEffect(() => {
-    cancelledRef.current = false
     load(false)
 
     // Same rationale as useLoans: balances/statuses depend on the current
@@ -64,13 +73,25 @@ export function useLoanDetail(loanId: string): UseLoanDetailResult {
     document.addEventListener('visibilitychange', onVisible)
 
     return () => {
-      cancelledRef.current = true
+      // Invalidate every in-flight request immediately. The next effect/load
+      // receives a newer id, so a response for the previous route cannot
+      // commit even between this cleanup and the next request starting.
+      requestIdRef.current += 1
       clearInterval(interval)
       document.removeEventListener('visibilitychange', onVisible)
     }
   }, [load])
 
   const refetch = useCallback(() => load(true), [load])
+  const responseMatchesRoute = responseLoanId === loanId
+  const detailMatchesRoute = responseMatchesRoute && detail?.id === loanId
 
-  return { detail, schedule, loading, notFound, error, refetch }
+  return {
+    detail: detailMatchesRoute ? detail : null,
+    schedule: detailMatchesRoute ? schedule : [],
+    loading: loading || !responseMatchesRoute,
+    notFound: responseMatchesRoute && notFound,
+    error: responseMatchesRoute ? error : null,
+    refetch,
+  }
 }

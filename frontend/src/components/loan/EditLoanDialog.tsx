@@ -21,15 +21,21 @@ interface EditLoanDialogProps {
 }
 
 export function EditLoanDialog({ loan, onClose, onSaved }: EditLoanDialogProps) {
-  const { values, handleChange, handleAmountChange, handleDateChange, handleLoanTypeChange, toLoanInput } =
+  const { values, handleChange, handleAmountChange, handleDateChange, handleLoanTypeChange, validate, toLoanInput } =
     useLoanFormState(loanToFormValues(loan))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setSaving(true)
     setError(null)
+    const validationError = validate()
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
+    setSaving(true)
     try {
       await updateLoan(loan.id, toLoanInput())
       onSaved()
@@ -40,8 +46,8 @@ export function EditLoanDialog({ loan, onClose, onSaved }: EditLoanDialogProps) 
   }
 
   return (
-    <Modal label="Edit loan" onClose={saving ? () => {} : onClose}>
-      <form onSubmit={handleSubmit}>
+    <Modal label="Edit loan" onClose={onClose} dismissible={!saving}>
+      <form onSubmit={handleSubmit} noValidate>
         <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">Edit loan</h2>
         <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">Update {loan.bankName}'s details.</p>
 
@@ -57,7 +63,10 @@ export function EditLoanDialog({ loan, onClose, onSaved }: EditLoanDialogProps) 
         </div>
 
         {error && (
-          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">
+          <p
+            role="alert"
+            className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300"
+          >
             {error}
           </p>
         )}
