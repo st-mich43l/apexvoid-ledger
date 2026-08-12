@@ -5,15 +5,22 @@ import { BrandMark } from './BrandMark'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../hooks/useTheme'
 
+// The back link goes to the immediate parent in the nav hierarchy
+// (/loan -> /dashboard -> /home for admins), not always straight to the
+// top-level home base.
+function getBackTarget(pathname: string, isAdmin: boolean): { path: string; label: string } | null {
+  if (pathname === '/loan') return { path: '/dashboard', label: 'Dashboard' }
+  if (pathname === '/settings/users') return { path: '/home', label: 'Home' }
+  if (pathname === '/dashboard') return isAdmin ? { path: '/home', label: 'Home' } : null
+  return null
+}
+
 export function Layout() {
   const { theme, toggleTheme } = useTheme()
   const { user, logout } = useAuth()
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  // Admins' home base is /home (portal + dashboard hub); everyone else's is /dashboard.
-  const homePath = user?.isAdmin ? '/home' : '/dashboard'
-  const homeLabel = user?.isAdmin ? 'Home' : 'Dashboard'
-  const showBackButton = pathname !== homePath
+  const back = getBackTarget(pathname, user?.isAdmin ?? false)
 
   async function handleLogout() {
     await logout()
@@ -28,13 +35,13 @@ export function Layout() {
 
           <div className="relative flex items-start justify-between gap-4">
             <div>
-              {showBackButton && (
+              {back && (
                 <Link
-                  to={homePath}
+                  to={back.path}
                   className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-neutral-500 transition-colors hover:text-violet-600 dark:text-neutral-400 dark:hover:text-violet-400"
                 >
                   <ArrowLeftIcon className="h-4 w-4" />
-                  {homeLabel}
+                  {back.label}
                 </Link>
               )}
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-400">
