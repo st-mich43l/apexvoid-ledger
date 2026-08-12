@@ -31,6 +31,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: {{ apexvoid_ledger_secrets.DATABASE_URL | to_json }}
+      SECRET_KEY: {{ apexvoid_ledger_secrets.SECRET_KEY | to_json }}
       PORT: "4000"
     networks:
       - default
