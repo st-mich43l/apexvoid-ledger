@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload
 
 from ..auth import require_password_changed
 from ..cashflow import as_utc, month_range
@@ -66,13 +66,15 @@ def _serialize(pot: SavingPot, sync_warnings: list[str] | None = None) -> Saving
 
 
 def _get_pot(db: Session, user_id: str, *, for_update: bool = False) -> SavingPot | None:
+  # Use selectinload (not joinedload): Postgres rejects FOR UPDATE on the
+  # nullable side of an outer join when locking a pot with its applications.
   query = (
     db.query(SavingPot)
-    .options(joinedload(SavingPot.applications))
+    .options(selectinload(SavingPot.applications))
     .filter(SavingPot.user_id == user_id)
   )
   if for_update:
-    query = query.with_for_update()
+    query = query.with_for_update(of=SavingPot)
   return query.first()
 
 
