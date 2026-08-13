@@ -132,6 +132,89 @@ export interface RecurringExpenseUpdateInput {
   endMonth?: string | null
 }
 
+export interface RecurringIncomeActivity {
+  id: string
+  recurringIncomeId: string
+  name: string
+  categoryId: string
+  categoryName: string
+  categoryIcon: string | null
+  expectedAt: string
+  amount: number
+  currency: CurrencyCode
+  reportingAmount: number | null
+  reportingCurrency: CurrencyCode
+}
+
+export interface RecurringIncome {
+  id: string
+  name: string
+  categoryId: string
+  categoryName: string
+  categoryIcon: string | null
+  amount: number
+  currency: CurrencyCode
+  expectedDay: number
+  startMonth: string
+  endMonth: string | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface RecurringIncomeInput {
+  name: string
+  categoryId: string
+  amount: number
+  currency: CurrencyCode
+  expectedDay: number
+  startMonth: string
+  endMonth?: string | null
+}
+
+export interface RecurringIncomeUpdateInput {
+  name: string
+  categoryId: string
+  amount: number
+  currency: CurrencyCode
+  expectedDay: number
+  effectiveFromMonth: string
+  endMonth?: string | null
+}
+
+export interface RoutineVariableCategory {
+  categoryId: string
+  name: string
+  icon: string | null
+  amount: number
+}
+
+export interface MonthlyRoutineSummary {
+  year: number
+  month: number
+  currency: CurrencyCode
+  expectedIncomeTotal: number
+  expectedIncomeCount: number
+  expectedIncome: RecurringIncomeActivity[]
+  fixedExpenseTotal: number
+  fixedExpenseCount: number
+  fixedExpenses: RecurringExpenseActivity[]
+  loanPaymentTotal: number
+  loanPaymentCount: number
+  loanPayments: LoanPaymentActivity[]
+  committedExpenseTotal: number
+  baselineAvailable: number
+  actualIncomeTotal: number
+  actualVariableExpenseTotal: number
+  projectedRemainder: number
+  variableCategories: RoutineVariableCategory[]
+  convertedCurrencies: CurrencyCode[]
+  unconvertedCurrencies: CurrencyCode[]
+  conversionRates: CurrencyConversionRate[]
+  exchangeRateProvider: string | null
+  exchangeRateProviderUrl: string | null
+}
+
 export interface CashFlowMonthlySummary {
   year: number
   month: number

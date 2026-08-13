@@ -327,3 +327,80 @@ class RecurringExpenseRevision(Base):
 
   recurring_expense: Mapped[RecurringExpense] = relationship(back_populates="revisions")
   category: Mapped[Category] = relationship(lazy="joined")
+
+
+class RecurringIncome(Base):
+  __tablename__ = "RecurringIncome"
+  __table_args__ = (Index("ix_recurring_income_user_id", "userId"),)
+
+  id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+  user_id: Mapped[str] = mapped_column(
+    "userId", ForeignKey("User.id", ondelete="CASCADE"), nullable=False
+  )
+  created_at: Mapped[datetime] = mapped_column(
+    "createdAt", DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+  )
+  updated_at: Mapped[datetime] = mapped_column(
+    "updatedAt",
+    DateTime(timezone=True),
+    nullable=False,
+    default=lambda: datetime.now(timezone.utc),
+    onupdate=lambda: datetime.now(timezone.utc),
+  )
+
+  revisions: Mapped[list["RecurringIncomeRevision"]] = relationship(
+    back_populates="recurring_income",
+    cascade="all, delete-orphan",
+    order_by="RecurringIncomeRevision.effective_from_month",
+  )
+
+
+class RecurringIncomeRevision(Base):
+  __tablename__ = "RecurringIncomeRevision"
+  __table_args__ = (
+    CheckConstraint("amount > 0", name="ck_recurring_income_revision_amount"),
+    CheckConstraint(
+      '"expectedDay" >= 1 AND "expectedDay" <= 31',
+      name="ck_recurring_income_revision_expected_day",
+    ),
+    CheckConstraint(
+      "currency IN ('USD', 'EUR', 'GBP', 'AUD', 'JPY', 'CNY', 'VND')",
+      name="ck_recurring_income_revision_currency",
+    ),
+    CheckConstraint(
+      '"effectiveUntilMonth" IS NULL OR "effectiveUntilMonth" >= "effectiveFromMonth"',
+      name="ck_recurring_income_revision_interval",
+    ),
+    Index("ix_recurring_income_revision_series", "recurringIncomeId"),
+    Index(
+      "ix_recurring_income_revision_effective",
+      "effectiveFromMonth",
+      "effectiveUntilMonth",
+    ),
+  )
+
+  id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+  recurring_income_id: Mapped[str] = mapped_column(
+    "recurringIncomeId",
+    ForeignKey("RecurringIncome.id", ondelete="CASCADE"),
+    nullable=False,
+  )
+  name: Mapped[str] = mapped_column(String(120), nullable=False)
+  category_id: Mapped[str] = mapped_column(
+    "categoryId", ForeignKey("Category.id", ondelete="RESTRICT"), nullable=False
+  )
+  amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+  currency: Mapped[str] = mapped_column(String(3), nullable=False)
+  expected_day: Mapped[int] = mapped_column("expectedDay", Integer, nullable=False)
+  effective_from_month: Mapped[datetime] = mapped_column(
+    "effectiveFromMonth", DateTime(timezone=True), nullable=False
+  )
+  effective_until_month: Mapped[datetime | None] = mapped_column(
+    "effectiveUntilMonth", DateTime(timezone=True), nullable=True
+  )
+  created_at: Mapped[datetime] = mapped_column(
+    "createdAt", DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+  )
+
+  recurring_income: Mapped[RecurringIncome] = relationship(back_populates="revisions")
+  category: Mapped[Category] = relationship(lazy="joined")

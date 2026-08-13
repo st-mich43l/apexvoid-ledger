@@ -370,6 +370,115 @@ class RecurringExpenseRead(CamelModel):
     return _to_js_iso(dt)
 
 
+RecurringIncomeName = RecurringExpenseName
+ExpectedDay = DueDay
+
+
+class RecurringIncomeActivityRead(CamelModel):
+  id: str
+  recurring_income_id: str
+  name: str
+  category_id: str
+  category_name: str
+  category_icon: str | None
+  expected_at: datetime
+  amount: float
+  currency: CurrencyCode
+  reporting_amount: float | None
+  reporting_currency: CurrencyCode
+
+  @field_serializer("expected_at")
+  def _serialize_dt(self, dt: datetime, _info) -> str:
+    return _to_js_iso(dt)
+
+
+class RecurringIncomeCreate(CamelModel):
+  name: RecurringIncomeName
+  category_id: str
+  amount: TransactionAmount
+  currency: CurrencyCode
+  expected_day: ExpectedDay
+  start_month: MonthKey
+  end_month: MonthKey | None = None
+
+
+class RecurringIncomeUpdate(CamelModel):
+  name: RecurringIncomeName
+  category_id: str
+  amount: TransactionAmount
+  currency: CurrencyCode
+  expected_day: ExpectedDay
+  effective_from_month: MonthKey
+  end_month: MonthKey | None = None
+
+
+class RecurringIncomeDeactivate(CamelModel):
+  effective_from_month: MonthKey
+
+
+class RecurringIncomeReactivate(CamelModel):
+  resume_from_month: MonthKey
+  name: RecurringIncomeName | None = None
+  category_id: str | None = None
+  amount: TransactionAmount | None = None
+  currency: CurrencyCode | None = None
+  expected_day: ExpectedDay | None = None
+  end_month: MonthKey | None = None
+
+
+class RecurringIncomeRead(CamelModel):
+  id: str
+  name: str
+  category_id: str
+  category_name: str
+  category_icon: str | None
+  amount: float
+  currency: CurrencyCode
+  expected_day: int
+  start_month: MonthKey
+  end_month: MonthKey | None
+  is_active: bool
+  created_at: datetime
+  updated_at: datetime
+
+  @field_serializer("created_at", "updated_at")
+  def _serialize_dt(self, dt: datetime, _info) -> str:
+    return _to_js_iso(dt)
+
+
+class RoutineVariableCategoryRead(CamelModel):
+  category_id: str
+  name: str
+  icon: str | None
+  amount: float
+
+
+class MonthlyRoutineSummary(CamelModel):
+  year: int
+  month: int
+  currency: CurrencyCode
+  expected_income_total: float
+  expected_income_count: int
+  expected_income: list[RecurringIncomeActivityRead]
+  fixed_expense_total: float
+  fixed_expense_count: int
+  fixed_expenses: list[RecurringExpenseActivityRead]
+  loan_payment_total: float
+  loan_payment_count: int
+  loan_payments: list[LoanPaymentActivityRead]
+  committed_expense_total: float
+  baseline_available: float
+  actual_income_total: float
+  actual_variable_expense_total: float
+  projected_remainder: float
+  variable_categories: list[RoutineVariableCategoryRead]
+  converted_currencies: list[CurrencyCode]
+  unconverted_currencies: list[CurrencyCode]
+  conversion_rates: list[CurrencyConversionRate]
+  exchange_rate_provider: str | None
+  exchange_rate_provider_url: str | None
+
+
 class CashFlowMonthlySummary(CamelModel):
   year: int
   month: int

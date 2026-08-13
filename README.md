@@ -113,6 +113,9 @@ activity ledger:
   loan summary (trading remains planned)
 - `/cashflow` — monthly cash-flow summary, visualizations, transaction CRUD,
   category management, and **Monthly Fixed Costs** (recurring expenses)
+- `/monthly-routine` — expected monthly income plan composed with fixed costs,
+  loan obligations, and actual variable spending (baseline available +
+  projected remainder)
 - `/saving-pot` — savings balance, add/subtract/correct, and activity history;
   closed months sync and reconcile from cash flow
 - `/loan` — the loan table + form (reached from `/dashboard`'s Loan card)
@@ -129,8 +132,26 @@ to whichever account was created first — see migration `0010`; migration `0011
 adds the cash-flow schema, migration `0012` adds native loan currency for
 safe cross-currency reporting, migration `0013` adds Saving Pot,
 migration `0014` adds the Saving Pot activity ledger with a non-destructive
-backfill, and migration `0015` adds recurring expenses with effective-dated
-revisions.
+backfill, migration `0015` adds recurring expenses with effective-dated
+revisions, and migration `0016` adds recurring expected income for Monthly
+Routine planning.
+
+### Monthly Routine (expected income)
+
+`/monthly-routine` answers what a normal month should look like before
+discretionary spending:
+
+- **Expected income** — effective-dated recurring income rules (salary,
+  allowance, retainers). Planning only: they do **not** create `Transaction`
+  rows, do **not** change Cash Flow income, and do **not** move Saving Pot.
+- **Committed costs** — existing recurring fixed expenses + linked loan
+  installments (same obligation semantics as Cash Flow).
+- **Baseline available** = expected income − committed costs.
+- **Projected remainder** = baseline − actual variable (manual) expenses.
+- Actual recorded income is shown side-by-side with expected income; Ledger
+  does **not** match or mark expected income as received.
+
+Income becomes actual only when recorded as a Cash Flow transaction.
 
 ### Monthly Fixed Costs (recurring expenses)
 

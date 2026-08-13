@@ -8,9 +8,13 @@ import type {
   LoanDetail,
   LoanInput,
   LoanScheduleItem,
+  MonthlyRoutineSummary,
   RecurringExpense,
   RecurringExpenseInput,
   RecurringExpenseUpdateInput,
+  RecurringIncome,
+  RecurringIncomeInput,
+  RecurringIncomeUpdateInput,
   SavingPot,
   SavingPotAdjustInput,
   SavingPotHistoryPage,
@@ -222,6 +226,58 @@ export function reactivateRecurringExpense(
     method: 'POST',
     body: JSON.stringify({ resumeFromMonth }),
   })
+}
+
+const RECURRING_INCOMES_URL = '/api/recurring-incomes'
+
+export function fetchRecurringIncomes(): Promise<RecurringIncome[]> {
+  return authedRequest<RecurringIncome[]>(RECURRING_INCOMES_URL)
+}
+
+export function createRecurringIncome(input: RecurringIncomeInput): Promise<RecurringIncome> {
+  return authedRequest<RecurringIncome>(RECURRING_INCOMES_URL, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export function updateRecurringIncome(
+  id: string,
+  input: RecurringIncomeUpdateInput,
+): Promise<RecurringIncome> {
+  return authedRequest<RecurringIncome>(`${RECURRING_INCOMES_URL}/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  })
+}
+
+export function deactivateRecurringIncome(
+  id: string,
+  effectiveFromMonth: string,
+): Promise<RecurringIncome> {
+  return authedRequest<RecurringIncome>(`${RECURRING_INCOMES_URL}/${id}/deactivate`, {
+    method: 'POST',
+    body: JSON.stringify({ effectiveFromMonth }),
+  })
+}
+
+export function reactivateRecurringIncome(
+  id: string,
+  resumeFromMonth: string,
+): Promise<RecurringIncome> {
+  return authedRequest<RecurringIncome>(`${RECURRING_INCOMES_URL}/${id}/reactivate`, {
+    method: 'POST',
+    body: JSON.stringify({ resumeFromMonth }),
+  })
+}
+
+export function fetchMonthlyRoutine(
+  year: number,
+  month: number,
+  currency: CurrencyCode,
+): Promise<MonthlyRoutineSummary> {
+  const query = new URLSearchParams({ year: String(year), month: String(month), currency })
+  return authedRequest<MonthlyRoutineSummary>(`/api/monthly-routine?${query}`)
 }
 
 const SAVING_POT_URL = '/api/saving-pot'

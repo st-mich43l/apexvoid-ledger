@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### ✨ Added
+- 📅 Monthly Routine (`/monthly-routine`): expected recurring income plus
+  committed fixed costs/loans, baseline available, actual variable spending,
+  and projected remainder — without inventing Cash Flow or Saving Pot income.
+- 💼 Recurring expected income with effective-dated revisions, stop/resume,
+  and `/api/recurring-incomes` (+ `/api/monthly-routine`).
+- 🧬 Migration `0016` adds `RecurringIncome` and `RecurringIncomeRevision`.
 - 🏠 Monthly Fixed Costs (recurring expenses): define rent, support, utilities,
   and other monthly obligations once with due day, start month, and optional
   end month. Effective-dated revisions preserve history on edit; stop/resume
