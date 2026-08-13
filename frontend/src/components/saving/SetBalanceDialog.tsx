@@ -8,12 +8,14 @@ import type { SavingPot } from '../../types'
 interface SetBalanceDialogProps {
   pot: SavingPot | null
   currency: CurrencyCode
+  mode: 'create' | 'correct'
   onClose: () => void
-  onSave: (balance: number) => Promise<void>
+  onSave: (balance: number, note: string | null) => Promise<void>
 }
 
-export function SetBalanceDialog({ pot, currency, onClose, onSave }: SetBalanceDialogProps) {
+export function SetBalanceDialog({ pot, currency, mode, onClose, onSave }: SetBalanceDialogProps) {
   const [amount, setAmount] = useState(pot ? String(pot.balance) : '')
+  const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -27,7 +29,7 @@ export function SetBalanceDialog({ pot, currency, onClose, onSave }: SetBalanceD
     setSaving(true)
     setError(null)
     try {
-      await onSave(value)
+      await onSave(value, note.trim() || null)
       onClose()
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : 'Could not save the saving pot.')
@@ -36,16 +38,18 @@ export function SetBalanceDialog({ pot, currency, onClose, onSave }: SetBalanceD
     }
   }
 
+  const title = mode === 'correct' ? 'Correct balance' : 'Create saving pot'
+  const description =
+    mode === 'correct'
+      ? 'Use this when your real savings balance differs from Ledger. The difference will be recorded in activity history.'
+      : 'Enter your current available savings. Closed months will add or subtract net cash flow automatically.'
+
   return (
-    <Modal label={pot ? 'Set saving pot balance' : 'Create saving pot'} onClose={onClose} dismissible={!saving}>
+    <Modal label={title} onClose={onClose} dismissible={!saving}>
       <form onSubmit={(event) => void handleSubmit(event)} className="space-y-5">
         <div>
-          <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
-            {pot ? 'Set balance' : 'Create saving pot'}
-          </h2>
-          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-            Enter your current available savings. Closed months will add or subtract net cash flow automatically.
-          </p>
+          <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">{title}</h2>
+          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">{description}</p>
         </div>
 
         <label className="block text-sm">
@@ -56,6 +60,18 @@ export function SetBalanceDialog({ pot, currency, onClose, onSave }: SetBalanceD
             value={formatAmountInput(amount)}
             onChange={(event) => setAmount(sanitizePositiveAmountInput(event.target.value))}
             disabled={saving}
+            className="mt-1.5 h-11 w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm outline-none focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-950"
+          />
+        </label>
+
+        <label className="block text-sm">
+          <span className="font-medium text-neutral-700 dark:text-neutral-200">Note (optional)</span>
+          <input
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            disabled={saving}
+            maxLength={240}
+            placeholder={mode === 'correct' ? 'e.g. Bank reconciliation' : 'Optional'}
             className="mt-1.5 h-11 w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm outline-none focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-950"
           />
         </label>
@@ -80,7 +96,7 @@ export function SetBalanceDialog({ pot, currency, onClose, onSave }: SetBalanceD
             disabled={saving}
             className="rounded-full bg-violet-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50 dark:bg-violet-500 dark:hover:bg-violet-400"
           >
-            {saving ? 'Saving…' : pot ? 'Save balance' : 'Create pot'}
+            {saving ? 'Saving…' : mode === 'correct' ? 'Save correction' : 'Create pot'}
           </button>
         </div>
       </form>

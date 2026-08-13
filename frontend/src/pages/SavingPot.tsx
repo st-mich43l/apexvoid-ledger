@@ -4,7 +4,7 @@ import { SetBalanceDialog } from '../components/saving/SetBalanceDialog'
 import { useCurrency } from '../context/CurrencyContext'
 import { useSavingPot } from '../hooks/useSavingPot'
 import { formatCurrency } from '../lib/currency'
-import type { SavingPotAdjustDirection } from '../types'
+import type { SavingPotAdjustDirection, SavingPotEntry, SavingPotEntryType } from '../types'
 
 function monthLabel(year: number, month: number): string {
   return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
@@ -12,10 +12,36 @@ function monthLabel(year: number, month: number): string {
   )
 }
 
+const ENTRY_TITLES: Record<SavingPotEntryType, string> = {
+  opening: 'Opening balance',
+  manual_add: 'Manual deposit',
+  manual_subtract: 'Manual withdrawal',
+  balance_correction: 'Balance correction',
+  month_apply: 'Monthly cash flow',
+  month_reconciliation: 'Cash flow reconciliation',
+  legacy_baseline: 'Legacy balance',
+}
+
+function entrySubtitle(entry: SavingPotEntry): string {
+  if (entry.note) return entry.note
+  if (entry.entryType === 'month_apply' && entry.year != null && entry.month != null) {
+    return `${monthLabel(entry.year, entry.month)} cash flow`
+  }
+  if (entry.entryType === 'month_reconciliation' && entry.year != null && entry.month != null) {
+    return `${monthLabel(entry.year, entry.month)} cash flow changed after it was previously applied`
+  }
+  if (entry.entryType === 'opening') return 'Starting savings when the pot was created'
+  if (entry.entryType === 'legacy_baseline') {
+    return 'Balance carried forward from before activity tracking'
+  }
+  return ENTRY_TITLES[entry.entryType]
+}
+
 export function SavingPotPage() {
   const { currency } = useCurrency()
-  const { pot, loading, error, save, adjust } = useSavingPot()
+  const { pot, history, loading, historyLoading, error, save, adjust } = useSavingPot()
   const [showCreate, setShowCreate] = useState(false)
+  const [showCorrect, setShowCorrect] = useState(false)
   const [adjustDirection, setAdjustDirection] = useState<SavingPotAdjustDirection | null>(null)
 
   return (
@@ -24,7 +50,7 @@ export function SavingPotPage() {
         <div>
           <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">Saving pot</h2>
           <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-            Track available savings. After each month ends, remaining cash flow is applied once automatically.
+            Track and understand your available savings.
           </p>
         </div>
         {pot ? (
@@ -42,6 +68,13 @@ export function SavingPotPage() {
               className="rounded-full bg-amber-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-amber-500"
             >
               Subtract
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCorrect(true)}
+              className="rounded-full border border-neutral-300 px-5 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+            >
+              Correct balance
             </button>
           </div>
         ) : (
@@ -61,49 +94,72 @@ export function SavingPotPage() {
         </p>
       )}
 
+      {pot && pot.syncWarnings.length > 0 && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/50 dark:text-amber-200">
+          <p className="font-medium">Some closed months could not be synchronized</p>
+          <ul className="mt-1 list-disc space-y-1 pl-5">
+            {pot.syncWarnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <article className="rounded-3xl border border-neutral-200/80 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-neutral-500 dark:text-neutral-400">
           Current balance
         </p>
-        <p className="mt-2 text-3xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">
+        <p
+          className={`mt-2 break-words text-3xl font-semibold tracking-tight ${
+            pot && pot.balance < 0
+              ? 'text-amber-600 dark:text-amber-400'
+              : 'text-neutral-900 dark:text-neutral-50'
+          }`}
+        >
           {loading ? '…' : pot ? formatCurrency(pot.balance, pot.currency) : 'Not set up yet'}
         </p>
         <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
           {pot
-            ? `Currency ${pot.currency}. Use Add / Subtract to adjust; closed months still auto-apply once.`
+            ? pot.balance < 0
+              ? `Currency ${pot.currency}. Negative balance means a savings deficit after cash-flow applications.`
+              : `Currency ${pot.currency}. Add, subtract, or correct the balance; closed months sync from cash flow.`
             : 'Create a pot and set your current savings to get started.'}
         </p>
       </article>
 
       <div className="mt-8">
-        <h3 className="font-semibold text-neutral-900 dark:text-neutral-50">Monthly applications</h3>
+        <h3 className="font-semibold text-neutral-900 dark:text-neutral-50">Recent activity</h3>
         <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-          Closed months applied from net cash flow (income − expenses).
+          Every balance change is recorded here, including monthly cash flow and corrections.
         </p>
 
-        {loading ? (
+        {loading || historyLoading ? (
           <p className="mt-4 text-sm text-neutral-500 dark:text-neutral-400">Loading…</p>
-        ) : !pot || pot.applications.length === 0 ? (
+        ) : !pot || history.length === 0 ? (
           <p className="mt-4 rounded-2xl border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
-            No months applied yet. Applications appear after a month ends.
+            No activity yet. Create the pot or wait for a closed month to sync.
           </p>
         ) : (
           <ul className="mt-4 divide-y divide-neutral-200 overflow-hidden rounded-2xl border border-neutral-200/80 bg-white dark:divide-neutral-800 dark:border-neutral-800 dark:bg-neutral-900">
-            {pot.applications.map((item) => (
-              <li key={item.id} className="flex items-center justify-between gap-4 px-5 py-4">
-                <div>
-                  <p className="font-medium text-neutral-900 dark:text-neutral-100">{monthLabel(item.year, item.month)}</p>
-                  <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">Auto-applied from monthly net</p>
+            {history.map((entry) => (
+              <li key={entry.id} className="flex items-start justify-between gap-4 px-5 py-4">
+                <div className="min-w-0">
+                  <p className="font-medium text-neutral-900 dark:text-neutral-100">
+                    {ENTRY_TITLES[entry.entryType]}
+                  </p>
+                  <p className="mt-0.5 break-words text-xs text-neutral-500 dark:text-neutral-400">
+                    {entrySubtitle(entry)}
+                  </p>
                 </div>
                 <p
-                  className={`text-sm font-semibold ${
-                    item.amountApplied < 0
+                  className={`shrink-0 text-sm font-semibold ${
+                    entry.amount < 0
                       ? 'text-amber-600 dark:text-amber-400'
                       : 'text-emerald-600 dark:text-emerald-400'
                   }`}
                 >
-                  {item.amountApplied > 0 ? '+' : ''}
-                  {formatCurrency(item.amountApplied, item.currency)}
+                  {entry.amount > 0 ? '+' : ''}
+                  {formatCurrency(entry.amount, entry.currency)}
                 </p>
               </li>
             ))}
@@ -115,9 +171,22 @@ export function SavingPotPage() {
         <SetBalanceDialog
           pot={null}
           currency={currency}
+          mode="create"
           onClose={() => setShowCreate(false)}
-          onSave={async (balance) => {
-            await save({ balance, currency })
+          onSave={async (balance, note) => {
+            await save({ balance, currency, note })
+          }}
+        />
+      )}
+
+      {pot && showCorrect && (
+        <SetBalanceDialog
+          pot={pot}
+          currency={pot.currency}
+          mode="correct"
+          onClose={() => setShowCorrect(false)}
+          onSave={async (balance, note) => {
+            await save({ balance, note })
           }}
         />
       )}
@@ -127,8 +196,8 @@ export function SavingPotPage() {
           pot={pot}
           initialDirection={adjustDirection}
           onClose={() => setAdjustDirection(null)}
-          onAdjust={async (amount, direction) => {
-            await adjust({ amount, direction })
+          onAdjust={async (amount, direction, note) => {
+            await adjust({ amount, direction, note })
           }}
         />
       )}

@@ -9,7 +9,7 @@ import type { SavingPot, SavingPotAdjustDirection } from '../../types'
 interface AdjustBalanceDialogProps {
   pot: SavingPot
   onClose: () => void
-  onAdjust: (amount: number, direction: SavingPotAdjustDirection) => Promise<void>
+  onAdjust: (amount: number, direction: SavingPotAdjustDirection, note: string | null) => Promise<void>
   initialDirection?: SavingPotAdjustDirection
 }
 
@@ -21,6 +21,7 @@ export function AdjustBalanceDialog({
 }: AdjustBalanceDialogProps) {
   const [direction, setDirection] = useState<SavingPotAdjustDirection>(initialDirection)
   const [amount, setAmount] = useState('')
+  const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,7 +35,7 @@ export function AdjustBalanceDialog({
     setSaving(true)
     setError(null)
     try {
-      await onAdjust(value, direction)
+      await onAdjust(value, direction, note.trim() || null)
       onClose()
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : 'Could not update the saving pot.')
@@ -91,6 +92,18 @@ export function AdjustBalanceDialog({
             value={formatAmountInput(amount)}
             onChange={(event) => setAmount(sanitizePositiveAmountInput(event.target.value))}
             disabled={saving}
+            className="mt-1.5 h-11 w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm outline-none focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-950"
+          />
+        </label>
+
+        <label className="block text-sm">
+          <span className="font-medium text-neutral-700 dark:text-neutral-200">Note (optional)</span>
+          <input
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            disabled={saving}
+            maxLength={240}
+            placeholder="e.g. Bonus, emergency expense"
             className="mt-1.5 h-11 w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm outline-none focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-950"
           />
         </label>

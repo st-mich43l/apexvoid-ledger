@@ -70,19 +70,26 @@ ones.
 
 ## 🏦 Saving pot
 
-`/saving-pot` tracks a single per-account savings balance:
+`/saving-pot` tracks a single per-account savings balance with an immutable
+activity ledger:
 
-- Create the pot and set your current available balance manually (absolute
-  overwrite anytime).
-- After the pot exists, use **Add** / **Subtract** to adjust the balance by an
-  amount without replacing the total (subtract cannot go below zero).
-- After a calendar month ends, that month's Cash Flow **net cash flow**
-  (income − expenses, same FX path as the monthly summary) is applied once —
-  positive months add, negative months subtract.
-- Months that ended before the pot existed are not backfilled; the opening
-  balance already represents savings so far.
-- No background job: the next time the pot is loaded after month-end, closed
-  months are applied lazily and recorded so they never double-count.
+- Create the pot with an opening balance (recorded as an **opening** entry).
+- Use **Add** / **Subtract** for deposits and withdrawals (optional note).
+  Manual subtract cannot exceed the current balance.
+- Use **Correct balance** when the real-world total differs; only the delta is
+  recorded as a **balance correction**.
+- After a calendar month ends, Cash Flow net is synchronized into the pot.
+  The creation month only includes activity occurring at or after pot creation
+  (so the opening balance is not double-counted). Later months use the full
+  calendar month, including linked loan schedule expenses.
+- If Cash Flow for an already-applied month later changes, Saving Pot
+  **reconciles** only the difference (never re-applies the whole month).
+- Incomplete FX conversion never permanently applies a partial month; the pot
+  stays unchanged for that month and the UI shows a synchronization warning.
+- One native currency per pot — changing currency after creation is rejected.
+- `SavingPot.balance` remains the current snapshot; every mutation also writes
+  a `SavingPotEntry`. Migration `0014` backfills a legacy baseline plus known
+  monthly applications without changing existing balances.
 
 ## 🔐 Accounts & access
 
@@ -106,8 +113,8 @@ ones.
   loan summary (trading remains planned)
 - `/cashflow` — monthly cash-flow summary, visualizations, transaction CRUD,
   and category management
-- `/saving-pot` — set available savings balance; closed months auto-apply net
-  cash flow once
+- `/saving-pot` — savings balance, add/subtract/correct, and activity history;
+  closed months sync and reconcile from cash flow
 - `/loan` — the loan table + form (reached from `/dashboard`'s Loan card)
 - `/settings/users` — admin-only user management
 - `/change-password`, `/select-currency` — one-time onboarding gates,
@@ -119,8 +126,10 @@ resource query by
 the logged-in user's id, so a mismatched id 404s instead of leaking that it
 belongs to someone else. Loans created before ownership existed were backfilled
 to whichever account was created first — see migration `0010`; migration `0011`
-adds the cash-flow schema, and migration `0012` adds native loan currency for
-safe cross-currency reporting.
+adds the cash-flow schema, migration `0012` adds native loan currency for
+safe cross-currency reporting, migration `0013` adds Saving Pot, and
+migration `0014` adds the Saving Pot activity ledger with a non-destructive
+backfill.
 
 ## 🚀 Running locally
 
