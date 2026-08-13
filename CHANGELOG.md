@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### ✨ Added
+- 💳 New default expense category for Credit Card, seeded idempotently for
+  existing accounts the next time they open Cash Flow.
+
+### 🔧 Changed
+- Local `docker-compose.yml` bind-mounts Postgres to `./.data/postgres` so
+  test data survives rebuilds and `docker compose down -v`.
+
 ### 📋 Deployment note
 - The auth work below needs `SECRET_KEY` (session signing key) added to
   `apexvoid_ledger_secrets` in `ansible-library`'s vault — `main.py`

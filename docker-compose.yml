@@ -8,8 +8,10 @@ services:
       POSTGRES_DB: apexvoid_ledger
     ports:
       - "5432:5432"
+    # Bind-mounted so local test data survives rebuilds and `docker compose down -v`
+    # (named volumes are removed by `-v`; this directory is not).
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./.data/postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ledger -d apexvoid_ledger"]
       interval: 5s
@@ -38,6 +40,3 @@ services:
       - backend
     ports:
       - "8080:80"
-
-volumes:
-  postgres_data:

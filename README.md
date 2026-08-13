@@ -105,13 +105,24 @@ safe cross-currency reporting.
 
 ## 🚀 Running locally
 
-1. Start Postgres:
+1. Start the full stack (Postgres + backend + frontend):
 
    ```bash
-   docker compose up -d
+   docker compose up -d --build
    ```
 
-2. Backend:
+   Postgres stores data under `./.data/postgres` (gitignored). Rebuilds and
+   `docker compose down` / `down -v` keep that directory, so local test accounts
+   and transactions survive. Delete `./.data/postgres` only when you want a
+   clean database.
+
+   Or start only Postgres and run the API/UI on the host:
+
+   ```bash
+   docker compose up -d postgres
+   ```
+
+2. Backend (host mode):
 
    ```bash
    cd backend
@@ -123,7 +134,7 @@ safe cross-currency reporting.
    uvicorn app.main:app --reload --port 4000   # http://localhost:4000
    ```
 
-3. Frontend:
+3. Frontend (host mode):
 
    ```bash
    cd frontend
@@ -131,8 +142,9 @@ safe cross-currency reporting.
    npm run dev              # http://localhost:5173
    ```
 
-The frontend dev server proxies `/api/*` to the backend on port 4000. Log in
-with `admin` / `admin`, then set a new password and currency when prompted.
+Full-stack UI: http://localhost:8080. Host-mode frontend proxies `/api/*` to
+the backend on port 4000. Log in with `admin` / `admin`, then set a new
+password and currency when prompted.
 
 ## 🚢 Deployment
 

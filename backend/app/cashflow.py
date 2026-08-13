@@ -22,6 +22,7 @@ DEFAULT_CATEGORIES = {
         ("Travel", "✈️"),
         ("Gifts", "🎁"),
         ("Loan", "🏦"),
+        ("Credit Card", "💳"),
         ("Other", "📦"),
     ],
     "income": [
