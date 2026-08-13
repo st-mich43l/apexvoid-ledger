@@ -6,6 +6,7 @@ import { useAuth } from './context/AuthContext'
 import { AdminUsersPage } from './pages/admin/Users'
 import { ChangePasswordPage } from './pages/ChangePassword'
 import { CashFlowPage } from './pages/CashFlow'
+import { BudgetPage } from './pages/Budget'
 import { Dashboard } from './pages/Dashboard'
 import { HomePage } from './pages/Home'
 import { LoanPage } from './pages/Loan'
@@ -38,6 +39,7 @@ function App() {
           <Route index element={<DefaultRoute />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="cashflow" element={<CashFlowPage />} />
+          <Route path="budget" element={<BudgetPage />} />
           <Route path="monthly-routine" element={<MonthlyRoutinePage />} />
           <Route path="saving-pot" element={<SavingPotPage />} />
           <Route path="loan" element={<LoanPage />} />

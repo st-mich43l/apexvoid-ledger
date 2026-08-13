@@ -479,6 +479,76 @@ class MonthlyRoutineSummary(CamelModel):
   exchange_rate_provider_url: str | None
 
 
+BudgetAmount = Annotated[Decimal, Field(ge=0, le=Decimal("9999999999999999.99"))]
+BudgetAllocationAmount = Annotated[
+  Decimal, Field(gt=0, le=Decimal("9999999999999999.99"))
+]
+
+
+class MonthlyBudgetAllocationInput(CamelModel):
+  category_id: str
+  amount: BudgetAllocationAmount
+
+
+class MonthlyBudgetUpsert(CamelModel):
+  currency: CurrencyCode
+  planned_savings: BudgetAmount = Decimal("0.00")
+  allocations: list[MonthlyBudgetAllocationInput] = Field(default_factory=list, max_length=100)
+
+  @field_validator("allocations")
+  @classmethod
+  def category_once(
+    cls, allocations: list[MonthlyBudgetAllocationInput]
+  ) -> list[MonthlyBudgetAllocationInput]:
+    category_ids = [allocation.category_id for allocation in allocations]
+    if len(category_ids) != len(set(category_ids)):
+      raise ValueError("Each category can appear only once in a monthly budget")
+    return allocations
+
+
+class MonthlyBudgetAllocationRead(CamelModel):
+  category_id: str
+  category_name: str
+  category_icon: str | None
+  category_active: bool
+  allocated_amount: float
+  actual_spent: float
+  remaining_amount: float | None
+  utilization_percent: float | None
+
+
+class UnbudgetedCategoryRead(CamelModel):
+  category_id: str
+  category_name: str
+  category_icon: str | None
+  actual_spent: float
+
+
+class MonthlyBudgetSummary(CamelModel):
+  year: int
+  month: int
+  has_budget: bool
+  currency: CurrencyCode
+  baseline_available: float
+  planned_savings_amount: float | None
+  available_for_variable_planning: float | None
+  planned_variable_budget_total: float | None
+  unallocated_buffer: float | None
+  actual_variable_expense_total: float
+  remaining_variable_budget: float | None
+  safe_to_spend: float | None
+  daily_safe_to_spend: float | None
+  unbudgeted_spend_total: float | None
+  allocations: list[MonthlyBudgetAllocationRead]
+  unbudgeted_categories: list[UnbudgetedCategoryRead]
+  budget_comparison_complete: bool
+  converted_currencies: list[CurrencyCode]
+  unconverted_currencies: list[CurrencyCode]
+  conversion_rates: list[CurrencyConversionRate]
+  exchange_rate_provider: str | None
+  exchange_rate_provider_url: str | None
+
+
 class CashFlowMonthlySummary(CamelModel):
   year: int
   month: int

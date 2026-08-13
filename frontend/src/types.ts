@@ -215,6 +215,60 @@ export interface MonthlyRoutineSummary {
   exchangeRateProviderUrl: string | null
 }
 
+export interface MonthlyBudgetAllocation {
+  categoryId: string
+  categoryName: string
+  categoryIcon: string | null
+  categoryActive: boolean
+  allocatedAmount: number
+  actualSpent: number
+  remainingAmount: number | null
+  utilizationPercent: number | null
+}
+
+export interface UnbudgetedBudgetCategory {
+  categoryId: string
+  categoryName: string
+  categoryIcon: string | null
+  actualSpent: number
+}
+
+export interface MonthlyBudgetSummary {
+  year: number
+  month: number
+  hasBudget: boolean
+  currency: CurrencyCode
+  baselineAvailable: number
+  plannedSavingsAmount: number | null
+  availableForVariablePlanning: number | null
+  plannedVariableBudgetTotal: number | null
+  unallocatedBuffer: number | null
+  actualVariableExpenseTotal: number
+  remainingVariableBudget: number | null
+  safeToSpend: number | null
+  dailySafeToSpend: number | null
+  unbudgetedSpendTotal: number | null
+  allocations: MonthlyBudgetAllocation[]
+  unbudgetedCategories: UnbudgetedBudgetCategory[]
+  budgetComparisonComplete: boolean
+  convertedCurrencies: CurrencyCode[]
+  unconvertedCurrencies: CurrencyCode[]
+  conversionRates: CurrencyConversionRate[]
+  exchangeRateProvider: string | null
+  exchangeRateProviderUrl: string | null
+}
+
+export interface MonthlyBudgetAllocationInput {
+  categoryId: string
+  amount: number
+}
+
+export interface MonthlyBudgetInput {
+  currency: CurrencyCode
+  plannedSavings: number
+  allocations: MonthlyBudgetAllocationInput[]
+}
+
 export interface CashFlowMonthlySummary {
   year: number
   month: number

@@ -210,20 +210,28 @@ export function CashFlowTrendChart({
         <span>Select a month to update both charts.</span>
       </div>
 
-      <table className="sr-only">
-        <caption>Monthly income, expenses, and net cash flow in {currency}</caption>
-        <thead><tr><th>Month</th><th>Income</th><th>Expenses</th><th>Net cash flow</th></tr></thead>
-        <tbody>
+      <div
+        style={{
+          position: 'absolute',
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: 'hidden',
+          clip: 'rect(0, 0, 0, 0)',
+          whiteSpace: 'nowrap',
+          border: 0,
+        }}
+      >
+        <p>Monthly income, expenses, and net cash flow in {currency}</p>
+        <ul>
           {points.map((point) => (
-            <tr key={cashFlowPointKey(point)}>
-              <th>{dashboardMonthLabel(point.year, point.month)}</th>
-              <td>{formatCurrency(point.income, currency)}</td>
-              <td>{formatCurrency(point.expenses, currency)}</td>
-              <td>{formatCurrency(point.netCashFlow, currency)}</td>
-            </tr>
+            <li key={cashFlowPointKey(point)}>
+              {dashboardMonthLabel(point.year, point.month)}: income {formatCurrency(point.income, currency)}, expenses {formatCurrency(point.expenses, currency)}, net cash flow {formatCurrency(point.netCashFlow, currency)}.
+            </li>
           ))}
-        </tbody>
-      </table>
+        </ul>
+      </div>
     </article>
   )
 }
