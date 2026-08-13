@@ -24,84 +24,84 @@ DEFAULT_PASSWORD = "hunter22222"
 
 @pytest.fixture()
 def db_session():
-    # In-memory SQLite, isolated per test - never touches the real Postgres
-    # database (which the dev/prod app instances actually use).
-    engine = create_engine(
-        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-    Base.metadata.create_all(engine)
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    session = TestingSessionLocal()
-    try:
-        yield session
-    finally:
-        session.close()
-        engine.dispose()
+  # In-memory SQLite, isolated per test - never touches the real Postgres
+  # database (which the dev/prod app instances actually use).
+  engine = create_engine(
+    "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
+  )
+  Base.metadata.create_all(engine)
+  TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+  session = TestingSessionLocal()
+  try:
+    yield session
+  finally:
+    session.close()
+    engine.dispose()
 
 
 @pytest.fixture()
 def client_factory(db_session: Session) -> Callable[[], TestClient]:
-    """Each call returns a fresh TestClient (its own cookie jar) sharing the
-    same in-memory database, so tests can hold two independently-authenticated
-    sessions (e.g. to check that one user can't see another's data)."""
+  """Each call returns a fresh TestClient (its own cookie jar) sharing the
+  same in-memory database, so tests can hold two independently-authenticated
+  sessions (e.g. to check that one user can't see another's data)."""
 
-    def override_get_db():
-        yield db_session
+  def override_get_db():
+    yield db_session
 
-    app.dependency_overrides[get_db] = override_get_db
+  app.dependency_overrides[get_db] = override_get_db
 
-    clients: list[TestClient] = []
+  clients: list[TestClient] = []
 
-    def make() -> TestClient:
-        c = TestClient(app)
-        clients.append(c)
-        return c
+  def make() -> TestClient:
+    c = TestClient(app)
+    clients.append(c)
+    return c
 
-    yield make
+  yield make
 
-    app.dependency_overrides.clear()
+  app.dependency_overrides.clear()
 
 
 @pytest.fixture()
 def client(client_factory: Callable[[], TestClient]) -> TestClient:
-    return client_factory()
+  return client_factory()
 
 
 def _make_user(db_session: Session, username: str, is_admin: bool = False) -> User:
-    user = User(
-        username=username,
-        hashed_password=hash_password(DEFAULT_PASSWORD),
-        is_admin=is_admin,
-        must_change_password=False,
-        preferred_currency="USD",
-    )
-    db_session.add(user)
-    db_session.commit()
-    db_session.refresh(user)
-    return user
+  user = User(
+    username=username,
+    hashed_password=hash_password(DEFAULT_PASSWORD),
+    is_admin=is_admin,
+    must_change_password=False,
+    preferred_currency="USD",
+  )
+  db_session.add(user)
+  db_session.commit()
+  db_session.refresh(user)
+  return user
 
 
 @pytest.fixture()
 def user(db_session: Session) -> User:
-    return _make_user(db_session, "alice")
+  return _make_user(db_session, "alice")
 
 
 @pytest.fixture()
 def other_user(db_session: Session) -> User:
-    return _make_user(db_session, "bob")
+  return _make_user(db_session, "bob")
 
 
 def _login(client: TestClient, username: str) -> TestClient:
-    res = client.post("/api/auth/login", json={"username": username, "password": DEFAULT_PASSWORD})
-    assert res.status_code == 200
-    return client
+  res = client.post("/api/auth/login", json={"username": username, "password": DEFAULT_PASSWORD})
+  assert res.status_code == 200
+  return client
 
 
 @pytest.fixture()
 def auth_client(client_factory: Callable[[], TestClient], user: User) -> TestClient:
-    return _login(client_factory(), user.username)
+  return _login(client_factory(), user.username)
 
 
 @pytest.fixture()
 def other_auth_client(client_factory: Callable[[], TestClient], other_user: User) -> TestClient:
-    return _login(client_factory(), other_user.username)
+  return _login(client_factory(), other_user.username)

@@ -7,12 +7,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### ✨ Added
+- 🏦 Saving Pot v1: one pot per account with opening balance create, manual
+  add/subtract adjustments, plus lazy end-of-month auto-apply of Cash Flow net
+  (plus or minus) recorded once per closed month. Dashboard card and
+  `/saving-pot` page included.
+- 🧬 Migration `0013` adds `SavingPot` and `SavingPotMonthApplication`.
 - 💳 New default expense category for Credit Card, seeded idempotently for
+  existing accounts the next time they open Cash Flow.
+- 🛟 New default expense category for Support, seeded idempotently for
   existing accounts the next time they open Cash Flow.
 
 ### 🔧 Changed
 - Local `docker-compose.yml` bind-mounts Postgres to `./.data/postgres` so
   test data survives rebuilds and `docker compose down -v`.
+- Monthly cash-flow aggregation extracted to a shared helper used by both the
+  summary endpoint and saving-pot month apply.
 
 ### 📋 Deployment note
 - The auth work below needs `SECRET_KEY` (session signing key) added to

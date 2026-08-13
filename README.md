@@ -68,6 +68,22 @@ account accesses cash flow. All categories and transactions are scoped to the
 authenticated account, and foreign resource IDs return `404` just like missing
 ones.
 
+## 🏦 Saving pot
+
+`/saving-pot` tracks a single per-account savings balance:
+
+- Create the pot and set your current available balance manually (absolute
+  overwrite anytime).
+- After the pot exists, use **Add** / **Subtract** to adjust the balance by an
+  amount without replacing the total (subtract cannot go below zero).
+- After a calendar month ends, that month's Cash Flow **net cash flow**
+  (income − expenses, same FX path as the monthly summary) is applied once —
+  positive months add, negative months subtract.
+- Months that ended before the pot existed are not backfilled; the opening
+  balance already represents savings so far.
+- No background job: the next time the pot is loaded after month-end, closed
+  months are applied lazily and recorded so they never double-count.
+
 ## 🔐 Accounts & access
 
 - Registration is **admin-gated** — there's no public sign-up. Admins invite
@@ -86,17 +102,20 @@ ones.
 - `/login` — sign in (username, not email)
 - `/home` — admin hub: portal shortcuts + overview (admins only; other users
   skip straight to `/dashboard`)
-- `/dashboard` — account overview with current-month cash flow and loan summary
-  (trading and other asset types remain planned)
+- `/dashboard` — account overview with saving pot, current-month cash flow, and
+  loan summary (trading remains planned)
 - `/cashflow` — monthly cash-flow summary, visualizations, transaction CRUD,
   and category management
+- `/saving-pot` — set available savings balance; closed months auto-apply net
+  cash flow once
 - `/loan` — the loan table + form (reached from `/dashboard`'s Loan card)
 - `/settings/users` — admin-only user management
 - `/change-password`, `/select-currency` — one-time onboarding gates,
   forced on first login before the app is reachable
 
-Financial resources are scoped to their owning account. Loan, category, and
-transaction routers require authentication and filter every resource query by
+Financial resources are scoped to their owning account. Loan, category,
+transaction, and saving-pot routers require authentication and filter every
+resource query by
 the logged-in user's id, so a mismatched id 404s instead of leaking that it
 belongs to someone else. Loans created before ownership existed were backfilled
 to whichever account was created first — see migration `0010`; migration `0011`

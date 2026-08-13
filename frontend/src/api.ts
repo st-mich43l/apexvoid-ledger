@@ -8,6 +8,9 @@ import type {
   LoanDetail,
   LoanInput,
   LoanScheduleItem,
+  SavingPot,
+  SavingPotAdjustInput,
+  SavingPotInput,
   TransactionInput,
   TransactionType,
   WeeklyExpenseBatchInput,
@@ -172,6 +175,31 @@ export function fetchCashFlowSummary(
 ): Promise<CashFlowMonthlySummary> {
   const query = new URLSearchParams({ year: String(year), month: String(month), currency })
   return authedRequest<CashFlowMonthlySummary>(`/api/cashflow/summary?${query}`)
+}
+
+const SAVING_POT_URL = '/api/saving-pot'
+
+export async function fetchSavingPot(): Promise<SavingPot | null> {
+  try {
+    return await authedRequest<SavingPot>(SAVING_POT_URL)
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null
+    throw err
+  }
+}
+
+export function upsertSavingPot(input: SavingPotInput): Promise<SavingPot> {
+  return authedRequest<SavingPot>(SAVING_POT_URL, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  })
+}
+
+export function adjustSavingPot(input: SavingPotAdjustInput): Promise<SavingPot> {
+  return authedRequest<SavingPot>(`${SAVING_POT_URL}/adjust`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
 }
 
 const AUTH_URL = '/api/auth'
