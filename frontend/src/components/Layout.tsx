@@ -12,6 +12,7 @@ function getBackTarget(pathname: string, isAdmin: boolean): { path: string; labe
   if (pathname.startsWith('/loan/')) return { path: '/loan', label: 'Loans' }
   if (pathname === '/loan') return { path: '/dashboard', label: 'Dashboard' }
   if (pathname === '/cashflow') return { path: '/dashboard', label: 'Dashboard' }
+  if (pathname === '/saving-pot') return { path: '/dashboard', label: 'Dashboard' }
   if (pathname === '/settings/users') return { path: '/home', label: 'Home' }
   if (pathname === '/dashboard') return isAdmin ? { path: '/home', label: 'Home' } : null
   return null

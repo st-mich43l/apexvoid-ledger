@@ -102,6 +102,36 @@ export interface CashFlowMonthlySummary {
   excludedCurrencies: CurrencyCode[]
 }
 
+export interface SavingPotMonthApplication {
+  id: string
+  year: number
+  month: number
+  amountApplied: number
+  currency: CurrencyCode
+  appliedAt: string
+}
+
+export interface SavingPot {
+  id: string
+  balance: number
+  currency: CurrencyCode
+  createdAt: string
+  updatedAt: string
+  applications: SavingPotMonthApplication[]
+}
+
+export interface SavingPotInput {
+  balance: number
+  currency?: CurrencyCode
+}
+
+export type SavingPotAdjustDirection = 'add' | 'subtract'
+
+export interface SavingPotAdjustInput {
+  amount: number
+  direction: SavingPotAdjustDirection
+}
+
 export interface Loan {
   id: string
   bankName: string

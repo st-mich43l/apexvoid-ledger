@@ -1,0 +1,10 @@
+---
+description: Use 2-space indentation for all project source files
+alwaysApply: true
+---
+
+# Indentation
+
+- Use **spaces**, never tabs (except Makefiles).
+- Indent width is **2 spaces** for TypeScript, JavaScript, Python, JSON, YAML, CSS, and similar source files.
+- Match surrounding code structure; do not leave mixed 2- and 4-space indent in the same file.
