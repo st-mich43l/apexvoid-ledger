@@ -224,6 +224,9 @@ export interface CashFlowMonthlySummary {
   netCashFlow: number
   savingsRatePercent: number | null
   transactionCount: number
+  recurringIncomeTotal: number
+  recurringIncomeCount: number
+  recurringIncomes: RecurringIncomeActivity[]
   loanPaymentCount: number
   loanPayments: LoanPaymentActivity[]
   fixedExpenseTotal: number

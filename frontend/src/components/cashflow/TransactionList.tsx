@@ -5,10 +5,12 @@ import type {
   LedgerTransaction,
   LoanPaymentActivity,
   RecurringExpenseActivity,
+  RecurringIncomeActivity,
 } from '../../types'
 
 interface TransactionListProps {
   transactions: LedgerTransaction[]
+  recurringIncomes: RecurringIncomeActivity[]
   loanPayments: LoanPaymentActivity[]
   recurringExpenses: RecurringExpenseActivity[]
   loading: boolean
@@ -20,6 +22,7 @@ interface TransactionListProps {
 
 type MonthlyActivity =
   | { kind: 'transaction'; occurredAt: string; transaction: LedgerTransaction }
+  | { kind: 'recurring-income'; occurredAt: string; income: RecurringIncomeActivity }
   | { kind: 'loan'; occurredAt: string; payment: LoanPaymentActivity }
   | { kind: 'recurring'; occurredAt: string; expense: RecurringExpenseActivity }
 
@@ -49,6 +52,10 @@ function fixedCostAmount(expense: RecurringExpenseActivity): string {
   return `-${formatCurrency(expense.amount, expense.currency)}`
 }
 
+function recurringIncomeAmount(income: RecurringIncomeActivity): string {
+  return `+${formatCurrency(income.amount, income.currency)}`
+}
+
 function LoanReportingAmount({ payment }: { payment: LoanPaymentActivity }) {
   if (payment.currency === payment.reportingCurrency || payment.reportingAmount === null) return null
   return (
@@ -63,6 +70,15 @@ function FixedReportingAmount({ expense }: { expense: RecurringExpenseActivity }
   return (
     <span className="block text-[11px] font-normal text-neutral-400 dark:text-neutral-500">
       ≈ {formatCurrency(expense.reportingAmount, expense.reportingCurrency)}
+    </span>
+  )
+}
+
+function IncomeReportingAmount({ income }: { income: RecurringIncomeActivity }) {
+  if (income.currency === income.reportingCurrency || income.reportingAmount === null) return null
+  return (
+    <span className="block text-[11px] font-normal text-neutral-400 dark:text-neutral-500">
+      ≈ {formatCurrency(income.reportingAmount, income.reportingCurrency)}
     </span>
   )
 }
@@ -83,8 +99,17 @@ function FixedCostBadge() {
   )
 }
 
+function ScheduledIncomeBadge() {
+  return (
+    <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+      Auto income
+    </span>
+  )
+}
+
 export function TransactionList({
   transactions,
+  recurringIncomes,
   loanPayments,
   recurringExpenses,
   loading,
@@ -98,6 +123,11 @@ export function TransactionList({
       kind: 'transaction',
       occurredAt: transaction.occurredAt,
       transaction,
+    })),
+    ...recurringIncomes.map((income): MonthlyActivity => ({
+      kind: 'recurring-income',
+      occurredAt: income.expectedAt,
+      income,
     })),
     ...loanPayments.map((payment): MonthlyActivity => ({
       kind: 'loan',
@@ -138,6 +168,29 @@ export function TransactionList({
               </thead>
               <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
                 {activities.map((activity) => {
+                  if (activity.kind === 'recurring-income') {
+                    const { income } = activity
+                    return (
+                      <tr key={income.id} className="bg-emerald-50/40 dark:bg-emerald-500/[0.03]">
+                        <td className="whitespace-nowrap px-5 py-4 text-neutral-500 dark:text-neutral-400">{formatDate(income.expectedAt)}</td>
+                        <td className="max-w-48 px-5 py-4 font-medium text-neutral-900 dark:text-neutral-100">
+                          {income.name}
+                          <span className="mt-0.5 block text-xs font-normal text-neutral-400">Mapped from Monthly Routine</span>
+                        </td>
+                        <td className="whitespace-nowrap px-5 py-4 text-neutral-600 dark:text-neutral-300">
+                          {income.categoryIcon} {income.categoryName}
+                        </td>
+                        <td className="px-5 py-4"><ScheduledIncomeBadge /></td>
+                        <td className="whitespace-nowrap px-5 py-4 text-right font-medium tabular-nums text-emerald-600 dark:text-emerald-400">
+                          {recurringIncomeAmount(income)}
+                          <IncomeReportingAmount income={income} />
+                        </td>
+                        <td className="px-3 py-4 text-right">
+                          <Link to="/monthly-routine" className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10">Manage income</Link>
+                        </td>
+                      </tr>
+                    )
+                  }
                   if (activity.kind === 'loan') {
                     const { payment } = activity
                     return (
@@ -197,6 +250,27 @@ export function TransactionList({
           </div>
           <ul className="divide-y divide-neutral-100 md:hidden dark:divide-neutral-800">
             {activities.map((activity) => {
+              if (activity.kind === 'recurring-income') {
+                const { income } = activity
+                return (
+                  <li key={income.id} className="bg-emerald-50/40 p-5 dark:bg-emerald-500/[0.03]">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-neutral-900 dark:text-neutral-100">{income.name}</p>
+                        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                          {income.categoryIcon} {income.categoryName} · {formatDate(income.expectedAt)}
+                        </p>
+                        <span className="mt-2 inline-flex"><ScheduledIncomeBadge /></span>
+                      </div>
+                      <p className="shrink-0 text-right text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                        {recurringIncomeAmount(income)}
+                        <IncomeReportingAmount income={income} />
+                      </p>
+                    </div>
+                    <div className="mt-3 text-right"><Link to="/monthly-routine" className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10">Manage income</Link></div>
+                  </li>
+                )
+              }
               if (activity.kind === 'loan') {
                 const { payment } = activity
                 return (

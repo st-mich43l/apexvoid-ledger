@@ -1,7 +1,4 @@
-"""Monthly Routine planning composition — expected income + committed costs + actual spending.
-
-Expected income is planning-only: it must never enter Cash Flow or Saving Pot.
-"""
+"""Monthly Routine composition — scheduled income, committed costs, and spending."""
 
 from __future__ import annotations
 
@@ -130,7 +127,7 @@ def compute_monthly_routine(
   currency: str,
   rate_provider: FrankfurterExchangeRateProvider,
 ) -> MonthlyRoutineResult:
-  # Authoritative actual + obligation totals from Cash Flow (no expected income).
+  # Authoritative Cash Flow totals include auto-linked scheduled income and obligations.
   totals = compute_converted_month_totals(db, user_id, year, month, currency, rate_provider)
   start, end = month_range(year, month)
 
@@ -163,7 +160,7 @@ def compute_monthly_routine(
   loan_payment_count = sum(1 for entry in totals.entries if entry.source_kind == "loan")
   committed_expense_total = (fixed_expense_total + loan_payment_total).quantize(MONEY_QUANTUM)
 
-  # Planning-only expected income — never fed into Cash Flow / Saving Pot.
+  # Scheduled income remains separately visible as the planning baseline.
   expected_raw = expected_income_activities(db, user_id, start, end)
   (
     expected_converted,

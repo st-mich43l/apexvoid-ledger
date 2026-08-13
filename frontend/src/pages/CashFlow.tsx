@@ -158,6 +158,11 @@ export function CashFlowPage() {
           Includes {summaryState.summary.loanPaymentCount} contractual loan {summaryState.summary.loanPaymentCount === 1 ? 'payment' : 'payments'} from your loan schedule. These entries update automatically when a loan changes and do not record whether payment was completed.
         </p>
       )}
+      {summaryState.summary && summaryState.summary.recurringIncomeCount > 0 && (
+        <p className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-200">
+          Includes {summaryState.summary.recurringIncomeCount} scheduled income {summaryState.summary.recurringIncomeCount === 1 ? 'entry' : 'entries'} from Monthly Routine. These entries map automatically to every covered month without creating manual transactions.
+        </p>
+      )}
 
       <CashFlowSummaryCards summary={summaryState.summary} loading={summaryState.loading} currency={currency} />
 
@@ -179,6 +184,7 @@ export function CashFlowPage() {
       <div className="mt-5">
         <TransactionList
           transactions={transactionsState.transactions}
+          recurringIncomes={summaryState.summary?.recurringIncomes ?? []}
           loanPayments={summaryState.summary?.loanPayments ?? []}
           recurringExpenses={summaryState.summary?.recurringExpenses ?? []}
           loading={transactionsState.loading || summaryState.loading}

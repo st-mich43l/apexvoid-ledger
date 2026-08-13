@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### ✨ Added
 - 📅 Monthly Routine (`/monthly-routine`): expected recurring income plus
   committed fixed costs/loans, baseline available, actual variable spending,
-  and projected remainder — without inventing Cash Flow or Saving Pot income.
+  and projected remainder.
 - 💼 Recurring expected income with effective-dated revisions, stop/resume,
   and `/api/recurring-incomes` (+ `/api/monthly-routine`).
 - 🧬 Migration `0016` adds `RecurringIncome` and `RecurringIncomeRevision`.
@@ -35,6 +35,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   without changing `SavingPot.balance`.
 
 ### 🔧 Changed
+- Recurring expected income now auto-maps into every covered Cash Flow month
+  and closed-month Saving Pot reconciliation without generating transactions.
 - Saving Pot page shows recent activity and a Correct balance action.
 - Shared cash-flow aggregation supports arbitrary periods (used by monthly
   summary and Saving Pot sync).
