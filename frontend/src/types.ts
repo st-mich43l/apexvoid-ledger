@@ -244,6 +244,30 @@ export interface CashFlowMonthlySummary {
   excludedCurrencies: CurrencyCode[]
 }
 
+export interface CashFlowTrendPoint {
+  year: number
+  month: number
+  income: number
+  expenses: number
+  netCashFlow: number
+  savingsRatePercent: number | null
+  categoryBreakdown: CategorySpendingSummary[]
+}
+
+export interface CashFlowTrendSummary {
+  startYear: number
+  startMonth: number
+  endYear: number
+  endMonth: number
+  monthCount: 6 | 12
+  currency: CurrencyCode
+  points: CashFlowTrendPoint[]
+  convertedCurrencies: CurrencyCode[]
+  unconvertedCurrencies: CurrencyCode[]
+  exchangeRateProvider: string | null
+  exchangeRateProviderUrl: string | null
+}
+
 export interface SavingPotMonthApplication {
   id: string
   year: number

@@ -116,6 +116,10 @@ class TestCashFlowAuthentication:
         "/api/cashflow/summary",
         params={"year": 2026, "month": 8, "currency": "USD"},
       ),
+      client.get(
+        "/api/cashflow/trend",
+        params={"endYear": 2026, "endMonth": 8, "months": 6, "currency": "USD"},
+      ),
     ]
     assert all(response.status_code == 401 for response in requests)
 
@@ -677,6 +681,137 @@ class TestMonthlySummary:
     ).json()
     assert body["transactionCount"] == 0
     assert body["expenses"] == 0
+
+
+class TestCashFlowTrend:
+  def test_zero_fills_months_across_year_boundary_and_groups_categories(
+    self, auth_client: TestClient
+  ):
+    salary = category(auth_client, "Salary", "income")
+    food = category(auth_client, "Food", "expense")
+    housing = category(auth_client, "Housing", "expense")
+    create_transaction(
+      auth_client,
+      type="income",
+      categoryId=salary["id"],
+      amount=1000,
+      occurredAt="2026-12-05T12:00:00Z",
+    )
+    create_transaction(
+      auth_client,
+      categoryId=food["id"],
+      amount=200,
+      occurredAt="2026-12-10T12:00:00Z",
+    )
+    create_transaction(
+      auth_client,
+      categoryId=housing["id"],
+      amount=100,
+      occurredAt="2026-12-15T12:00:00Z",
+    )
+    create_transaction(
+      auth_client,
+      categoryId=food["id"],
+      amount=50,
+      occurredAt="2027-01-03T12:00:00Z",
+    )
+
+    response = auth_client.get(
+      "/api/cashflow/trend",
+      params={"endYear": 2027, "endMonth": 1, "months": 6, "currency": "USD"},
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert (body["startYear"], body["startMonth"]) == (2026, 8)
+    assert (body["endYear"], body["endMonth"], body["monthCount"]) == (2027, 1, 6)
+    assert [(point["year"], point["month"]) for point in body["points"]] == [
+      (2026, 8),
+      (2026, 9),
+      (2026, 10),
+      (2026, 11),
+      (2026, 12),
+      (2027, 1),
+    ]
+    assert [point["income"] for point in body["points"][:4]] == [0, 0, 0, 0]
+    december = body["points"][4]
+    assert december["income"] == 1000
+    assert december["expenses"] == 300
+    assert december["netCashFlow"] == 700
+    assert december["savingsRatePercent"] == 70
+    assert [(item["name"], item["amount"], item["percent"]) for item in december["categoryBreakdown"]] == [
+      ("Food", 200, 66.67),
+      ("Housing", 100, 33.33),
+    ]
+    assert body["points"][5]["expenses"] == 50
+
+  def test_converts_once_for_the_range_and_reports_unavailable_currency(
+    self, auth_client: TestClient, monkeypatch: pytest.MonkeyPatch
+  ):
+    food = category(auth_client, "Food", "expense")
+    create_transaction(
+      auth_client,
+      categoryId=food["id"],
+      amount=20,
+      currency="USD",
+      occurredAt="2026-08-05T12:00:00Z",
+    )
+
+    calls: list[tuple[str, str, date, date]] = []
+
+    def tracked_rates(
+      _provider: FrankfurterExchangeRateProvider,
+      source_currency: str,
+      target_currency: str,
+      start_date: date,
+      end_date: date,
+    ) -> list[ExchangeRateQuote]:
+      calls.append((source_currency, target_currency, start_date, end_date))
+      return [
+        ExchangeRateQuote(
+          source_currency=source_currency,
+          target_currency=target_currency,
+          rate=Decimal("25000"),
+          rate_date=start_date,
+        )
+      ]
+
+    monkeypatch.setattr(FrankfurterExchangeRateProvider, "get_rates", tracked_rates)
+
+    converted = auth_client.get(
+      "/api/cashflow/trend",
+      params={"endYear": 2026, "endMonth": 8, "months": 6, "currency": "VND"},
+    ).json()
+    assert converted["points"][-1]["expenses"] == 500000
+    assert converted["convertedCurrencies"] == ["USD"]
+    assert converted["unconvertedCurrencies"] == []
+    assert converted["exchangeRateProvider"] == "Frankfurter"
+    assert calls == [("USD", "VND", date(2026, 2, 22), date(2026, 8, 31))]
+
+    def unavailable(*_args, **_kwargs):
+      raise ExchangeRateProviderError("offline")
+
+    monkeypatch.setattr(FrankfurterExchangeRateProvider, "get_rates", unavailable)
+    unavailable_body = auth_client.get(
+      "/api/cashflow/trend",
+      params={"endYear": 2026, "endMonth": 8, "months": 6, "currency": "VND"},
+    ).json()
+    assert unavailable_body["points"][-1]["expenses"] == 0
+    assert unavailable_body["unconvertedCurrencies"] == ["USD"]
+
+  def test_validates_range_and_isolates_users(
+    self, auth_client: TestClient, other_auth_client: TestClient
+  ):
+    create_transaction(auth_client, amount=50)
+    invalid = auth_client.get(
+      "/api/cashflow/trend",
+      params={"endYear": 2026, "endMonth": 8, "months": 5, "currency": "USD"},
+    )
+    other = other_auth_client.get(
+      "/api/cashflow/trend",
+      params={"endYear": 2026, "endMonth": 8, "months": 6, "currency": "USD"},
+    )
+    assert invalid.status_code == 422
+    assert all(point["expenses"] == 0 for point in other.json()["points"])
 
 
 class TestLinkedLoanPayments:

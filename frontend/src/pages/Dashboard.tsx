@@ -5,6 +5,7 @@ import { useLoans } from '../hooks/useLoans'
 import { useCashFlowSummary } from '../hooks/useCashFlowSummary'
 import { useMonthlyRoutine } from '../hooks/useMonthlyRoutine'
 import { useSavingPot } from '../hooks/useSavingPot'
+import { DashboardFinancialTrends } from '../components/dashboard/DashboardFinancialTrends'
 
 export function Dashboard() {
   const { loans, loading, error } = useLoans()
@@ -97,6 +98,8 @@ export function Dashboard() {
           icon={<TrendingUpIcon />}
         />
       </div>
+
+      <DashboardFinancialTrends year={today.getFullYear()} month={today.getMonth() + 1} currency={currency} />
     </section>
   )
 }
