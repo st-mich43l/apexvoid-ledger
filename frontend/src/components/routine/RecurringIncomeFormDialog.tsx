@@ -140,7 +140,7 @@ export function RecurringIncomeFormDialog({
         </p>
         {mode === 'create' && (
           <p className="mt-3 rounded-xl bg-violet-50 px-3 py-2 text-xs text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">
-            Planning only — saving this does not create a Cash Flow transaction or mark income as received.
+            Saving maps this income into every covered Cash Flow month without creating manual transactions.
           </p>
         )}
 
@@ -268,7 +268,7 @@ export function RecurringIncomeFormDialog({
               </label>
               {historicalWarning && (
                 <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
-                  This changes the expected plan for a past month. It does not create or modify Cash Flow transactions.
+                  This updates mapped Cash Flow totals for a past month. It does not create or modify manual transactions.
                 </p>
               )}
             </>

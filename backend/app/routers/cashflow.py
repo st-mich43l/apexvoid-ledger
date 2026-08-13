@@ -15,6 +15,7 @@ from ..schemas import (
   CurrencyConversionRate,
   LoanPaymentActivityRead,
   RecurringExpenseActivityRead,
+  RecurringIncomeActivityRead,
 )
 
 router = APIRouter(prefix="/api/cashflow", tags=["cashflow"])
@@ -76,6 +77,7 @@ def get_monthly_summary(
       entry.loan.id if entry.loan is not None else None,
       entry.loan_term,
       entry.recurring_expense_id,
+      entry.recurring_income_id,
       entry.occurred_at.isoformat(),
     ): amount
     for entry, amount in totals.converted
@@ -96,6 +98,7 @@ def get_monthly_summary(
           "loan",
           entry.loan.id,
           entry.loan_term,
+          None,
           None,
           entry.occurred_at.isoformat(),
         )
@@ -123,6 +126,7 @@ def get_monthly_summary(
           None,
           None,
           entry.recurring_expense_id,
+          None,
           entry.occurred_at.isoformat(),
         )
       ),
@@ -130,6 +134,46 @@ def get_monthly_summary(
     )
     for entry in sorted(recurring_entries, key=lambda item: item.occurred_at, reverse=True)
   ]
+
+  recurring_income_entries = [
+    entry for entry in totals.entries if entry.source_kind == "recurring_income"
+  ]
+  recurring_incomes = [
+    RecurringIncomeActivityRead(
+      id=f"recurring-income:{entry.recurring_income_id}:{entry.occurred_at.date().isoformat()}",
+      recurring_income_id=entry.recurring_income_id,
+      name=entry.recurring_name or entry.category_name,
+      category_id=entry.category_id,
+      category_name=entry.category_name,
+      category_icon=entry.category_icon,
+      expected_at=entry.occurred_at,
+      amount=entry.amount,
+      currency=entry.currency,
+      reporting_amount=converted_by_key.get(
+        (
+          "recurring_income",
+          None,
+          None,
+          None,
+          entry.recurring_income_id,
+          entry.occurred_at.isoformat(),
+        )
+      ),
+      reporting_currency=currency,
+    )
+    for entry in sorted(
+      recurring_income_entries, key=lambda item: item.occurred_at, reverse=True
+    )
+  ]
+
+  recurring_income_total = sum(
+    (
+      amount
+      for entry, amount in totals.converted
+      if entry.source_kind == "recurring_income"
+    ),
+    Decimal(0),
+  ).quantize(Decimal("0.01"))
 
   fixed_expense_total = sum(
     (amount for entry, amount in totals.converted if entry.source_kind == "recurring"),
@@ -175,6 +219,9 @@ def get_monthly_summary(
     net_cash_flow=totals.net_cash_flow,
     savings_rate_percent=savings_rate,
     transaction_count=totals.manual_transaction_count,
+    recurring_income_total=recurring_income_total,
+    recurring_income_count=len(recurring_incomes),
+    recurring_incomes=recurring_incomes,
     loan_payment_count=len(loan_payments),
     loan_payments=loan_payments,
     fixed_expense_total=fixed_expense_total,

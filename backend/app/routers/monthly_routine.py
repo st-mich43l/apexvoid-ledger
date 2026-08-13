@@ -38,6 +38,7 @@ def get_monthly_routine(
       entry.loan.id if entry.loan is not None else None,
       entry.loan_term,
       entry.recurring_expense_id,
+      entry.recurring_income_id,
       entry.occurred_at.isoformat(),
     ): amount
     for entry, amount in result.cashflow_entries_converted
@@ -60,6 +61,7 @@ def get_monthly_routine(
           None,
           None,
           entry.recurring_expense_id,
+          None,
           entry.occurred_at.isoformat(),
         )
       ),
@@ -86,6 +88,7 @@ def get_monthly_routine(
           "loan",
           entry.loan.id,
           entry.loan_term,
+          None,
           None,
           entry.occurred_at.isoformat(),
         )

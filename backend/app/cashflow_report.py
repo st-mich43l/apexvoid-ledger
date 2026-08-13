@@ -23,6 +23,7 @@ from .monthly_recurrence import (
   revision_covers_month,
 )
 from .recurring_expenses import load_applicable_revisions
+from .recurring_income import expected_income_activities
 
 MONEY_QUANTUM = Decimal("0.01")
 
@@ -40,6 +41,7 @@ class ReportEntry:
   loan: Loan | None = None
   loan_term: int | None = None
   recurring_expense_id: str | None = None
+  recurring_income_id: str | None = None
   recurring_name: str | None = None
 
 
@@ -94,6 +96,22 @@ def period_entries(
     )
     for transaction in transactions
   ]
+
+  for activity in expected_income_activities(db, user_id, start, end):
+    entries.append(
+      ReportEntry(
+        entry_type="income",
+        category_id=activity.category_id,
+        category_name=activity.category_name,
+        category_icon=activity.category_icon,
+        amount=activity.amount,
+        currency=activity.currency,
+        occurred_at=activity.expected_at,
+        source_kind="recurring_income",
+        recurring_income_id=activity.recurring_income_id,
+        recurring_name=activity.name,
+      )
+    )
 
   revisions = load_applicable_revisions(db, user_id, start, end)
   seen_series_months: set[tuple[str, date]] = set()

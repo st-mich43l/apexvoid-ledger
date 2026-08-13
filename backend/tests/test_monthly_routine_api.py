@@ -373,7 +373,9 @@ class TestMonthlyRoutineCalculations:
     assert data["expectedIncomeTotal"] == 50000000
     assert data["actualIncomeTotal"] == 45000000
     cash = summary(auth_client, 2026, 8)
-    assert cash["income"] == 45000000
+    assert cash["income"] == 95000000
+    assert cash["recurringIncomeTotal"] == 50000000
+    assert cash["transactionCount"] == 1
 
   def test_negative_baseline(self, auth_client: TestClient):
     create_income(auth_client, amount=20000000, startMonth="2026-08")
@@ -383,19 +385,36 @@ class TestMonthlyRoutineCalculations:
     assert data["projectedRemainder"] == -5000000
 
 
-class TestCashFlowIsolation:
-  def test_expected_income_does_not_change_cashflow(self, auth_client: TestClient):
-    before = summary(auth_client, 2026, 8)
-    create_income(auth_client, amount=50000000, startMonth="2026-08")
-    after = summary(auth_client, 2026, 8)
-    assert after["income"] == before["income"]
-    assert after["netCashFlow"] == before["netCashFlow"]
-    assert after["transactionCount"] == before["transactionCount"]
-    assert after["expenses"] == before["expenses"]
+class TestCashFlowIncomeMapping:
+  def test_expected_income_maps_to_each_covered_month_without_transactions(
+    self, auth_client: TestClient, db_session: Session
+  ):
+    create_income(
+      auth_client,
+      amount=50000000,
+      startMonth="2026-07",
+      expectedDay=25,
+    )
+
+    before_start = summary(auth_client, 2026, 6)
+    previous = summary(auth_client, 2026, 7)
+    august = summary(auth_client, 2026, 8)
+
+    assert before_start["income"] == 0
+    assert before_start["recurringIncomeCount"] == 0
+    assert previous["income"] == 50000000
+    assert august["income"] == 50000000
+    assert august["netCashFlow"] == 50000000
+    assert august["transactionCount"] == 0
+    assert august["recurringIncomeTotal"] == 50000000
+    assert august["recurringIncomeCount"] == 1
+    assert august["recurringIncomes"][0]["name"] == "Monthly salary"
+    assert august["recurringIncomes"][0]["expectedAt"].startswith("2026-08-25")
+    assert db_session.query(Transaction).count() == 0
 
 
-class TestSavingPotIsolation:
-  def test_expected_income_does_not_reconcile_saving_pot(
+class TestSavingPotIncomeMapping:
+  def test_expected_income_reconciles_closed_month_without_transactions(
     self, auth_client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
   ):
     freeze_now(monkeypatch, datetime(2026, 8, 15, tzinfo=timezone.utc))
@@ -426,11 +445,11 @@ class TestSavingPotIsolation:
     assert routine(auth_client, 2026, 7, "USD")["expectedIncomeTotal"] == 500
 
     after = auth_client.get("/api/saving-pot").json()
-    assert after["balance"] == 2000
-    assert after["applications"][0]["amountApplied"] == 1000
-    assert db_session.query(SavingPotEntry).count() == before_entries
+    assert after["balance"] == 2500
+    assert after["applications"][0]["amountApplied"] == 1500
+    assert db_session.query(SavingPotEntry).count() == before_entries + 1
     history = auth_client.get("/api/saving-pot/history").json()["items"]
-    assert not any(item["entryType"] == "month_reconciliation" for item in history)
+    assert any(item["entryType"] == "month_reconciliation" for item in history)
 
     # Actual income still reconciles normally.
     create_tx(
@@ -441,8 +460,8 @@ class TestSavingPotIsolation:
       occurredAt="2026-07-22T00:00:00Z",
     )
     reconciled = auth_client.get("/api/saving-pot").json()
-    assert reconciled["balance"] == 2100
-    assert reconciled["applications"][0]["amountApplied"] == 1100
+    assert reconciled["balance"] == 2600
+    assert reconciled["applications"][0]["amountApplied"] == 1600
 
   def test_fixed_expense_still_reconciles(
     self, auth_client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
@@ -484,7 +503,10 @@ class TestExpectedIncomeFx:
     assert item["amount"] == 2000
     assert item["currency"] == "USD"
     assert item["reportingAmount"] == 50000000
-    assert summary(auth_client, 2026, 8, "VND")["income"] == 0
+    cash = summary(auth_client, 2026, 8, "VND")
+    assert cash["income"] == 50000000
+    assert cash["recurringIncomeTotal"] == 50000000
+    assert cash["recurringIncomes"][0]["reportingAmount"] == 50000000
 
   def test_fx_failure(self, auth_client: TestClient, monkeypatch: pytest.MonkeyPatch):
     salary = category(auth_client, "Salary", "income")

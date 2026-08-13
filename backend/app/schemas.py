@@ -488,6 +488,9 @@ class CashFlowMonthlySummary(CamelModel):
   net_cash_flow: float
   savings_rate_percent: float | None
   transaction_count: int
+  recurring_income_total: float
+  recurring_income_count: int
+  recurring_incomes: list[RecurringIncomeActivityRead]
   loan_payment_count: int
   loan_payments: list[LoanPaymentActivityRead]
   fixed_expense_total: float

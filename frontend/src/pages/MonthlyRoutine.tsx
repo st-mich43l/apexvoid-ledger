@@ -154,7 +154,7 @@ export function MonthlyRoutinePage() {
             <div>
               <h3 className="font-semibold text-neutral-900 dark:text-neutral-50">Expected income</h3>
               <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                Planning only — Ledger does not mark these as received.
+                Automatically mapped into Cash Flow for every covered month.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -313,7 +313,7 @@ export function MonthlyRoutinePage() {
           <div className="px-5 py-5">
             <h3 className="font-semibold text-neutral-900 dark:text-neutral-50">Income this month</h3>
             <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-              Actual recorded income includes Cash Flow transactions. Ledger does not automatically mark expected income as received.
+              Scheduled income is mapped automatically; actual recorded shows manual Cash Flow transactions only.
             </p>
             <dl className="mt-6 grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl bg-neutral-50 px-4 py-4 dark:bg-neutral-950/50">

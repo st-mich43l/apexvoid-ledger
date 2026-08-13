@@ -142,18 +142,20 @@ Routine planning.
 discretionary spending:
 
 - **Expected income** — effective-dated recurring income rules (salary,
-  allowance, retainers). Planning only: they do **not** create `Transaction`
-  rows, do **not** change Cash Flow income, and do **not** move Saving Pot.
+  allowance, retainers). Each covered month is auto-linked into Cash Flow
+  without creating `Transaction` rows; historical covered months are derived
+  from the same schedule and update automatically.
   A first-time setup pre-fills a monthly salary baseline; the amount remains
   required, and users can add more income sources or update future months.
 - **Committed costs** — existing recurring fixed expenses + linked loan
   installments (same obligation semantics as Cash Flow).
 - **Baseline available** = expected income − committed costs.
 - **Projected remainder** = baseline − actual variable (manual) expenses.
-- Actual recorded income is shown side-by-side with expected income; Ledger
-  does **not** match or mark expected income as received.
+- Actual manually recorded income is shown side-by-side with scheduled income.
+  Do not enter the same salary manually unless it is a separate adjustment.
 
-Income becomes actual only when recorded as a Cash Flow transaction.
+Scheduled income contributes to Cash Flow totals; manual income remains an
+editable transaction and is counted separately.
 
 ### Monthly Fixed Costs (recurring expenses)
 

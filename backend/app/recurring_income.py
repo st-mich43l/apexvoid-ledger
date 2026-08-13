@@ -1,4 +1,4 @@
-"""Expected recurring income domain helpers (planning only — not Cash Flow)."""
+"""Expected recurring income domain helpers used by Monthly Routine and Cash Flow."""
 
 from __future__ import annotations
 
@@ -336,7 +336,7 @@ def expected_income_activities(
   start: datetime,
   end: datetime,
 ) -> list[ExpectedIncomeActivity]:
-  """Derive expected-income planning activity for [start, end). Never persists."""
+  """Derive scheduled income activity for [start, end) without persisting transactions."""
   start = as_utc(start)
   end = as_utc(end)
   revisions = load_applicable_income_revisions(db, user_id, start, end)
