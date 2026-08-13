@@ -1,11 +1,14 @@
+import { Link } from 'react-router-dom'
 import { PremiumCard } from '../components/PremiumCard'
 import { useCurrency } from '../context/CurrencyContext'
 import { formatCurrency } from '../lib/currency'
 import { useLoans } from '../hooks/useLoans'
 import { useCashFlowSummary } from '../hooks/useCashFlowSummary'
 import { useMonthlyRoutine } from '../hooks/useMonthlyRoutine'
+import { useMonthlyBudget } from '../hooks/useMonthlyBudget'
 import { useSavingPot } from '../hooks/useSavingPot'
 import { DashboardFinancialTrends } from '../components/dashboard/DashboardFinancialTrends'
+import type { MonthlyBudgetSummary } from '../types'
 
 export function Dashboard() {
   const { loans, loading, error } = useLoans()
@@ -13,6 +16,7 @@ export function Dashboard() {
   const today = new Date()
   const cashFlow = useCashFlowSummary(today.getFullYear(), today.getMonth() + 1, currency)
   const routine = useMonthlyRoutine(today.getFullYear(), today.getMonth() + 1, currency)
+  const budget = useMonthlyBudget(today.getFullYear(), today.getMonth() + 1)
   const savingPot = useSavingPot()
 
   const loanBalances = [...loans.reduce((groups, loan) => {
@@ -30,9 +34,9 @@ export function Dashboard() {
         <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">Overview</h2>
       </div>
 
-      {(error || cashFlow.error || savingPot.error || routine.error) && (
+      {(error || cashFlow.error || savingPot.error || routine.error || budget.error) && (
         <p className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">
-          {error || cashFlow.error || savingPot.error || routine.error}
+          {error || cashFlow.error || savingPot.error || routine.error || budget.error}
         </p>
       )}
 
@@ -99,8 +103,63 @@ export function Dashboard() {
         />
       </div>
 
+      <DashboardBudgetIndicator summary={budget.summary} loading={budget.loading} />
+
       <DashboardFinancialTrends year={today.getFullYear()} month={today.getMonth() + 1} currency={currency} />
     </section>
+  )
+}
+
+function DashboardBudgetIndicator({ summary, loading }: { summary: MonthlyBudgetSummary | null; loading: boolean }) {
+  const planned = summary?.plannedVariableBudgetTotal ?? 0
+  const spent = summary?.actualVariableExpenseTotal ?? 0
+  const utilization = planned > 0 ? spent / planned * 100 : spent > 0 ? 100 : 0
+  const progress = summary?.budgetComparisonComplete ? utilization : 0
+  const progressColor = !summary?.budgetComparisonComplete
+    ? 'bg-amber-500'
+    : utilization > 100
+      ? 'bg-rose-500'
+      : utilization >= 80
+        ? 'bg-amber-500'
+        : 'bg-violet-500'
+  const safeTone = (summary?.safeToSpend ?? 0) < 0
+    ? 'text-rose-600 dark:text-rose-400'
+    : 'text-emerald-600 dark:text-emerald-400'
+
+  return (
+    <Link
+      to="/budget"
+      className="mt-5 flex flex-col gap-4 rounded-2xl border border-neutral-200/80 bg-white px-5 py-4 shadow-sm transition hover:border-violet-300 hover:shadow-md sm:flex-row sm:items-center sm:justify-between dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none dark:hover:border-violet-800"
+    >
+      <div className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-violet-600 dark:text-violet-400">Monthly Budget</p>
+        <p className="mt-1 font-medium text-neutral-900 dark:text-neutral-100">
+          {loading ? 'Loading spending plan…' : summary?.hasBudget ? 'Your variable spending boundary' : 'No spending plan for this month'}
+        </p>
+        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+          {loading
+            ? 'Checking planned savings and category limits.'
+            : summary?.hasBudget
+              ? `${formatCurrency(spent, summary.currency)} spent of ${formatCurrency(planned, summary.currency)} planned`
+              : 'Set planned savings and category limits.'}
+        </p>
+      </div>
+      {summary?.hasBudget && !loading ? (
+        <div className="w-full shrink-0 sm:w-64">
+          <div className="flex items-center justify-between gap-3 text-xs">
+            <span className="text-neutral-500 dark:text-neutral-400">Safe to spend</span>
+            <span className={`font-semibold tabular-nums ${summary.safeToSpend === null ? 'text-amber-700 dark:text-amber-300' : safeTone}`}>
+              {summary.safeToSpend === null ? 'FX incomplete' : formatCurrency(summary.safeToSpend, summary.currency)}
+            </span>
+          </div>
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+            <div className={`h-full rounded-full ${progressColor}`} style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }} />
+          </div>
+        </div>
+      ) : (
+        <span className="shrink-0 text-sm font-medium text-violet-600 dark:text-violet-400">{loading ? '…' : 'Create plan →'}</span>
+      )}
+    </Link>
   )
 }
 

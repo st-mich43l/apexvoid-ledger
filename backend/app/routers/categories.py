@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from ..auth import require_password_changed
 from ..cashflow import display_category_name, ensure_default_categories, normalize_category_name
 from ..database import get_db
-from ..models import Category, Transaction, User
+from ..models import Category, MonthlyBudgetAllocation, Transaction, User
 from ..schemas import CategoryCreate, CategoryRead, CategoryUpdate
 
 router = APIRouter(prefix="/api/categories", tags=["categories"])
@@ -113,10 +113,15 @@ def update_category(
 
   if next_type != category.category_type:
     has_transactions = db.query(Transaction).filter(Transaction.category_id == category.id).first()
-    if has_transactions is not None:
+    has_budget_allocations = (
+      db.query(MonthlyBudgetAllocation)
+      .filter(MonthlyBudgetAllocation.category_id == category.id)
+      .first()
+    )
+    if has_transactions is not None or has_budget_allocations is not None:
       raise HTTPException(
         status_code=409,
-        detail="A category with transactions cannot change type",
+        detail="A category with financial activity cannot change type",
       )
 
   category.name = next_name

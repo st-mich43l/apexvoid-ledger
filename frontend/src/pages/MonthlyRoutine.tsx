@@ -11,6 +11,7 @@ import { RecurringIncomeManageDialog } from '../components/routine/RecurringInco
 import { useCurrency } from '../context/CurrencyContext'
 import { useCategories } from '../hooks/useCategories'
 import { useMonthlyRoutine } from '../hooks/useMonthlyRoutine'
+import { useMonthlyBudget } from '../hooks/useMonthlyBudget'
 import { useRecurringIncomes } from '../hooks/useRecurringIncomes'
 import { formatCurrency } from '../lib/currency'
 import { formatDate } from '../lib/date'
@@ -47,6 +48,7 @@ export function MonthlyRoutinePage() {
   const { currency } = useCurrency()
   const categoriesState = useCategories(true)
   const routineState = useMonthlyRoutine(year, month, currency)
+  const budgetState = useMonthlyBudget(year, month)
   const incomesState = useRecurringIncomes()
   const [showAdd, setShowAdd] = useState(false)
   const [showManage, setShowManage] = useState(false)
@@ -91,7 +93,7 @@ export function MonthlyRoutinePage() {
     await refresh()
   }
 
-  const error = categoriesState.error || routineState.error || incomesState.error
+  const error = categoriesState.error || routineState.error || incomesState.error || budgetState.error
 
   return (
     <section>
@@ -108,9 +110,10 @@ export function MonthlyRoutinePage() {
             <button type="button" onClick={() => navigateMonth(1)} aria-label="Next month" className="rounded-full px-3 py-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white">→</button>
           </div>
         </div>
-        <Link to="/cashflow" className="text-sm font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400">
-          Open Cash Flow →
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link to={`/budget?year=${year}&month=${month}`} className="text-sm font-medium text-neutral-600 hover:text-violet-600 dark:text-neutral-300 dark:hover:text-violet-400">Monthly Budget</Link>
+          <Link to={`/cashflow?year=${year}&month=${month}`} className="text-sm font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400">Open Cash Flow →</Link>
+        </div>
       </div>
 
       {error && <p role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">{error}</p>}
@@ -147,6 +150,22 @@ export function MonthlyRoutinePage() {
           hint="Baseline minus actual variable spending"
         />
       </div>
+
+      <Link to={`/budget?year=${year}&month=${month}`} className="mt-5 flex flex-col gap-3 rounded-2xl border border-neutral-200/80 bg-white px-5 py-4 shadow-sm transition hover:border-violet-300 sm:flex-row sm:items-center sm:justify-between dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none dark:hover:border-violet-800">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400">Monthly Budget</p>
+          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+            {budgetState.loading
+              ? 'Loading spending plan…'
+              : budgetState.summary?.hasBudget
+                ? `Planned savings ${formatCurrency(budgetState.summary.plannedSavingsAmount ?? 0, budgetState.summary.currency)} · variable budget ${formatCurrency(budgetState.summary.plannedVariableBudgetTotal ?? 0, budgetState.summary.currency)}`
+                : 'Turn this baseline into planned savings and category spending limits.'}
+          </p>
+        </div>
+        <span className="shrink-0 text-sm font-medium text-violet-600 dark:text-violet-400">
+          {budgetState.summary?.hasBudget ? 'View plan →' : 'Create plan →'}
+        </span>
+      </Link>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-2">
         <article className="overflow-hidden rounded-3xl border border-neutral-200/80 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">

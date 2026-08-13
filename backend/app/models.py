@@ -101,6 +101,9 @@ class Category(Base):
   )
 
   transactions: Mapped[list["Transaction"]] = relationship(back_populates="category")
+  budget_allocations: Mapped[list["MonthlyBudgetAllocation"]] = relationship(
+    back_populates="category"
+  )
 
 
 class Transaction(Base):
@@ -404,3 +407,81 @@ class RecurringIncomeRevision(Base):
 
   recurring_income: Mapped[RecurringIncome] = relationship(back_populates="revisions")
   category: Mapped[Category] = relationship(lazy="joined")
+
+
+class MonthlyBudget(Base):
+  __tablename__ = "MonthlyBudget"
+  __table_args__ = (
+    UniqueConstraint("userId", "year", "month", name="uq_monthly_budget_user_month"),
+    CheckConstraint('"year" >= 1 AND "year" <= 9999', name="ck_monthly_budget_year"),
+    CheckConstraint('"month" >= 1 AND "month" <= 12', name="ck_monthly_budget_month"),
+    CheckConstraint(
+      "currency IN ('USD', 'EUR', 'GBP', 'AUD', 'JPY', 'CNY', 'VND')",
+      name="ck_monthly_budget_currency",
+    ),
+    CheckConstraint(
+      '"plannedSavingsAmount" >= 0', name="ck_monthly_budget_planned_savings"
+    ),
+    Index("ix_monthly_budget_user_id", "userId"),
+  )
+
+  id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+  user_id: Mapped[str] = mapped_column(
+    "userId", ForeignKey("User.id", ondelete="CASCADE"), nullable=False
+  )
+  year: Mapped[int] = mapped_column(Integer, nullable=False)
+  month: Mapped[int] = mapped_column(Integer, nullable=False)
+  currency: Mapped[str] = mapped_column(String(3), nullable=False)
+  planned_savings_amount: Mapped[Decimal] = mapped_column(
+    "plannedSavingsAmount", Numeric(18, 2), nullable=False, default=Decimal("0.00")
+  )
+  created_at: Mapped[datetime] = mapped_column(
+    "createdAt", DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+  )
+  updated_at: Mapped[datetime] = mapped_column(
+    "updatedAt",
+    DateTime(timezone=True),
+    nullable=False,
+    default=lambda: datetime.now(timezone.utc),
+    onupdate=lambda: datetime.now(timezone.utc),
+  )
+
+  allocations: Mapped[list["MonthlyBudgetAllocation"]] = relationship(
+    back_populates="monthly_budget",
+    cascade="all, delete-orphan",
+    passive_deletes=True,
+    order_by="MonthlyBudgetAllocation.created_at",
+  )
+
+
+class MonthlyBudgetAllocation(Base):
+  __tablename__ = "MonthlyBudgetAllocation"
+  __table_args__ = (
+    UniqueConstraint(
+      "monthlyBudgetId", "categoryId", name="uq_monthly_budget_allocation_category"
+    ),
+    CheckConstraint("amount > 0", name="ck_monthly_budget_allocation_amount"),
+    Index("ix_monthly_budget_allocation_budget_id", "monthlyBudgetId"),
+  )
+
+  id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+  monthly_budget_id: Mapped[str] = mapped_column(
+    "monthlyBudgetId", ForeignKey("MonthlyBudget.id", ondelete="CASCADE"), nullable=False
+  )
+  category_id: Mapped[str] = mapped_column(
+    "categoryId", ForeignKey("Category.id", ondelete="RESTRICT"), nullable=False
+  )
+  amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+  created_at: Mapped[datetime] = mapped_column(
+    "createdAt", DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+  )
+  updated_at: Mapped[datetime] = mapped_column(
+    "updatedAt",
+    DateTime(timezone=True),
+    nullable=False,
+    default=lambda: datetime.now(timezone.utc),
+    onupdate=lambda: datetime.now(timezone.utc),
+  )
+
+  monthly_budget: Mapped[MonthlyBudget] = relationship(back_populates="allocations")
+  category: Mapped[Category] = relationship(back_populates="budget_allocations", lazy="joined")

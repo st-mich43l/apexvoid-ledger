@@ -59,9 +59,8 @@ From these, the dashboard calculates:
   loan is deleted. They are projections, not confirmation that a payment was
   completed, and are converted using the same historical-rate path.
 
-Income and ordinary expenses remain manual in v0.3.0; bank synchronization,
-imports, general recurring transactions, payment reconciliation, and budgets
-are not included yet.
+Ordinary variable expenses remain manual; bank synchronization, imports,
+payment reconciliation, and automatic categorization are not included.
 
 Default categories are created lazily and idempotently the first time each
 account accesses cash flow. All categories and transactions are scoped to the
@@ -116,6 +115,8 @@ activity ledger:
 - `/monthly-routine` — expected monthly income plan composed with fixed costs,
   loan obligations, and actual variable spending (baseline available +
   projected remainder)
+- `/budget` — monthly planned savings, variable category allocations,
+  budget-versus-actual progress, and safe-to-spend guidance
 - `/saving-pot` — savings balance, add/subtract/correct, and activity history;
   closed months sync and reconcile from cash flow
 - `/loan` — the loan table + form (reached from `/dashboard`'s Loan card)
@@ -124,7 +125,7 @@ activity ledger:
   forced on first login before the app is reachable
 
 Financial resources are scoped to their owning account. Loan, category,
-transaction, recurring-expense, and saving-pot routers require authentication
+transaction, recurring-expense, monthly-budget, and saving-pot routers require authentication
 and filter every resource query by
 the logged-in user's id, so a mismatched id 404s instead of leaking that it
 belongs to someone else. Loans created before ownership existed were backfilled
@@ -133,8 +134,9 @@ adds the cash-flow schema, migration `0012` adds native loan currency for
 safe cross-currency reporting, migration `0013` adds Saving Pot,
 migration `0014` adds the Saving Pot activity ledger with a non-destructive
 backfill, migration `0015` adds recurring expenses with effective-dated
-revisions, and migration `0016` adds recurring expected income for Monthly
-Routine planning.
+revisions, migration `0016` adds recurring expected income for Monthly
+Routine planning, and migration `0017` adds monthly budgets and category
+allocations.
 
 ### Monthly Routine (expected income)
 
@@ -156,6 +158,36 @@ discretionary spending:
 
 Scheduled income contributes to Cash Flow totals; manual income remains an
 editable transaction and is counted separately.
+
+### Monthly Budget (spending plan)
+
+`/budget` turns Monthly Routine's established baseline into one independent
+plan per account and calendar month:
+
+- **Planned savings** is an optional reservation from baseline available.
+- **Category allocations** set boundaries for manual variable expense
+  categories; progress compares those allocations with actual Cash Flow
+  transactions in the same month.
+- **Unallocated buffer** = baseline available − planned savings − category
+  allocations. It remains visible when negative so intentional over-plans are
+  not hidden.
+- **Safe to spend** = total category allocations − all actual manual variable
+  spending. Expenses in categories without allocations are surfaced as
+  unbudgeted spending and still reduce this amount.
+- **Daily spending pace** is shown for the current calendar month using the
+  remaining safe amount and days left including today.
+- A previous month's plan can be copied as a one-time snapshot. Later edits to
+  either month do not propagate.
+- Budget currency is captured from the account reporting currency when the
+  month is first created and remains stable for that month. Actual foreign
+  spending uses Ledger's existing historical FX path; incomplete conversion
+  is disclosed and safe-to-spend is withheld instead of presenting a partial
+  value as authoritative.
+
+Budget plans do not create transactions and do not directly move Saving Pot
+balances. Fixed recurring costs and loans are excluded from variable budget
+usage because they are already represented in Monthly Routine's committed
+costs and therefore already reduce the baseline.
 
 ### Monthly Fixed Costs (recurring expenses)
 

@@ -10,6 +10,8 @@ import type {
   LoanInput,
   LoanScheduleItem,
   MonthlyRoutineSummary,
+  MonthlyBudgetInput,
+  MonthlyBudgetSummary,
   RecurringExpense,
   RecurringExpenseInput,
   RecurringExpenseUpdateInput,
@@ -294,6 +296,43 @@ export function fetchMonthlyRoutine(
 ): Promise<MonthlyRoutineSummary> {
   const query = new URLSearchParams({ year: String(year), month: String(month), currency })
   return authedRequest<MonthlyRoutineSummary>(`/api/monthly-routine?${query}`)
+}
+
+const MONTHLY_BUDGET_URL = '/api/monthly-budget'
+
+function monthlyBudgetQuery(year: number, month: number): URLSearchParams {
+  return new URLSearchParams({ year: String(year), month: String(month) })
+}
+
+export function fetchMonthlyBudget(year: number, month: number): Promise<MonthlyBudgetSummary> {
+  return authedRequest<MonthlyBudgetSummary>(`${MONTHLY_BUDGET_URL}?${monthlyBudgetQuery(year, month)}`)
+}
+
+export function saveMonthlyBudget(
+  year: number,
+  month: number,
+  input: MonthlyBudgetInput,
+): Promise<MonthlyBudgetSummary> {
+  return authedRequest<MonthlyBudgetSummary>(`${MONTHLY_BUDGET_URL}?${monthlyBudgetQuery(year, month)}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  })
+}
+
+export function resetMonthlyBudget(year: number, month: number): Promise<void> {
+  return authedRequest<void>(`${MONTHLY_BUDGET_URL}?${monthlyBudgetQuery(year, month)}`, {
+    method: 'DELETE',
+  })
+}
+
+export function copyPreviousMonthlyBudget(
+  year: number,
+  month: number,
+): Promise<MonthlyBudgetSummary> {
+  return authedRequest<MonthlyBudgetSummary>(
+    `${MONTHLY_BUDGET_URL}/copy-previous?${monthlyBudgetQuery(year, month)}`,
+    { method: 'POST' },
+  )
 }
 
 const SAVING_POT_URL = '/api/saving-pot'

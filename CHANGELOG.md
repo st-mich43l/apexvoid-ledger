@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### ✨ Added
+- 🎯 v0.4.2 Monthly Budget / Spending Plan (`/budget`) with independent
+  per-month snapshots, optional planned savings, category allocations,
+  budget-versus-actual progress, unallocated buffer, and safe-to-spend.
+- 📉 Unbudgeted manual spending disclosure, uncapped over-budget progress, and
+  current-month daily spending pace.
+- 📋 Copy-previous-month planning snapshots plus compact Budget entry points
+  on Dashboard, Monthly Routine, and Cash Flow.
+- 💱 Historical FX reuse for actual budget spending, with incomplete
+  conversion withholding authoritative remaining/safe values.
+- 🧬 Migration `0017` adds `MonthlyBudget` and
+  `MonthlyBudgetAllocation` without generating historical plans.
 - 📅 Monthly Routine (`/monthly-routine`): expected recurring income plus
   committed fixed costs/loans, baseline available, actual variable spending,
   and projected remainder.
@@ -35,6 +46,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   without changing `SavingPot.balance`.
 
 ### 🔧 Changed
+- Dashboard chart accessibility data no longer leaks into the visible page
+  footer, and the document background now remains consistent below the app
+  shell.
+- Budget edits are planning-only: they do not create transactions, change Cash
+  Flow, alter recurring rules or loans, or write Saving Pot activity.
 - Recurring expected income now auto-maps into every covered Cash Flow month
   and closed-month Saving Pot reconciliation without generating transactions.
 - Saving Pot page shows recent activity and a Correct balance action.

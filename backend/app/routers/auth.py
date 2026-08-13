@@ -3,7 +3,14 @@ from sqlalchemy.orm import Session
 
 from ..auth import get_current_user, hash_password, require_admin, verify_password
 from ..database import get_db
-from ..models import Category, Loan, Transaction, User
+from ..models import (
+  Category,
+  Loan,
+  MonthlyBudget,
+  MonthlyBudgetAllocation,
+  Transaction,
+  User,
+)
 from ..schemas import ChangePasswordRequest, LoginRequest, SetCurrencyRequest, UserCreate, UserRead
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -120,6 +127,21 @@ def delete_user(
   # Categories are lazily seeded on first cash-flow access. They carry no
   # financial history by themselves, so clean them up when the account is
   # otherwise deletable instead of making defaults permanently block it.
+  # Monthly budgets are planning-only and reference those categories with
+  # RESTRICT semantics, so remove their user-owned snapshots first.
+  budget_rows = (
+    db.query(MonthlyBudget.id)
+    .filter(MonthlyBudget.user_id == user_id)
+    .all()
+  )
+  budget_ids = [budget_id for (budget_id,) in budget_rows]
+  if budget_ids:
+    db.query(MonthlyBudgetAllocation).filter(
+      MonthlyBudgetAllocation.monthly_budget_id.in_(budget_ids)
+    ).delete(synchronize_session=False)
+    db.query(MonthlyBudget).filter(MonthlyBudget.id.in_(budget_ids)).delete(
+      synchronize_session=False
+    )
   db.query(Category).filter(Category.user_id == user_id).delete()
 
   db.delete(user)
