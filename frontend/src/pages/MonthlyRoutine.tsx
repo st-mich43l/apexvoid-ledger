@@ -53,6 +53,11 @@ export function MonthlyRoutinePage() {
   const [editing, setEditing] = useState<RecurringIncome | null>(null)
   const label = monthName(year, month)
   const summary = routineState.summary
+  const incomeControlsReady = !incomesState.loading
+    && !incomesState.error
+    && !categoriesState.loading
+    && !categoriesState.error
+  const isInitialIncomeSetup = incomeControlsReady && incomesState.items.length === 0
 
   function navigateMonth(offset: number) {
     const next = new Date(Date.UTC(year, month - 1 + offset, 1))
@@ -153,8 +158,14 @@ export function MonthlyRoutinePage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => setShowAdd(true)} className="rounded-full bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500">+ Add</button>
-              <button type="button" onClick={() => setShowManage(true)} className="rounded-full border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800">Manage</button>
+              {incomeControlsReady && (
+                <button type="button" onClick={() => setShowAdd(true)} className="rounded-full bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500">
+                  {isInitialIncomeSetup ? 'Set default income' : '+ Add additional income'}
+                </button>
+              )}
+              {incomesState.items.length > 0 && (
+                <button type="button" onClick={() => setShowManage(true)} className="rounded-full border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800">Manage</button>
+              )}
             </div>
           </div>
           <div className="border-b border-neutral-200/80 px-5 py-4 dark:border-neutral-800">
@@ -165,15 +176,28 @@ export function MonthlyRoutinePage() {
               Actual recorded {summary ? formatCurrency(summary.actualIncomeTotal, currency) : '—'}
             </p>
           </div>
-          {!summary || routineState.loading ? (
+          {!summary || routineState.loading || incomesState.loading ? (
             <p className="p-6 text-sm text-neutral-500">Loading…</p>
           ) : summary.expectedIncome.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="font-medium text-neutral-800 dark:text-neutral-200">No expected income configured</p>
-              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                Add salary, allowance, retainers, or other predictable monthly income.
-              </p>
-            </div>
+            isInitialIncomeSetup ? (
+              <div className="px-6 py-8 text-center sm:px-10 sm:py-10">
+                <div className="mx-auto flex size-11 items-center justify-center rounded-2xl bg-violet-50 text-xl dark:bg-violet-500/10" aria-hidden="true">💼</div>
+                <p className="mt-4 font-semibold text-neutral-900 dark:text-neutral-100">Start with your regular monthly income</p>
+                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-neutral-500 dark:text-neutral-400">
+                  Set a default salary or other reliable income to make your monthly plan useful. You can update it or add extra income later.
+                </p>
+                <button type="button" onClick={() => setShowAdd(true)} className="mt-5 rounded-full bg-violet-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-violet-500">
+                  Set default income
+                </button>
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <p className="font-medium text-neutral-800 dark:text-neutral-200">No income expected this month</p>
+                <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                  Your configured income may start later, have ended, or be paused for this month.
+                </p>
+              </div>
+            )
           ) : (
             <ul className="divide-y divide-neutral-100 dark:divide-neutral-800">
               {summary.expectedIncome.map((item) => (
@@ -312,6 +336,7 @@ export function MonthlyRoutinePage() {
       {showAdd && (
         <RecurringIncomeFormDialog
           mode="create"
+          isInitialSetup={isInitialIncomeSetup}
           currency={currency}
           categories={categoriesState.categories}
           year={year}

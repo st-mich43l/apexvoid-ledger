@@ -144,6 +144,8 @@ discretionary spending:
 - **Expected income** — effective-dated recurring income rules (salary,
   allowance, retainers). Planning only: they do **not** create `Transaction`
   rows, do **not** change Cash Flow income, and do **not** move Saving Pot.
+  A first-time setup pre-fills a monthly salary baseline; the amount remains
+  required, and users can add more income sources or update future months.
 - **Committed costs** — existing recurring fixed expenses + linked loan
   installments (same obligation semantics as Cash Flow).
 - **Baseline available** = expected income − committed costs.

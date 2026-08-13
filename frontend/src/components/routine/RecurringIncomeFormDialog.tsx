@@ -26,6 +26,7 @@ function monthLabelFromKey(key: string): string {
 
 interface RecurringIncomeFormDialogProps {
   mode: 'create' | 'edit'
+  isInitialSetup?: boolean
   currency: CurrencyCode
   categories: Category[]
   year: number
@@ -38,6 +39,7 @@ interface RecurringIncomeFormDialogProps {
 
 export function RecurringIncomeFormDialog({
   mode,
+  isInitialSetup = false,
   currency,
   categories,
   year,
@@ -51,9 +53,10 @@ export function RecurringIncomeFormDialog({
     () => categories.filter((item) => item.type === 'income' && item.isActive),
     [categories],
   )
+  const defaultCategory = incomeCategories.find((item) => item.name.toLowerCase() === 'salary') ?? incomeCategories[0]
   const defaultMonth = monthKey(year, month)
-  const [name, setName] = useState(income?.name ?? '')
-  const [categoryId, setCategoryId] = useState(income?.categoryId ?? incomeCategories[0]?.id ?? '')
+  const [name, setName] = useState(income?.name ?? (isInitialSetup ? 'Monthly salary' : ''))
+  const [categoryId, setCategoryId] = useState(income?.categoryId ?? defaultCategory?.id ?? '')
   const [amount, setAmount] = useState(income ? sanitizePositiveAmountInput(String(income.amount)) : '')
   const [selectedCurrency, setSelectedCurrency] = useState<CurrencyCode>(income?.currency ?? currency)
   const [expectedDay, setExpectedDay] = useState(String(income?.expectedDay ?? 25))
@@ -64,6 +67,10 @@ export function RecurringIncomeFormDialog({
   const [error, setError] = useState<string | null>(null)
 
   const historicalWarning = mode === 'edit' && effectiveFromMonth < defaultMonth
+  const createTitle = isInitialSetup ? 'Set your default income' : 'Add additional income'
+  const createDescription = isInitialSetup
+    ? 'Create your monthly income baseline. You can add more income sources or update this amount later.'
+    : 'Add another predictable income source to your monthly plan.'
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -118,19 +125,24 @@ export function RecurringIncomeFormDialog({
 
   return (
     <Modal
-      label={mode === 'create' ? 'Add expected income' : 'Edit expected income'}
+      label={mode === 'create' ? createTitle : 'Edit expected income'}
       onClose={onClose}
       dismissible={!saving}
     >
       <form onSubmit={handleSubmit} noValidate>
         <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
-          {mode === 'create' ? 'Add expected income' : 'Edit expected income'}
+          {mode === 'create' ? createTitle : 'Edit expected income'}
         </h2>
         <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
           {mode === 'create'
-            ? 'This is a planning expectation — it does not create a Cash Flow transaction.'
+            ? createDescription
             : 'Earlier months keep their previous values unless you change the effective month.'}
         </p>
+        {mode === 'create' && (
+          <p className="mt-3 rounded-xl bg-violet-50 px-3 py-2 text-xs text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">
+            Planning only — saving this does not create a Cash Flow transaction or mark income as received.
+          </p>
+        )}
 
         <div className="mt-6 grid gap-4">
           <label className="block text-sm">
@@ -166,6 +178,7 @@ export function RecurringIncomeFormDialog({
               <span className="mb-1.5 block font-medium text-neutral-700 dark:text-neutral-300">Amount</span>
               <input
                 inputMode="decimal"
+                autoFocus={mode === 'create' && isInitialSetup}
                 value={formatAmountInput(amount)}
                 onChange={(event) => setAmount(sanitizePositiveAmountInput(event.target.value))}
                 disabled={saving}
@@ -273,7 +286,13 @@ export function RecurringIncomeFormDialog({
             Cancel
           </button>
           <button type="submit" disabled={saving} className="rounded-full bg-violet-600 px-5 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50 dark:bg-violet-500 dark:hover:bg-violet-400">
-            {saving ? 'Saving…' : mode === 'create' ? 'Add expected income' : 'Save changes'}
+            {saving
+              ? 'Saving…'
+              : mode === 'create'
+                ? isInitialSetup
+                  ? 'Save default income'
+                  : 'Add income'
+                : 'Save changes'}
           </button>
         </div>
       </form>
