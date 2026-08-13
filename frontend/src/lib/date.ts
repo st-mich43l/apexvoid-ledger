@@ -34,25 +34,20 @@ export function isoDateToDigits(iso: string): string {
 }
 
 export function dateDigitsToIso(digits: string): string {
-  const day = digits.slice(0, 2)
-  const month = digits.slice(2, 4)
-  const year = digits.slice(4, 8)
+  const normalized = digits.replace(/\D/g, '')
+  const day = normalized.slice(0, 2)
+  const month = normalized.slice(2, 4)
+  const year = normalized.slice(4, 8)
   return year.length === 4 ? `${year}-${month}-${day}` : ''
 }
 
-export function formatDateInput(digits: string): string {
-  const day = digits.slice(0, 2)
-  const month = digits.slice(2, 4)
-  const year = digits.slice(4, 8)
-  return [day, month, year].filter(Boolean).join('/')
-}
-
 export function isValidDateDigits(digits: string): boolean {
-  if (!/^\d{8}$/.test(digits)) return false
+  const normalized = digits.replace(/\D/g, '')
+  if (!/^\d{8}$/.test(normalized)) return false
 
-  const day = Number(digits.slice(0, 2))
-  const month = Number(digits.slice(2, 4))
-  const year = Number(digits.slice(4, 8))
+  const day = Number(normalized.slice(0, 2))
+  const month = Number(normalized.slice(2, 4))
+  const year = Number(normalized.slice(4, 8))
   if (year < 1 || month < 1 || month > 12 || day < 1) return false
 
   const isLeapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)

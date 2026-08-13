@@ -1,11 +1,11 @@
 import { useState, type ChangeEvent } from 'react'
 import type { LoanInput, LoanType } from '../types'
-import { dateDigitsToIso, formatDateInput, isValidDateDigits, isoDateToDigits } from '../lib/date'
+import { dateDigitsToIso, isValidDateDigits, isoDateToDigits } from '../lib/date'
 import type { CurrencyCode } from '../lib/currency'
 
 export interface LoanFormValues {
   bankName: string
-  // ddmmyyyy digits, not ISO — see formatDateDisplay/dateDigitsToIso below.
+  // dd/mm/yyyy in state; converted to ISO only at the API boundary.
   openDate: string
   // Raw numeric string (no commas) — see formatAmountDisplay below.
   disbursementAmount: string
@@ -66,10 +66,6 @@ export function validateLoanForm(values: LoanFormValues): string | null {
   return null
 }
 
-export function formatDateDisplay(digits: string): string {
-  return formatDateInput(digits)
-}
-
 function sanitizeAmountInput(value: string): string {
   let cleaned = value.replace(/,/g, '').replace(/[^\d.-]/g, '')
   const isNegative = cleaned.startsWith('-')
@@ -123,9 +119,8 @@ export function useLoanFormState(defaultCurrency: CurrencyCode, initial?: LoanFo
     setValues((prev) => ({ ...prev, disbursementAmount: sanitizeAmountInput(e.target.value) }))
   }
 
-  const handleDateChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const digits = e.target.value.replace(/\D/g, '').slice(0, 8)
-    setValues((prev) => ({ ...prev, openDate: digits }))
+  const handleDateChange = (openDate: string) => {
+    setValues((prev) => ({ ...prev, openDate }))
   }
 
   const handleLoanTypeChange = (e: ChangeEvent<HTMLSelectElement>) => {

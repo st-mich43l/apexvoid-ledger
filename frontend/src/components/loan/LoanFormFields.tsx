@@ -1,19 +1,20 @@
 import { useId, type ChangeEvent } from 'react'
-import { formatAmountDisplay, formatDateDisplay, type LoanFormValues } from '../../hooks/useLoanFormState'
+import { formatAmountDisplay, type LoanFormValues } from '../../hooks/useLoanFormState'
 import { SUPPORTED_CURRENCIES } from '../../lib/currency'
+import { DayMonthYearInput } from '../DayMonthYearInput'
 
 interface LoanFormFieldsProps {
   values: LoanFormValues
   onChange: (field: keyof LoanFormValues) => (e: ChangeEvent<HTMLInputElement>) => void
   onAmountChange: (e: ChangeEvent<HTMLInputElement>) => void
-  onDateChange: (e: ChangeEvent<HTMLInputElement>) => void
+  onDateChange: (value: string) => void
   onLoanTypeChange: (e: ChangeEvent<HTMLSelectElement>) => void
   onCurrencyChange: (e: ChangeEvent<HTMLSelectElement>) => void
   disabled?: boolean
 }
 
 // Shared by the create form (LoanForm) and EditLoanDialog — same fields,
-// same dd/mm/yyyy + comma-formatted inputs, same validation affordances.
+// same locale-independent date + comma-formatted inputs, same validation affordances.
 export function LoanFormFields({
   values,
   onChange,
@@ -50,17 +51,12 @@ export function LoanFormFields({
       </Field>
 
       <Field label="Open date" htmlFor={openDateId}>
-        <input
+        <DayMonthYearInput
           id={openDateId}
           required
-          type="text"
           disabled={disabled}
-          inputMode="numeric"
-          pattern="\d{2}/\d{2}/\d{4}"
-          title="dd/mm/yyyy"
-          value={formatDateDisplay(values.openDate)}
+          value={values.openDate}
           onChange={onDateChange}
-          placeholder="dd/mm/yyyy"
           className={inputClass}
         />
       </Field>

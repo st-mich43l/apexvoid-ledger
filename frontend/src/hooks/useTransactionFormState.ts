@@ -78,8 +78,7 @@ export function useTransactionFormState(
     setValues((current) => ({ ...current, amount: sanitizePositiveAmountInput(event.target.value) }))
   }
 
-  const handleDateChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const occurredAt = event.target.value.replace(/\D/g, '').slice(0, 8)
+  const handleDateChange = (occurredAt: string) => {
     setValues((current) => ({ ...current, occurredAt }))
   }
 
