@@ -41,7 +41,7 @@ export function PremiumCard({ title, icon, accent, value, subtitle, to, comingSo
 
   const card = (
     <div
-      className={`group relative overflow-hidden rounded-3xl border border-neutral-200/80 bg-white p-6 shadow-[0_2px_8px_-2px_rgba(24,16,54,0.08),0_16px_32px_-12px_rgba(24,16,54,0.10)] ring-1 ring-transparent transition-all duration-300 dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none ${
+      className={`group relative h-full min-w-0 overflow-hidden rounded-3xl border border-neutral-200/80 bg-white p-6 shadow-[0_2px_8px_-2px_rgba(24,16,54,0.08),0_16px_32px_-12px_rgba(24,16,54,0.10)] ring-1 ring-transparent transition-all duration-300 dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none ${
         comingSoon ? 'opacity-80' : `hover:-translate-y-0.5 hover:shadow-[0_4px_12px_-2px_rgba(24,16,54,0.10),0_24px_40px_-12px_rgba(24,16,54,0.14)] ${styles.ring}`
       }`}
     >
@@ -74,7 +74,7 @@ export function PremiumCard({ title, icon, accent, value, subtitle, to, comingSo
       <p className="relative mt-5 text-xs font-medium tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
         {title}
       </p>
-      <p className="relative mt-1 text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl dark:text-neutral-50">
+      <p className="relative mt-1 min-w-0 text-2xl font-semibold tracking-tight text-neutral-900 tabular-nums xl:text-[clamp(1.35rem,1.8vw,1.875rem)] dark:text-neutral-50">
         {value}
       </p>
       <p className="relative mt-1 text-sm text-neutral-500 dark:text-neutral-400">{subtitle}</p>
@@ -83,7 +83,7 @@ export function PremiumCard({ title, icon, accent, value, subtitle, to, comingSo
 
   if (to && !comingSoon) {
     return (
-      <Link to={to} className="block">
+      <Link to={to} className="block h-full min-w-0">
         {card}
       </Link>
     )

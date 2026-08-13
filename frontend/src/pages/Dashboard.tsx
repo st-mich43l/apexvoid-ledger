@@ -37,15 +37,6 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <PremiumCard
-          title="Trading account"
-          accent="cyan"
-          value="—"
-          subtitle="Not connected yet"
-          comingSoon
-          icon={<TrendingUpIcon />}
-        />
-
-        <PremiumCard
           title="Saving pot"
           accent="amber"
           value={
@@ -95,6 +86,15 @@ export function Dashboard() {
           subtitle={loading ? 'Loading…' : `${loans.length} ${loans.length === 1 ? 'loan' : 'loans'} · current balance`}
           to="/loan"
           icon={<BankIcon />}
+        />
+
+        <PremiumCard
+          title="Trading account"
+          accent="cyan"
+          value="—"
+          subtitle="Not connected yet"
+          comingSoon
+          icon={<TrendingUpIcon />}
         />
       </div>
     </section>
