@@ -19,3 +19,6 @@ Thumbs.db
 
 # Docker Compose local overrides
 docker-compose.override.yml
+
+# Local Postgres data (bind-mounted by docker-compose.yml)
+.data/
