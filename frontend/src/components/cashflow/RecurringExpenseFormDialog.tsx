@@ -1,5 +1,9 @@
 import { useMemo, useState } from 'react'
 import { ApiError } from '../../api'
+import {
+  formatAmountInput,
+  sanitizePositiveAmountInput,
+} from '../../hooks/useTransactionFormState'
 import { SUPPORTED_CURRENCIES, type CurrencyCode } from '../../lib/currency'
 import type {
   Category,
@@ -50,7 +54,7 @@ export function RecurringExpenseFormDialog({
   const defaultMonth = monthKey(year, month)
   const [name, setName] = useState(expense?.name ?? '')
   const [categoryId, setCategoryId] = useState(expense?.categoryId ?? expenseCategories[0]?.id ?? '')
-  const [amount, setAmount] = useState(expense ? String(expense.amount) : '')
+  const [amount, setAmount] = useState(expense ? sanitizePositiveAmountInput(String(expense.amount)) : '')
   const [selectedCurrency, setSelectedCurrency] = useState<CurrencyCode>(expense?.currency ?? currency)
   const [dueDay, setDueDay] = useState(String(expense?.dueDay ?? 1))
   const [startMonth, setStartMonth] = useState(expense?.startMonth ?? defaultMonth)
@@ -163,12 +167,9 @@ export function RecurringExpenseFormDialog({
             <label className="block text-sm">
               <span className="mb-1.5 block font-medium text-neutral-700 dark:text-neutral-300">Amount</span>
               <input
-                type="number"
                 inputMode="decimal"
-                min="0"
-                step="0.01"
-                value={amount}
-                onChange={(event) => setAmount(event.target.value)}
+                value={formatAmountInput(amount)}
+                onChange={(event) => setAmount(sanitizePositiveAmountInput(event.target.value))}
                 disabled={saving}
                 className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-neutral-900 outline-none focus:border-violet-400 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
               />
