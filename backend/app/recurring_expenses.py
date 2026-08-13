@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import calendar
-import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from fastapi import HTTPException
@@ -12,98 +10,43 @@ from sqlalchemy.orm import Session, selectinload
 
 from .cashflow import as_utc, ensure_default_categories
 from .models import Category, RecurringExpense, RecurringExpenseRevision
+from .monthly_recurrence import (
+  NAME_MAX_LENGTH,
+  due_at_for_month,
+  exclusive_until_to_inclusive_end,
+  format_month,
+  inclusive_end_to_exclusive,
+  months_touching,
+  normalize_name,
+  parse_month,
+  previous_month,
+  revision_covers_month,
+  next_month,
+)
 
-MONTH_PATTERN = re.compile(r"^(\d{4})-(\d{2})$")
-NAME_MAX_LENGTH = 120
-
-
-def parse_month(value: str) -> datetime:
-  match = MONTH_PATTERN.fullmatch(value.strip())
-  if match is None:
-    raise HTTPException(status_code=422, detail="Month must use YYYY-MM format")
-  year = int(match.group(1))
-  month = int(match.group(2))
-  if month < 1 or month > 12:
-    raise HTTPException(status_code=422, detail="Month must use YYYY-MM format")
-  return datetime(year, month, 1, tzinfo=timezone.utc)
-
-
-def format_month(value: datetime) -> str:
-  value = as_utc(value)
-  return f"{value.year:04d}-{value.month:02d}"
-
-
-def next_month(value: datetime) -> datetime:
-  value = as_utc(value)
-  if value.month == 12:
-    return datetime(value.year + 1, 1, 1, tzinfo=timezone.utc)
-  return datetime(value.year, value.month + 1, 1, tzinfo=timezone.utc)
-
-
-def previous_month(value: datetime) -> datetime:
-  value = as_utc(value)
-  if value.month == 1:
-    return datetime(value.year - 1, 12, 1, tzinfo=timezone.utc)
-  return datetime(value.year, value.month - 1, 1, tzinfo=timezone.utc)
-
-
-def inclusive_end_to_exclusive(end_month: datetime | None) -> datetime | None:
-  if end_month is None:
-    return None
-  return next_month(end_month)
-
-
-def exclusive_until_to_inclusive_end(until: datetime | None) -> datetime | None:
-  if until is None:
-    return None
-  return previous_month(until)
-
-
-def due_at_for_month(year: int, month: int, due_day: int) -> datetime:
-  last_day = calendar.monthrange(year, month)[1]
-  day = min(due_day, last_day)
-  return datetime(year, month, day, tzinfo=timezone.utc)
-
-
-def months_touching(start: datetime, end: datetime) -> list[datetime]:
-  start = as_utc(start)
-  end = as_utc(end)
-  if end <= start:
-    return []
-  cursor = datetime(start.year, start.month, 1, tzinfo=timezone.utc)
-  last = end - timedelta(microseconds=1)
-  last_month = datetime(last.year, last.month, 1, tzinfo=timezone.utc)
-  months: list[datetime] = []
-  while cursor <= last_month:
-    months.append(cursor)
-    cursor = next_month(cursor)
-  return months
-
-
-def revision_covers_month(revision: RecurringExpenseRevision, month_start: datetime) -> bool:
-  month_start = as_utc(month_start)
-  from_month = as_utc(revision.effective_from_month)
-  until = (
-    as_utc(revision.effective_until_month)
-    if revision.effective_until_month is not None
-    else None
-  )
-  if from_month > month_start:
-    return False
-  if until is not None and month_start >= until:
-    return False
-  return True
-
-
-def normalize_name(name: str) -> str:
-  cleaned = re.sub(r"\s+", " ", name.strip())
-  if not cleaned:
-    raise HTTPException(status_code=422, detail="Name is required")
-  if len(cleaned) > NAME_MAX_LENGTH:
-    raise HTTPException(
-      status_code=422, detail=f"Name must be at most {NAME_MAX_LENGTH} characters"
-    )
-  return cleaned
+__all__ = [
+  "NAME_MAX_LENGTH",
+  "create_recurring_expense",
+  "deactivate_recurring_expense",
+  "due_at_for_month",
+  "exclusive_until_to_inclusive_end",
+  "format_month",
+  "get_owned_expense",
+  "inclusive_end_to_exclusive",
+  "is_series_active",
+  "latest_revision",
+  "list_owned_expenses",
+  "load_applicable_revisions",
+  "months_touching",
+  "next_month",
+  "normalize_name",
+  "parse_month",
+  "previous_month",
+  "reactivate_recurring_expense",
+  "revision_covers_month",
+  "series_start_month",
+  "update_recurring_expense",
+]
 
 
 def _get_expense_category(
@@ -310,13 +253,7 @@ def deactivate_recurring_expense(
   if latest_until is not None and stop_from >= latest_until:
     raise HTTPException(status_code=409, detail="Recurring expense is already stopped by that month")
 
-  if stop_from == latest_from:
-    # Zero-length latest revision: remove it and close the previous open end if needed.
-    # Prefer closing the interval so history before stop_from remains.
-    latest.effective_until_month = stop_from
-  else:
-    latest.effective_until_month = stop_from
-
+  latest.effective_until_month = stop_from
   expense.updated_at = datetime.now(timezone.utc)
   db.commit()
   return get_owned_expense(db, user_id, expense.id)

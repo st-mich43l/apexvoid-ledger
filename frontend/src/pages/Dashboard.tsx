@@ -3,6 +3,7 @@ import { useCurrency } from '../context/CurrencyContext'
 import { formatCurrency } from '../lib/currency'
 import { useLoans } from '../hooks/useLoans'
 import { useCashFlowSummary } from '../hooks/useCashFlowSummary'
+import { useMonthlyRoutine } from '../hooks/useMonthlyRoutine'
 import { useSavingPot } from '../hooks/useSavingPot'
 
 export function Dashboard() {
@@ -10,6 +11,7 @@ export function Dashboard() {
   const { currency } = useCurrency()
   const today = new Date()
   const cashFlow = useCashFlowSummary(today.getFullYear(), today.getMonth() + 1, currency)
+  const routine = useMonthlyRoutine(today.getFullYear(), today.getMonth() + 1, currency)
   const savingPot = useSavingPot()
 
   const loanBalances = [...loans.reduce((groups, loan) => {
@@ -27,13 +29,13 @@ export function Dashboard() {
         <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">Overview</h2>
       </div>
 
-      {(error || cashFlow.error || savingPot.error) && (
+      {(error || cashFlow.error || savingPot.error || routine.error) && (
         <p className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">
-          {error || cashFlow.error || savingPot.error}
+          {error || cashFlow.error || savingPot.error || routine.error}
         </p>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <PremiumCard
           title="Trading account"
           accent="cyan"
@@ -74,6 +76,19 @@ export function Dashboard() {
         />
 
         <PremiumCard
+          title="Monthly Routine"
+          accent="violet"
+          value={routine.loading ? '…' : formatCurrency(routine.summary?.baselineAvailable ?? 0, currency)}
+          subtitle={
+            routine.loading
+              ? 'Loading…'
+              : `Expected ${formatCurrency(routine.summary?.expectedIncomeTotal ?? 0, currency)} · committed ${formatCurrency(routine.summary?.committedExpenseTotal ?? 0, currency)}`
+          }
+          to="/monthly-routine"
+          icon={<RoutineIcon />}
+        />
+
+        <PremiumCard
           title="Loan"
           accent="violet"
           value={loading ? '…' : loanBalanceValue}
@@ -90,6 +105,16 @@ function CashFlowIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="h-5 w-5">
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h14m0 0-3-3m3 3-3 3M20 17H6m0 0 3-3m-3 3 3 3" />
+    </svg>
+  )
+}
+
+function RoutineIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="h-5 w-5">
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path strokeLinecap="round" d="M8 3v4M16 3v4M3 11h18" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 15h3M13 15h3M8 18h8" />
     </svg>
   )
 }

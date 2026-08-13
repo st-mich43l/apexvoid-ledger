@@ -17,12 +17,12 @@ from .exchange_rates import (
   quote_for_date,
 )
 from .models import Category, Loan, Transaction
-from .recurring_expenses import (
+from .monthly_recurrence import (
   due_at_for_month,
-  load_applicable_revisions,
   months_touching,
   revision_covers_month,
 )
+from .recurring_expenses import load_applicable_revisions
 
 MONEY_QUANTUM = Decimal("0.01")
 
