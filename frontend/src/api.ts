@@ -1,6 +1,7 @@
 import type {
   AuthUser,
   CashFlowMonthlySummary,
+  CashFlowTrendSummary,
   Category,
   CategoryInput,
   LedgerTransaction,
@@ -183,6 +184,21 @@ export function fetchCashFlowSummary(
 ): Promise<CashFlowMonthlySummary> {
   const query = new URLSearchParams({ year: String(year), month: String(month), currency })
   return authedRequest<CashFlowMonthlySummary>(`/api/cashflow/summary?${query}`)
+}
+
+export function fetchCashFlowTrend(
+  endYear: number,
+  endMonth: number,
+  months: 6 | 12,
+  currency: CurrencyCode,
+): Promise<CashFlowTrendSummary> {
+  const query = new URLSearchParams({
+    endYear: String(endYear),
+    endMonth: String(endMonth),
+    months: String(months),
+    currency,
+  })
+  return authedRequest<CashFlowTrendSummary>(`/api/cashflow/trend?${query}`)
 }
 
 const RECURRING_EXPENSES_URL = '/api/recurring-expenses'

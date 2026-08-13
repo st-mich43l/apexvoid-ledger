@@ -510,6 +510,30 @@ class CashFlowMonthlySummary(CamelModel):
   excluded_currencies: list[CurrencyCode]
 
 
+class CashFlowTrendPoint(CamelModel):
+  year: int
+  month: int
+  income: float
+  expenses: float
+  net_cash_flow: float
+  savings_rate_percent: float | None
+  category_breakdown: list[CategorySpendingSummary]
+
+
+class CashFlowTrendSummary(CamelModel):
+  start_year: int
+  start_month: int
+  end_year: int
+  end_month: int
+  month_count: int
+  currency: CurrencyCode
+  points: list[CashFlowTrendPoint]
+  converted_currencies: list[CurrencyCode]
+  unconverted_currencies: list[CurrencyCode]
+  exchange_rate_provider: str | None
+  exchange_rate_provider_url: str | None
+
+
 SavingPotBalance = Annotated[Decimal, Field(ge=0)]
 SavingPotAdjustAmount = Annotated[Decimal, Field(gt=0)]
 SavingPotAdjustDirection = Literal["add", "subtract"]
