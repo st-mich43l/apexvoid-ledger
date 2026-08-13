@@ -178,6 +178,10 @@ class SavingPot(Base):
     back_populates="saving_pot",
     cascade="all, delete-orphan",
   )
+  entries: Mapped[list["SavingPotEntry"]] = relationship(
+    back_populates="saving_pot",
+    cascade="all, delete-orphan",
+  )
 
 
 class SavingPotMonthApplication(Base):
@@ -207,3 +211,42 @@ class SavingPotMonthApplication(Base):
   )
 
   saving_pot: Mapped[SavingPot] = relationship(back_populates="applications")
+
+
+class SavingPotEntry(Base):
+  __tablename__ = "SavingPotEntry"
+  __table_args__ = (
+    CheckConstraint(
+      '"entryType" IN ('
+      "'opening', 'manual_add', 'manual_subtract', 'balance_correction', "
+      "'month_apply', 'month_reconciliation', 'legacy_baseline'"
+      ")",
+      name="ck_saving_pot_entry_type",
+    ),
+    CheckConstraint(
+      "currency IN ('USD', 'EUR', 'GBP', 'AUD', 'JPY', 'CNY', 'VND')",
+      name="ck_saving_pot_entry_currency",
+    ),
+    CheckConstraint(
+      '("month" IS NULL AND "year" IS NULL) OR '
+      '("month" IS NOT NULL AND "year" IS NOT NULL AND "month" >= 1 AND "month" <= 12)',
+      name="ck_saving_pot_entry_year_month",
+    ),
+    Index("ix_saving_pot_entry_pot_created", "savingPotId", "createdAt"),
+  )
+
+  id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+  saving_pot_id: Mapped[str] = mapped_column(
+    "savingPotId", ForeignKey("SavingPot.id", ondelete="CASCADE"), nullable=False
+  )
+  entry_type: Mapped[str] = mapped_column("entryType", String(32), nullable=False)
+  amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+  currency: Mapped[str] = mapped_column(String(3), nullable=False)
+  year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+  month: Mapped[int | None] = mapped_column(Integer, nullable=True)
+  note: Mapped[str | None] = mapped_column(String(240), nullable=True)
+  created_at: Mapped[datetime] = mapped_column(
+    "createdAt", DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+  )
+
+  saving_pot: Mapped[SavingPot] = relationship(back_populates="entries")

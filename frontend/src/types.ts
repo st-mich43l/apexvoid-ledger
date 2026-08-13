@@ -111,6 +111,33 @@ export interface SavingPotMonthApplication {
   appliedAt: string
 }
 
+export type SavingPotEntryType =
+  | 'opening'
+  | 'manual_add'
+  | 'manual_subtract'
+  | 'balance_correction'
+  | 'month_apply'
+  | 'month_reconciliation'
+  | 'legacy_baseline'
+
+export interface SavingPotEntry {
+  id: string
+  entryType: SavingPotEntryType
+  amount: number
+  currency: CurrencyCode
+  year: number | null
+  month: number | null
+  note: string | null
+  createdAt: string
+}
+
+export interface SavingPotHistoryPage {
+  items: SavingPotEntry[]
+  total: number
+  limit: number
+  offset: number
+}
+
 export interface SavingPot {
   id: string
   balance: number
@@ -118,11 +145,13 @@ export interface SavingPot {
   createdAt: string
   updatedAt: string
   applications: SavingPotMonthApplication[]
+  syncWarnings: string[]
 }
 
 export interface SavingPotInput {
   balance: number
   currency?: CurrencyCode
+  note?: string | null
 }
 
 export type SavingPotAdjustDirection = 'add' | 'subtract'
@@ -130,6 +159,7 @@ export type SavingPotAdjustDirection = 'add' | 'subtract'
 export interface SavingPotAdjustInput {
   amount: number
   direction: SavingPotAdjustDirection
+  note?: string | null
 }
 
 export interface Loan {

@@ -1,4 +1,4 @@
-"""Shared monthly cash-flow aggregation used by summary and saving pot."""
+"""Shared cash-flow aggregation used by summary and saving pot."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ class ReportEntry:
 
 
 @dataclass
-class ConvertedMonthTotals:
+class ConvertedPeriodTotals:
   income: Decimal
   expenses: Decimal
   net_cash_flow: Decimal
@@ -46,8 +46,16 @@ class ConvertedMonthTotals:
   unconverted_currencies: set[str]
   used_rates: dict[tuple[str, str, Decimal, date], ExchangeRateQuote]
 
+  @property
+  def conversion_complete(self) -> bool:
+    return not self.unconverted_currencies
 
-def monthly_entries(
+
+# Backward-compatible alias used by cashflow summary and older call sites.
+ConvertedMonthTotals = ConvertedPeriodTotals
+
+
+def period_entries(
   db: Session,
   user_id: str,
   start: datetime,
@@ -116,23 +124,41 @@ def monthly_entries(
   return entries, len(transactions)
 
 
-def compute_converted_month_totals(
+# Backward-compatible name.
+monthly_entries = period_entries
+
+
+def compute_converted_period_totals(
   db: Session,
   user_id: str,
-  year: int,
-  month: int,
+  start: datetime,
+  end: datetime,
   currency: str,
   rate_provider: FrankfurterExchangeRateProvider,
-) -> ConvertedMonthTotals:
-  start, end = month_range(year, month)
-  entries, manual_transaction_count = monthly_entries(db, user_id, start, end)
+) -> ConvertedPeriodTotals:
+  start = as_utc(start)
+  end = as_utc(end)
+  if end <= start:
+    return ConvertedPeriodTotals(
+      income=Decimal("0.00"),
+      expenses=Decimal("0.00"),
+      net_cash_flow=Decimal("0.00"),
+      entries=[],
+      converted=[],
+      manual_transaction_count=0,
+      converted_currencies=set(),
+      unconverted_currencies=set(),
+      used_rates={},
+    )
+
+  entries, manual_transaction_count = period_entries(db, user_id, start, end)
 
   foreign_currencies = sorted(
     {entry.currency for entry in entries if entry.currency != currency}
   )
   rate_tables: dict[str, list[ExchangeRateQuote]] = {}
   unconverted_currencies: set[str] = set()
-  lookback_days = min(7, start.date().toordinal() - 1)
+  lookback_days = min(7, max(start.date().toordinal() - 1, 0))
   rates_start = start.date() - timedelta(days=lookback_days)
   rates_end = (end - timedelta(microseconds=1)).date()
   for source_currency in foreign_currencies:
@@ -176,7 +202,7 @@ def compute_converted_month_totals(
     Decimal(0),
   ).quantize(MONEY_QUANTUM)
 
-  return ConvertedMonthTotals(
+  return ConvertedPeriodTotals(
     income=income,
     expenses=expenses,
     net_cash_flow=income - expenses,
@@ -186,4 +212,18 @@ def compute_converted_month_totals(
     converted_currencies=converted_currencies,
     unconverted_currencies=unconverted_currencies,
     used_rates=used_rates,
+  )
+
+
+def compute_converted_month_totals(
+  db: Session,
+  user_id: str,
+  year: int,
+  month: int,
+  currency: str,
+  rate_provider: FrankfurterExchangeRateProvider,
+) -> ConvertedPeriodTotals:
+  start, end = month_range(year, month)
+  return compute_converted_period_totals(
+    db, user_id, start, end, currency, rate_provider
   )

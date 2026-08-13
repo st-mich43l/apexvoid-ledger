@@ -314,16 +314,28 @@ class CashFlowMonthlySummary(CamelModel):
 SavingPotBalance = Annotated[Decimal, Field(ge=0)]
 SavingPotAdjustAmount = Annotated[Decimal, Field(gt=0)]
 SavingPotAdjustDirection = Literal["add", "subtract"]
+SavingPotEntryType = Literal[
+  "opening",
+  "manual_add",
+  "manual_subtract",
+  "balance_correction",
+  "month_apply",
+  "month_reconciliation",
+  "legacy_baseline",
+]
+SavingPotNote = Annotated[str, StringConstraints(strip_whitespace=True, max_length=240)]
 
 
 class SavingPotUpsert(CamelModel):
   balance: SavingPotBalance
   currency: CurrencyCode | None = None
+  note: SavingPotNote | None = None
 
 
 class SavingPotAdjust(CamelModel):
   amount: SavingPotAdjustAmount
   direction: SavingPotAdjustDirection
+  note: SavingPotNote | None = None
 
 
 class SavingPotMonthApplicationRead(CamelModel):
@@ -339,6 +351,28 @@ class SavingPotMonthApplicationRead(CamelModel):
     return _to_js_iso(dt)
 
 
+class SavingPotEntryRead(CamelModel):
+  id: str
+  entry_type: SavingPotEntryType
+  amount: float
+  currency: CurrencyCode
+  year: int | None
+  month: int | None
+  note: str | None
+  created_at: datetime
+
+  @field_serializer("created_at")
+  def _serialize_dt(self, dt: datetime, _info) -> str:
+    return _to_js_iso(dt)
+
+
+class SavingPotHistoryPage(CamelModel):
+  items: list[SavingPotEntryRead]
+  total: int
+  limit: int
+  offset: int
+
+
 class SavingPotRead(CamelModel):
   id: str
   balance: float
@@ -346,6 +380,7 @@ class SavingPotRead(CamelModel):
   created_at: datetime
   updated_at: datetime
   applications: list[SavingPotMonthApplicationRead]
+  sync_warnings: list[str] = []
 
   @field_serializer("created_at", "updated_at")
   def _serialize_dt(self, dt: datetime, _info) -> str:

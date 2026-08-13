@@ -7,6 +7,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### ✨ Added
+- 📒 Saving Pot activity ledger (`SavingPotEntry`) for opening balances, manual
+  add/subtract, balance corrections, monthly cash-flow applications, and
+  reconciliations — with optional notes and `/api/saving-pot/history`.
+- 🔁 Closed-month cash-flow reconciliation: when historical transactions or
+  linked loan schedule amounts change, only the delta is applied.
+- ⏱️ Creation-month cutoff so pre-pot activity is not double-counted against
+  the opening balance.
+- 💱 FX-safe month sync: incomplete conversion skips that month with a warning
+  instead of persisting a partial net.
+- 🧬 Migration `0014` adds `SavingPotEntry` and backfills legacy balances
+  without changing `SavingPot.balance`.
+
+### 🔧 Changed
+- Saving Pot page shows recent activity and a Correct balance action.
+- Shared cash-flow aggregation supports arbitrary periods (used by monthly
+  summary and Saving Pot sync).
+
+### ✨ Previously unreleased
 - 🏦 Saving Pot v1: one pot per account with opening balance create, manual
   add/subtract adjustments, plus lazy end-of-month auto-apply of Cash Flow net
   (plus or minus) recorded once per closed month. Dashboard card and
@@ -17,7 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - 🛟 New default expense category for Support, seeded idempotently for
   existing accounts the next time they open Cash Flow.
 
-### 🔧 Changed
+### 🔧 Previously unreleased
 - Local `docker-compose.yml` bind-mounts Postgres to `./.data/postgres` so
   test data survives rebuilds and `docker compose down -v`.
 - Monthly cash-flow aggregation extracted to a shared helper used by both the

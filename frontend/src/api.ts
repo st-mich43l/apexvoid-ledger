@@ -10,6 +10,7 @@ import type {
   LoanScheduleItem,
   SavingPot,
   SavingPotAdjustInput,
+  SavingPotHistoryPage,
   SavingPotInput,
   TransactionInput,
   TransactionType,
@@ -200,6 +201,17 @@ export function adjustSavingPot(input: SavingPotAdjustInput): Promise<SavingPot>
     method: 'POST',
     body: JSON.stringify(input),
   })
+}
+
+export function fetchSavingPotHistory(
+  limit = 50,
+  offset = 0,
+): Promise<SavingPotHistoryPage> {
+  const query = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  })
+  return authedRequest<SavingPotHistoryPage>(`${SAVING_POT_URL}/history?${query}`)
 }
 
 const AUTH_URL = '/api/auth'
