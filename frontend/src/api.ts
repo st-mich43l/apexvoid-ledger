@@ -8,6 +8,9 @@ import type {
   LoanDetail,
   LoanInput,
   LoanScheduleItem,
+  RecurringExpense,
+  RecurringExpenseInput,
+  RecurringExpenseUpdateInput,
   SavingPot,
   SavingPotAdjustInput,
   SavingPotHistoryPage,
@@ -176,6 +179,49 @@ export function fetchCashFlowSummary(
 ): Promise<CashFlowMonthlySummary> {
   const query = new URLSearchParams({ year: String(year), month: String(month), currency })
   return authedRequest<CashFlowMonthlySummary>(`/api/cashflow/summary?${query}`)
+}
+
+const RECURRING_EXPENSES_URL = '/api/recurring-expenses'
+
+export function fetchRecurringExpenses(): Promise<RecurringExpense[]> {
+  return authedRequest<RecurringExpense[]>(RECURRING_EXPENSES_URL)
+}
+
+export function createRecurringExpense(input: RecurringExpenseInput): Promise<RecurringExpense> {
+  return authedRequest<RecurringExpense>(RECURRING_EXPENSES_URL, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export function updateRecurringExpense(
+  id: string,
+  input: RecurringExpenseUpdateInput,
+): Promise<RecurringExpense> {
+  return authedRequest<RecurringExpense>(`${RECURRING_EXPENSES_URL}/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  })
+}
+
+export function deactivateRecurringExpense(
+  id: string,
+  effectiveFromMonth: string,
+): Promise<RecurringExpense> {
+  return authedRequest<RecurringExpense>(`${RECURRING_EXPENSES_URL}/${id}/deactivate`, {
+    method: 'POST',
+    body: JSON.stringify({ effectiveFromMonth }),
+  })
+}
+
+export function reactivateRecurringExpense(
+  id: string,
+  resumeFromMonth: string,
+): Promise<RecurringExpense> {
+  return authedRequest<RecurringExpense>(`${RECURRING_EXPENSES_URL}/${id}/reactivate`, {
+    method: 'POST',
+    body: JSON.stringify({ resumeFromMonth }),
+  })
 }
 
 const SAVING_POT_URL = '/api/saving-pot'

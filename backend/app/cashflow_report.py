@@ -17,6 +17,12 @@ from .exchange_rates import (
   quote_for_date,
 )
 from .models import Category, Loan, Transaction
+from .recurring_expenses import (
+  due_at_for_month,
+  load_applicable_revisions,
+  months_touching,
+  revision_covers_month,
+)
 
 MONEY_QUANTUM = Decimal("0.01")
 
@@ -30,8 +36,11 @@ class ReportEntry:
   amount: Decimal
   currency: str
   occurred_at: datetime
+  source_kind: str = "manual"
   loan: Loan | None = None
   loan_term: int | None = None
+  recurring_expense_id: str | None = None
+  recurring_name: str | None = None
 
 
 @dataclass
@@ -61,6 +70,8 @@ def period_entries(
   start: datetime,
   end: datetime,
 ) -> tuple[list[ReportEntry], int]:
+  start = as_utc(start)
+  end = as_utc(end)
   transactions = (
     db.query(Transaction)
     .filter(
@@ -79,9 +90,39 @@ def period_entries(
       amount=transaction.amount,
       currency=transaction.currency,
       occurred_at=as_utc(transaction.occurred_at),
+      source_kind="manual",
     )
     for transaction in transactions
   ]
+
+  revisions = load_applicable_revisions(db, user_id, start, end)
+  seen_series_months: set[tuple[str, date]] = set()
+  for month_start in months_touching(start, end):
+    for revision in revisions:
+      if not revision_covers_month(revision, month_start):
+        continue
+      series_key = (revision.recurring_expense_id, month_start.date())
+      if series_key in seen_series_months:
+        continue
+      seen_series_months.add(series_key)
+      due_at = due_at_for_month(month_start.year, month_start.month, revision.due_day)
+      if not (start <= due_at < end):
+        continue
+      category = revision.category
+      entries.append(
+        ReportEntry(
+          entry_type="expense",
+          category_id=category.id,
+          category_name=category.name,
+          category_icon=category.icon,
+          amount=revision.amount,
+          currency=revision.currency,
+          occurred_at=due_at,
+          source_kind="recurring",
+          recurring_expense_id=revision.recurring_expense_id,
+          recurring_name=revision.name,
+        )
+      )
 
   ensure_default_categories(db, user_id)
   loan_category = (
@@ -116,6 +157,7 @@ def period_entries(
             amount=item.payment,
             currency=loan.currency,
             occurred_at=due_at,
+            source_kind="loan",
             loan=loan,
             loan_term=item.term,
           )

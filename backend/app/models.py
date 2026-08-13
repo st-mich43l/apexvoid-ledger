@@ -250,3 +250,80 @@ class SavingPotEntry(Base):
   )
 
   saving_pot: Mapped[SavingPot] = relationship(back_populates="entries")
+
+
+class RecurringExpense(Base):
+  __tablename__ = "RecurringExpense"
+  __table_args__ = (Index("ix_recurring_expense_user_id", "userId"),)
+
+  id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+  user_id: Mapped[str] = mapped_column(
+    "userId", ForeignKey("User.id", ondelete="CASCADE"), nullable=False
+  )
+  created_at: Mapped[datetime] = mapped_column(
+    "createdAt", DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+  )
+  updated_at: Mapped[datetime] = mapped_column(
+    "updatedAt",
+    DateTime(timezone=True),
+    nullable=False,
+    default=lambda: datetime.now(timezone.utc),
+    onupdate=lambda: datetime.now(timezone.utc),
+  )
+
+  revisions: Mapped[list["RecurringExpenseRevision"]] = relationship(
+    back_populates="recurring_expense",
+    cascade="all, delete-orphan",
+    order_by="RecurringExpenseRevision.effective_from_month",
+  )
+
+
+class RecurringExpenseRevision(Base):
+  __tablename__ = "RecurringExpenseRevision"
+  __table_args__ = (
+    CheckConstraint("amount > 0", name="ck_recurring_expense_revision_amount"),
+    CheckConstraint(
+      '"dueDay" >= 1 AND "dueDay" <= 31',
+      name="ck_recurring_expense_revision_due_day",
+    ),
+    CheckConstraint(
+      "currency IN ('USD', 'EUR', 'GBP', 'AUD', 'JPY', 'CNY', 'VND')",
+      name="ck_recurring_expense_revision_currency",
+    ),
+    CheckConstraint(
+      '"effectiveUntilMonth" IS NULL OR "effectiveUntilMonth" >= "effectiveFromMonth"',
+      name="ck_recurring_expense_revision_interval",
+    ),
+    Index("ix_recurring_expense_revision_series", "recurringExpenseId"),
+    Index(
+      "ix_recurring_expense_revision_effective",
+      "effectiveFromMonth",
+      "effectiveUntilMonth",
+    ),
+  )
+
+  id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+  recurring_expense_id: Mapped[str] = mapped_column(
+    "recurringExpenseId",
+    ForeignKey("RecurringExpense.id", ondelete="CASCADE"),
+    nullable=False,
+  )
+  name: Mapped[str] = mapped_column(String(120), nullable=False)
+  category_id: Mapped[str] = mapped_column(
+    "categoryId", ForeignKey("Category.id", ondelete="RESTRICT"), nullable=False
+  )
+  amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+  currency: Mapped[str] = mapped_column(String(3), nullable=False)
+  due_day: Mapped[int] = mapped_column("dueDay", Integer, nullable=False)
+  effective_from_month: Mapped[datetime] = mapped_column(
+    "effectiveFromMonth", DateTime(timezone=True), nullable=False
+  )
+  effective_until_month: Mapped[datetime | None] = mapped_column(
+    "effectiveUntilMonth", DateTime(timezone=True), nullable=True
+  )
+  created_at: Mapped[datetime] = mapped_column(
+    "createdAt", DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+  )
+
+  recurring_expense: Mapped[RecurringExpense] = relationship(back_populates="revisions")
+  category: Mapped[Category] = relationship(lazy="joined")

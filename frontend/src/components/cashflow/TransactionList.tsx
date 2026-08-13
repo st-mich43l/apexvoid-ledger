@@ -1,11 +1,16 @@
 import { Link } from 'react-router-dom'
 import { formatCurrency } from '../../lib/currency'
 import { formatDate } from '../../lib/date'
-import type { LedgerTransaction, LoanPaymentActivity } from '../../types'
+import type {
+  LedgerTransaction,
+  LoanPaymentActivity,
+  RecurringExpenseActivity,
+} from '../../types'
 
 interface TransactionListProps {
   transactions: LedgerTransaction[]
   loanPayments: LoanPaymentActivity[]
+  recurringExpenses: RecurringExpenseActivity[]
   loading: boolean
   monthLabel: string
   onAdd: () => void
@@ -16,6 +21,7 @@ interface TransactionListProps {
 type MonthlyActivity =
   | { kind: 'transaction'; occurredAt: string; transaction: LedgerTransaction }
   | { kind: 'loan'; occurredAt: string; payment: LoanPaymentActivity }
+  | { kind: 'recurring'; occurredAt: string; expense: RecurringExpenseActivity }
 
 function signedAmount(transaction: LedgerTransaction): string {
   const sign = transaction.type === 'income' ? '+' : '-'
@@ -39,11 +45,24 @@ function linkedLoanAmount(payment: LoanPaymentActivity): string {
   return `-${formatCurrency(payment.amount, payment.currency)}`
 }
 
-function ReportingAmount({ payment }: { payment: LoanPaymentActivity }) {
+function fixedCostAmount(expense: RecurringExpenseActivity): string {
+  return `-${formatCurrency(expense.amount, expense.currency)}`
+}
+
+function LoanReportingAmount({ payment }: { payment: LoanPaymentActivity }) {
   if (payment.currency === payment.reportingCurrency || payment.reportingAmount === null) return null
   return (
     <span className="block text-[11px] font-normal text-neutral-400 dark:text-neutral-500">
       ≈ {formatCurrency(payment.reportingAmount, payment.reportingCurrency)}
+    </span>
+  )
+}
+
+function FixedReportingAmount({ expense }: { expense: RecurringExpenseActivity }) {
+  if (expense.currency === expense.reportingCurrency || expense.reportingAmount === null) return null
+  return (
+    <span className="block text-[11px] font-normal text-neutral-400 dark:text-neutral-500">
+      ≈ {formatCurrency(expense.reportingAmount, expense.reportingCurrency)}
     </span>
   )
 }
@@ -56,7 +75,24 @@ function LinkedBadge() {
   )
 }
 
-export function TransactionList({ transactions, loanPayments, loading, monthLabel, onAdd, onEdit, onDelete }: TransactionListProps) {
+function FixedCostBadge() {
+  return (
+    <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+      Fixed cost
+    </span>
+  )
+}
+
+export function TransactionList({
+  transactions,
+  loanPayments,
+  recurringExpenses,
+  loading,
+  monthLabel,
+  onAdd,
+  onEdit,
+  onDelete,
+}: TransactionListProps) {
   const activities: MonthlyActivity[] = [
     ...transactions.map((transaction): MonthlyActivity => ({
       kind: 'transaction',
@@ -67,6 +103,11 @@ export function TransactionList({ transactions, loanPayments, loading, monthLabe
       kind: 'loan',
       occurredAt: payment.dueAt,
       payment,
+    })),
+    ...recurringExpenses.map((expense): MonthlyActivity => ({
+      kind: 'recurring',
+      occurredAt: expense.dueAt,
+      expense,
     })),
   ].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
 
@@ -110,11 +151,32 @@ export function TransactionList({ transactions, loanPayments, loading, monthLabe
                         <td className="px-5 py-4"><LinkedBadge /></td>
                         <td className="whitespace-nowrap px-5 py-4 text-right font-medium tabular-nums text-neutral-900 dark:text-neutral-100">
                           {linkedLoanAmount(payment)}
-                          <ReportingAmount payment={payment} />
+                          <LoanReportingAmount payment={payment} />
                         </td>
                         <td className="px-3 py-4 text-right">
                           <Link to={`/loan/${payment.loanId}`} className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-violet-600 hover:bg-violet-50 dark:text-violet-400 dark:hover:bg-violet-500/10">View loan</Link>
                         </td>
+                      </tr>
+                    )
+                  }
+                  if (activity.kind === 'recurring') {
+                    const { expense } = activity
+                    return (
+                      <tr key={expense.id} className="bg-amber-50/40 dark:bg-amber-500/[0.03]">
+                        <td className="whitespace-nowrap px-5 py-4 text-neutral-500 dark:text-neutral-400">{formatDate(expense.dueAt)}</td>
+                        <td className="max-w-48 px-5 py-4 font-medium text-neutral-900 dark:text-neutral-100">
+                          {expense.name}
+                          <span className="mt-0.5 block text-xs font-normal text-neutral-400">Scheduled obligation</span>
+                        </td>
+                        <td className="whitespace-nowrap px-5 py-4 text-neutral-600 dark:text-neutral-300">
+                          {expense.categoryIcon} {expense.categoryName}
+                        </td>
+                        <td className="px-5 py-4"><FixedCostBadge /></td>
+                        <td className="whitespace-nowrap px-5 py-4 text-right font-medium tabular-nums text-neutral-900 dark:text-neutral-100">
+                          {fixedCostAmount(expense)}
+                          <FixedReportingAmount expense={expense} />
+                        </td>
+                        <td className="px-3 py-4 text-right text-xs text-neutral-400">Manage via fixed costs</td>
                       </tr>
                     )
                   }
@@ -147,10 +209,30 @@ export function TransactionList({ transactions, loanPayments, loading, monthLabe
                       </div>
                       <p className="shrink-0 text-right text-sm font-semibold tabular-nums text-neutral-900 dark:text-neutral-100">
                         {linkedLoanAmount(payment)}
-                        <ReportingAmount payment={payment} />
+                        <LoanReportingAmount payment={payment} />
                       </p>
                     </div>
                     <div className="mt-3 text-right"><Link to={`/loan/${payment.loanId}`} className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-violet-600 hover:bg-violet-50 dark:text-violet-400 dark:hover:bg-violet-500/10">View loan</Link></div>
+                  </li>
+                )
+              }
+              if (activity.kind === 'recurring') {
+                const { expense } = activity
+                return (
+                  <li key={expense.id} className="bg-amber-50/40 p-5 dark:bg-amber-500/[0.03]">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-neutral-900 dark:text-neutral-100">{expense.name}</p>
+                        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                          {expense.categoryIcon} {expense.categoryName} · {formatDate(expense.dueAt)}
+                        </p>
+                        <span className="mt-2 inline-flex"><FixedCostBadge /></span>
+                      </div>
+                      <p className="shrink-0 text-right text-sm font-semibold tabular-nums text-neutral-900 dark:text-neutral-100">
+                        {fixedCostAmount(expense)}
+                        <FixedReportingAmount expense={expense} />
+                      </p>
+                    </div>
                   </li>
                 )
               }

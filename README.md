@@ -112,7 +112,7 @@ activity ledger:
 - `/dashboard` — account overview with saving pot, current-month cash flow, and
   loan summary (trading remains planned)
 - `/cashflow` — monthly cash-flow summary, visualizations, transaction CRUD,
-  and category management
+  category management, and **Monthly Fixed Costs** (recurring expenses)
 - `/saving-pot` — savings balance, add/subtract/correct, and activity history;
   closed months sync and reconcile from cash flow
 - `/loan` — the loan table + form (reached from `/dashboard`'s Loan card)
@@ -121,15 +121,39 @@ activity ledger:
   forced on first login before the app is reachable
 
 Financial resources are scoped to their owning account. Loan, category,
-transaction, and saving-pot routers require authentication and filter every
-resource query by
+transaction, recurring-expense, and saving-pot routers require authentication
+and filter every resource query by
 the logged-in user's id, so a mismatched id 404s instead of leaking that it
 belongs to someone else. Loans created before ownership existed were backfilled
 to whichever account was created first — see migration `0010`; migration `0011`
 adds the cash-flow schema, migration `0012` adds native loan currency for
-safe cross-currency reporting, migration `0013` adds Saving Pot, and
+safe cross-currency reporting, migration `0013` adds Saving Pot,
 migration `0014` adds the Saving Pot activity ledger with a non-destructive
-backfill.
+backfill, and migration `0015` adds recurring expenses with effective-dated
+revisions.
+
+### Monthly Fixed Costs (recurring expenses)
+
+Cash Flow can include scheduled monthly obligations (rent, support, internet,
+subscriptions, etc.) without recreating them every month.
+
+- Rules live as `RecurringExpense` + effective-dated `RecurringExpenseRevision`
+  rows — **not** as auto-generated `Transaction` records.
+- Each month’s due date is derived in the shared cash-flow engine (same path as
+  manual transactions and linked loan installments), then converted with
+  historical FX when needed.
+- Editing is effective-dated: changing rent from September leaves earlier
+  months at the previous amount. Stop ends the schedule from a chosen month;
+  Resume starts a new period (gaps are not backfilled).
+- Fixed costs are **planned obligations**, not payment confirmation — similar
+  to linked loan expenses.
+- Monthly summary exposes fixed / variable / loan / committed totals:
+  `expenses = fixed + variable + loan`, and
+  `committed = fixed + loan`.
+- Saving Pot sync/reconciliation picks up recurring costs automatically because
+  it consumes the same shared aggregation — no special Saving Pot write path.
+- Do not also enter the same monthly obligation as a manual expense unless it
+  is a separate adjustment.
 
 ## 🚀 Running locally
 

@@ -289,6 +289,87 @@ class LoanPaymentActivityRead(CamelModel):
     return _to_js_iso(dt)
 
 
+MonthKey = Annotated[
+  str, StringConstraints(strip_whitespace=True, pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
+]
+RecurringExpenseName = Annotated[
+  str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)
+]
+DueDay = Annotated[int, Field(ge=1, le=31)]
+
+
+class RecurringExpenseActivityRead(CamelModel):
+  id: str
+  recurring_expense_id: str
+  name: str
+  category_id: str
+  category_name: str
+  category_icon: str | None
+  due_at: datetime
+  amount: float
+  currency: CurrencyCode
+  reporting_amount: float | None
+  reporting_currency: CurrencyCode
+
+  @field_serializer("due_at")
+  def _serialize_dt(self, dt: datetime, _info) -> str:
+    return _to_js_iso(dt)
+
+
+class RecurringExpenseCreate(CamelModel):
+  name: RecurringExpenseName
+  category_id: str
+  amount: TransactionAmount
+  currency: CurrencyCode
+  due_day: DueDay
+  start_month: MonthKey
+  end_month: MonthKey | None = None
+
+
+class RecurringExpenseUpdate(CamelModel):
+  name: RecurringExpenseName
+  category_id: str
+  amount: TransactionAmount
+  currency: CurrencyCode
+  due_day: DueDay
+  effective_from_month: MonthKey
+  end_month: MonthKey | None = None
+
+
+class RecurringExpenseDeactivate(CamelModel):
+  effective_from_month: MonthKey
+
+
+class RecurringExpenseReactivate(CamelModel):
+  resume_from_month: MonthKey
+  name: RecurringExpenseName | None = None
+  category_id: str | None = None
+  amount: TransactionAmount | None = None
+  currency: CurrencyCode | None = None
+  due_day: DueDay | None = None
+  end_month: MonthKey | None = None
+
+
+class RecurringExpenseRead(CamelModel):
+  id: str
+  name: str
+  category_id: str
+  category_name: str
+  category_icon: str | None
+  amount: float
+  currency: CurrencyCode
+  due_day: int
+  start_month: MonthKey
+  end_month: MonthKey | None
+  is_active: bool
+  created_at: datetime
+  updated_at: datetime
+
+  @field_serializer("created_at", "updated_at")
+  def _serialize_dt(self, dt: datetime, _info) -> str:
+    return _to_js_iso(dt)
+
+
 class CashFlowMonthlySummary(CamelModel):
   year: int
   month: int
@@ -300,6 +381,12 @@ class CashFlowMonthlySummary(CamelModel):
   transaction_count: int
   loan_payment_count: int
   loan_payments: list[LoanPaymentActivityRead]
+  fixed_expense_total: float
+  fixed_expense_count: int
+  variable_expense_total: float
+  loan_payment_total: float
+  committed_expense_total: float
+  recurring_expenses: list[RecurringExpenseActivityRead]
   category_breakdown: list[CategorySpendingSummary]
   converted_currencies: list[CurrencyCode]
   unconverted_currencies: list[CurrencyCode]

@@ -82,6 +82,56 @@ export interface LoanPaymentActivity {
   reportingCurrency: CurrencyCode
 }
 
+export interface RecurringExpenseActivity {
+  id: string
+  recurringExpenseId: string
+  name: string
+  categoryId: string
+  categoryName: string
+  categoryIcon: string | null
+  dueAt: string
+  amount: number
+  currency: CurrencyCode
+  reportingAmount: number | null
+  reportingCurrency: CurrencyCode
+}
+
+export interface RecurringExpense {
+  id: string
+  name: string
+  categoryId: string
+  categoryName: string
+  categoryIcon: string | null
+  amount: number
+  currency: CurrencyCode
+  dueDay: number
+  startMonth: string
+  endMonth: string | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface RecurringExpenseInput {
+  name: string
+  categoryId: string
+  amount: number
+  currency: CurrencyCode
+  dueDay: number
+  startMonth: string
+  endMonth?: string | null
+}
+
+export interface RecurringExpenseUpdateInput {
+  name: string
+  categoryId: string
+  amount: number
+  currency: CurrencyCode
+  dueDay: number
+  effectiveFromMonth: string
+  endMonth?: string | null
+}
+
 export interface CashFlowMonthlySummary {
   year: number
   month: number
@@ -93,6 +143,12 @@ export interface CashFlowMonthlySummary {
   transactionCount: number
   loanPaymentCount: number
   loanPayments: LoanPaymentActivity[]
+  fixedExpenseTotal: number
+  fixedExpenseCount: number
+  variableExpenseTotal: number
+  loanPaymentTotal: number
+  committedExpenseTotal: number
+  recurringExpenses: RecurringExpenseActivity[]
   categoryBreakdown: CategorySpendingSummary[]
   convertedCurrencies: CurrencyCode[]
   unconvertedCurrencies: CurrencyCode[]
