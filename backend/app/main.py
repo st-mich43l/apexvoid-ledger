@@ -7,6 +7,7 @@ from .routers.auth import router as auth_router
 from .routers.cashflow import router as cashflow_router
 from .routers.categories import router as categories_router
 from .routers.loans import router as loans_router
+from .routers.recurring_expenses import router as recurring_expenses_router
 from .routers.saving_pot import router as saving_pot_router
 from .routers.transactions import router as transactions_router
 
@@ -29,6 +30,7 @@ app.include_router(loans_router)
 app.include_router(categories_router)
 app.include_router(transactions_router)
 app.include_router(cashflow_router)
+app.include_router(recurring_expenses_router)
 app.include_router(saving_pot_router)
 
 

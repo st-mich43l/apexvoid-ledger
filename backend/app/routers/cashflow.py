@@ -14,6 +14,7 @@ from ..schemas import (
   CurrencyCode,
   CurrencyConversionRate,
   LoanPaymentActivityRead,
+  RecurringExpenseActivityRead,
 )
 
 router = APIRouter(prefix="/api/cashflow", tags=["cashflow"])
@@ -69,12 +70,18 @@ def get_monthly_summary(
     )
   ]
 
-  converted_by_loan_term = {
-    (entry.loan.id, entry.loan_term): amount
+  converted_by_key = {
+    (
+      entry.source_kind,
+      entry.loan.id if entry.loan is not None else None,
+      entry.loan_term,
+      entry.recurring_expense_id,
+      entry.occurred_at.isoformat(),
+    ): amount
     for entry, amount in totals.converted
-    if entry.loan is not None
   }
-  loan_entries = [entry for entry in totals.entries if entry.loan is not None]
+
+  loan_entries = [entry for entry in totals.entries if entry.source_kind == "loan"]
   loan_payments = [
     LoanPaymentActivityRead(
       id=f"loan:{entry.loan.id}:{entry.loan_term}",
@@ -84,11 +91,66 @@ def get_monthly_summary(
       due_at=entry.occurred_at,
       amount=entry.amount,
       currency=entry.currency,
-      reporting_amount=converted_by_loan_term.get((entry.loan.id, entry.loan_term)),
+      reporting_amount=converted_by_key.get(
+        (
+          "loan",
+          entry.loan.id,
+          entry.loan_term,
+          None,
+          entry.occurred_at.isoformat(),
+        )
+      ),
       reporting_currency=currency,
     )
     for entry in sorted(loan_entries, key=lambda item: item.occurred_at, reverse=True)
   ]
+
+  recurring_entries = [entry for entry in totals.entries if entry.source_kind == "recurring"]
+  recurring_expenses = [
+    RecurringExpenseActivityRead(
+      id=f"recurring:{entry.recurring_expense_id}:{entry.occurred_at.date().isoformat()}",
+      recurring_expense_id=entry.recurring_expense_id,
+      name=entry.recurring_name or entry.category_name,
+      category_id=entry.category_id,
+      category_name=entry.category_name,
+      category_icon=entry.category_icon,
+      due_at=entry.occurred_at,
+      amount=entry.amount,
+      currency=entry.currency,
+      reporting_amount=converted_by_key.get(
+        (
+          "recurring",
+          None,
+          None,
+          entry.recurring_expense_id,
+          entry.occurred_at.isoformat(),
+        )
+      ),
+      reporting_currency=currency,
+    )
+    for entry in sorted(recurring_entries, key=lambda item: item.occurred_at, reverse=True)
+  ]
+
+  fixed_expense_total = sum(
+    (amount for entry, amount in totals.converted if entry.source_kind == "recurring"),
+    Decimal(0),
+  ).quantize(Decimal("0.01"))
+  variable_expense_total = sum(
+    (
+      amount
+      for entry, amount in totals.converted
+      if entry.source_kind == "manual" and entry.entry_type == "expense"
+    ),
+    Decimal(0),
+  ).quantize(Decimal("0.01"))
+  loan_payment_total = sum(
+    (amount for entry, amount in totals.converted if entry.source_kind == "loan"),
+    Decimal(0),
+  ).quantize(Decimal("0.01"))
+  committed_expense_total = (fixed_expense_total + loan_payment_total).quantize(
+    Decimal("0.01")
+  )
+
   conversion_rates = [
     CurrencyConversionRate(
       source_currency=quote.source_currency,
@@ -115,6 +177,12 @@ def get_monthly_summary(
     transaction_count=totals.manual_transaction_count,
     loan_payment_count=len(loan_payments),
     loan_payments=loan_payments,
+    fixed_expense_total=fixed_expense_total,
+    fixed_expense_count=len(recurring_expenses),
+    variable_expense_total=variable_expense_total,
+    loan_payment_total=loan_payment_total,
+    committed_expense_total=committed_expense_total,
+    recurring_expenses=recurring_expenses,
     category_breakdown=category_breakdown,
     converted_currencies=sorted(totals.converted_currencies),
     unconverted_currencies=unconverted,

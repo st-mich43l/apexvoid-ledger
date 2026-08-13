@@ -7,6 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### ✨ Added
+- 🏠 Monthly Fixed Costs (recurring expenses): define rent, support, utilities,
+  and other monthly obligations once with due day, start month, and optional
+  end month. Effective-dated revisions preserve history on edit; stop/resume
+  end or restart the schedule without deleting past Cash Flow.
+- 📊 Cash Flow summary breakdowns: `fixedExpenseTotal`, `variableExpenseTotal`,
+  `loanPaymentTotal`, `committedExpenseTotal`, plus recurring activity in the
+  monthly list and category chart (shared aggregation — no generated
+  `Transaction` rows).
+- 🧬 Migration `0015` adds `RecurringExpense` and `RecurringExpenseRevision`.
 - 📒 Saving Pot activity ledger (`SavingPotEntry`) for opening balances, manual
   add/subtract, balance corrections, monthly cash-flow applications, and
   reconciliations — with optional notes and `/api/saving-pot/history`.
