@@ -1,7 +1,8 @@
 import { SUPPORTED_CURRENCIES } from '../../lib/currency'
-import { formatDateInput } from '../../lib/date'
 import { formatAmountInput, type TransactionFormValues } from '../../hooks/useTransactionFormState'
 import type { Category } from '../../types'
+import { DayMonthYearInput } from '../DayMonthYearInput'
+import { useId } from 'react'
 
 interface TransactionFormFieldsProps {
   values: TransactionFormValues
@@ -11,7 +12,7 @@ interface TransactionFormFieldsProps {
   onCategoryChange: React.ChangeEventHandler<HTMLSelectElement>
   onAmountChange: React.ChangeEventHandler<HTMLInputElement>
   onCurrencyChange: React.ChangeEventHandler<HTMLSelectElement>
-  onDateChange: React.ChangeEventHandler<HTMLInputElement>
+  onDateChange: (value: string) => void
   onDescriptionChange: React.ChangeEventHandler<HTMLInputElement>
 }
 
@@ -30,6 +31,7 @@ export function TransactionFormFields({
   onDateChange,
   onDescriptionChange,
 }: TransactionFormFieldsProps) {
+  const formId = useId()
   const availableCategories = categories.filter(
     (category) => category.type === values.type && (category.isActive || category.id === values.categoryId),
   )
@@ -88,14 +90,12 @@ export function TransactionFormFields({
 
       <label className={labelClass}>
         Date
-        <input
-          value={formatDateInput(values.occurredAt)}
+        <DayMonthYearInput
+          id={`${formId}-transaction-date`}
+          value={values.occurredAt}
           onChange={onDateChange}
           disabled={disabled}
           className={inputClass}
-          inputMode="numeric"
-          placeholder="dd/mm/yyyy"
-          autoComplete="off"
           required
         />
       </label>
