@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy.orm import Session
 
@@ -24,8 +26,8 @@ def get_monthly_close(
 
 @router.post("/{year}/{month}/close", response_model=MonthlyCloseSummary, status_code=201)
 def post_close_month(
-  year: int = Path(ge=1, le=9999),
-  month: int = Path(ge=1, le=12),
+  year: Annotated[int, Path(ge=1, le=9999)],
+  month: Annotated[int, Path(ge=1, le=12)],
   payload: MonthlyCloseCreate | None = None,
   db: Session = Depends(get_db),
   current_user: User = Depends(require_password_changed),
@@ -37,8 +39,8 @@ def post_close_month(
 
 @router.post("/{year}/{month}/reclose", response_model=MonthlyCloseSummary)
 def post_reclose_month(
-  year: int = Path(ge=1, le=9999),
-  month: int = Path(ge=1, le=12),
+  year: Annotated[int, Path(ge=1, le=9999)],
+  month: Annotated[int, Path(ge=1, le=12)],
   payload: MonthlyCloseReclose,
   db: Session = Depends(get_db),
   current_user: User = Depends(require_password_changed),
