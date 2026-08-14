@@ -701,6 +701,133 @@ class SetCurrencyRequest(CamelModel):
   currency: CurrencyCode
 
 
+MonthlyCloseStatus = Literal[
+  "in_progress",
+  "ready_to_close",
+  "blocked",
+  "closed",
+  "needs_review",
+]
+SavingPotCloseStatus = Literal[
+  "not_configured",
+  "not_applicable",
+  "missing",
+  "stale",
+  "synced",
+  "blocked",
+]
+CloseNote = Annotated[
+  str,
+  StringConstraints(strip_whitespace=True, min_length=1, max_length=240),
+]
+
+
+class MonthlyCloseCreate(CamelModel):
+  note: CloseNote | None = None
+
+
+class MonthlyCloseReclose(CamelModel):
+  reason: CloseNote
+
+
+class MonthlyCloseCurrentRead(CamelModel):
+  reporting_currency: CurrencyCode
+  scheduled_income_total: float
+  manual_income_total: float
+  income_total: float
+  fixed_expense_total: float
+  variable_expense_total: float
+  loan_payment_total: float
+  expense_total: float
+  net_cash_flow: float
+  manual_transaction_count: int
+  scheduled_income_count: int
+  fixed_expense_count: int
+  loan_payment_count: int
+  has_budget: bool
+  budget_currency: CurrencyCode | None = None
+  planned_savings_amount: float | None = None
+  planned_variable_budget_total: float | None = None
+  budget_actual_variable_expense_total: float | None = None
+  unallocated_buffer: float | None = None
+  safe_to_spend: float | None = None
+  unbudgeted_spend_total: float | None = None
+  budget_comparison_complete: bool | None = None
+  savings_target_variance: float | None = None
+  saving_pot_exists: bool
+  saving_pot_applicable: bool
+  saving_pot_currency: CurrencyCode | None = None
+  saving_pot_month_applied_amount: float | None = None
+  saving_pot_synced: bool | None = None
+  saving_pot_status: SavingPotCloseStatus
+  conversion_complete: bool
+  unconverted_currencies: list[CurrencyCode]
+
+
+class MonthlyCloseSnapshotRead(CamelModel):
+  id: str
+  revision_number: int
+  reporting_currency: CurrencyCode
+  scheduled_income_total: float
+  manual_income_total: float
+  income_total: float
+  fixed_expense_total: float
+  variable_expense_total: float
+  loan_payment_total: float
+  expense_total: float
+  net_cash_flow: float
+  manual_transaction_count: int
+  scheduled_income_count: int
+  fixed_expense_count: int
+  loan_payment_count: int
+  has_budget: bool
+  budget_currency: CurrencyCode | None = None
+  planned_savings_amount: float | None = None
+  planned_variable_budget_total: float | None = None
+  budget_actual_variable_expense_total: float | None = None
+  unallocated_buffer: float | None = None
+  safe_to_spend: float | None = None
+  unbudgeted_spend_total: float | None = None
+  budget_comparison_complete: bool | None = None
+  saving_pot_exists: bool
+  saving_pot_applicable: bool
+  saving_pot_currency: CurrencyCode | None = None
+  saving_pot_month_applied_amount: float | None = None
+  saving_pot_synced: bool | None = None
+  conversion_complete: bool
+  note: str | None = None
+  closed_at: datetime
+  created_at: datetime
+
+  @field_serializer("closed_at", "created_at")
+  def _serialize_dt(self, dt: datetime, _info) -> str:
+    return _to_js_iso(dt)
+
+
+class MonthlyCloseDifferenceRead(CamelModel):
+  field: str
+  label: str
+  previous_amount: float | None = None
+  current_amount: float | None = None
+  currency: CurrencyCode | None = None
+
+
+class MonthlyCloseSummary(CamelModel):
+  year: int
+  month: int
+  status: MonthlyCloseStatus
+  close_eligible: bool
+  reclose_eligible: bool
+  current: MonthlyCloseCurrentRead
+  latest_snapshot: MonthlyCloseSnapshotRead | None = None
+  has_drift: bool
+  drift_fields: list[str]
+  differences: list[MonthlyCloseDifferenceRead]
+  history: list[MonthlyCloseSnapshotRead]
+  blockers: list[str]
+  last_day: date
+
+
 class UserRead(CamelModel):
   id: str
   username: str

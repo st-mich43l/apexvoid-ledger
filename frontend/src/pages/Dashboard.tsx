@@ -7,17 +7,22 @@ import { useCashFlowSummary } from '../hooks/useCashFlowSummary'
 import { useMonthlyRoutine } from '../hooks/useMonthlyRoutine'
 import { useMonthlyBudget } from '../hooks/useMonthlyBudget'
 import { useSavingPot } from '../hooks/useSavingPot'
+import { useMonthlyClose } from '../hooks/useMonthlyClose'
 import { DashboardFinancialTrends } from '../components/dashboard/DashboardFinancialTrends'
-import type { MonthlyBudgetSummary } from '../types'
+import type { MonthlyBudgetSummary, MonthlyCloseSummary } from '../types'
 
 export function Dashboard() {
   const { loans, loading, error } = useLoans()
   const { currency } = useCurrency()
   const today = new Date()
-  const cashFlow = useCashFlowSummary(today.getFullYear(), today.getMonth() + 1, currency)
-  const routine = useMonthlyRoutine(today.getFullYear(), today.getMonth() + 1, currency)
-  const budget = useMonthlyBudget(today.getFullYear(), today.getMonth() + 1)
+  const year = today.getUTCFullYear()
+  const month = today.getUTCMonth() + 1
+  const previous = month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 }
+  const cashFlow = useCashFlowSummary(year, month, currency)
+  const routine = useMonthlyRoutine(year, month, currency)
+  const budget = useMonthlyBudget(year, month)
   const savingPot = useSavingPot()
+  const monthlyClose = useMonthlyClose(previous.year, previous.month)
 
   const loanBalances = [...loans.reduce((groups, loan) => {
     if (loan.currentBalance <= 0) return groups
@@ -34,9 +39,9 @@ export function Dashboard() {
         <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">Overview</h2>
       </div>
 
-      {(error || cashFlow.error || savingPot.error || routine.error || budget.error) && (
+      {(error || cashFlow.error || savingPot.error || routine.error || budget.error || monthlyClose.error) && (
         <p className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">
-          {error || cashFlow.error || savingPot.error || routine.error || budget.error}
+          {error || cashFlow.error || savingPot.error || routine.error || budget.error || monthlyClose.error}
         </p>
       )}
 
@@ -103,10 +108,41 @@ export function Dashboard() {
         />
       </div>
 
+      <DashboardCloseIndicator summary={monthlyClose.summary} loading={monthlyClose.loading} />
+
       <DashboardBudgetIndicator summary={budget.summary} loading={budget.loading} />
 
-      <DashboardFinancialTrends year={today.getFullYear()} month={today.getMonth() + 1} currency={currency} />
+      <DashboardFinancialTrends year={year} month={month} currency={currency} />
     </section>
+  )
+}
+
+function DashboardCloseIndicator({ summary, loading }: { summary: MonthlyCloseSummary | null; loading: boolean }) {
+  const label = summary
+    ? new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
+      new Date(Date.UTC(summary.year, summary.month - 1, 1)),
+    )
+    : 'Previous month'
+  const status = summary?.status
+  const statusText =
+    status === 'closed' ? 'Closed'
+      : status === 'needs_review' ? 'Needs review'
+        : status === 'blocked' ? 'Blocked'
+          : status === 'ready_to_close' ? 'Ready to close'
+            : status === 'in_progress' ? 'In progress'
+              : '…'
+  return (
+    <Link
+      to={summary ? `/monthly-close?year=${summary.year}&month=${summary.month}` : '/monthly-close'}
+      className="mt-5 flex flex-col gap-2 rounded-2xl border border-neutral-200/80 bg-white px-5 py-4 shadow-sm transition hover:border-violet-300 hover:shadow-md sm:flex-row sm:items-center sm:justify-between dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none dark:hover:border-violet-800"
+    >
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-violet-600 dark:text-violet-400">Monthly Close</p>
+        <p className="mt-1 font-medium text-neutral-900 dark:text-neutral-100">{loading ? 'Loading month review…' : label}</p>
+        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">{loading ? 'Checking the latest checkpoint.' : statusText}</p>
+      </div>
+      <span className="shrink-0 text-sm font-medium text-violet-600 dark:text-violet-400">{loading ? '…' : 'Review month →'}</span>
+    </Link>
   )
 }
 

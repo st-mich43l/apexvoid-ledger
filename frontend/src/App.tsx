@@ -12,6 +12,7 @@ import { HomePage } from './pages/Home'
 import { LoanPage } from './pages/Loan'
 import { LoanDetailPage } from './pages/LoanDetail'
 import { LoginPage } from './pages/Login'
+import { MonthlyClosePage } from './pages/MonthlyClose'
 import { MonthlyRoutinePage } from './pages/MonthlyRoutine'
 import { SavingPotPage } from './pages/SavingPot'
 import { SelectCurrencyPage } from './pages/SelectCurrency'
@@ -40,6 +41,7 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="cashflow" element={<CashFlowPage />} />
           <Route path="budget" element={<BudgetPage />} />
+          <Route path="monthly-close" element={<MonthlyClosePage />} />
           <Route path="monthly-routine" element={<MonthlyRoutinePage />} />
           <Route path="saving-pot" element={<SavingPotPage />} />
           <Route path="loan" element={<LoanPage />} />

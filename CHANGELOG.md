@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### ✨ Added
+- 🎯 v0.4.3 Monthly Close / Financial Review (`/monthly-close`): auditable
+  month-end snapshots of Cash Flow, Budget results, and Saving Pot month
+  applications, with immutable revisions, historical drift detection, and
+  re-close — without locking transactions.
+- 🧬 Migration `0018` adds `MonthlyClose` and `MonthlyCloseSnapshot` without
+  auto-closing historical months.
 - 🎯 v0.4.2 Monthly Budget / Spending Plan (`/budget`) with independent
   per-month snapshots, optional planned savings, category allocations,
   budget-versus-actual progress, unallocated buffer, and safe-to-spend.

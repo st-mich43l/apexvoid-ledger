@@ -13,6 +13,7 @@ function getBackTarget(pathname: string, isAdmin: boolean): { path: string; labe
   if (pathname === '/loan') return { path: '/dashboard', label: 'Dashboard' }
   if (pathname === '/cashflow') return { path: '/dashboard', label: 'Dashboard' }
   if (pathname === '/budget') return { path: '/dashboard', label: 'Dashboard' }
+  if (pathname === '/monthly-close') return { path: '/dashboard', label: 'Dashboard' }
   if (pathname === '/saving-pot') return { path: '/dashboard', label: 'Dashboard' }
   if (pathname === '/monthly-routine') return { path: '/dashboard', label: 'Dashboard' }
   if (pathname === '/settings/users') return { path: '/home', label: 'Home' }

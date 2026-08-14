@@ -5,6 +5,7 @@ import { BudgetEditorDialog } from '../components/budget/BudgetEditorDialog'
 import { BudgetResetDialog } from '../components/budget/BudgetResetDialog'
 import { useCategories } from '../hooks/useCategories'
 import { useMonthlyBudget } from '../hooks/useMonthlyBudget'
+import { useMonthlyClose } from '../hooks/useMonthlyClose'
 import { formatCurrency } from '../lib/currency'
 import type { MonthlyBudgetAllocation, MonthlyBudgetInput, MonthlyBudgetSummary } from '../types'
 
@@ -39,6 +40,7 @@ export function BudgetPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { year, month } = useMemo(() => selectedMonth(searchParams), [searchParams])
   const budgetState = useMonthlyBudget(year, month)
+  const closeState = useMonthlyClose(year, month)
   const categoriesState = useCategories(true)
   const [showEditor, setShowEditor] = useState(false)
   const [showReset, setShowReset] = useState(false)
@@ -100,6 +102,9 @@ export function BudgetPage() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Link to={`/monthly-routine?year=${year}&month=${month}`} className="text-sm font-medium text-neutral-600 hover:text-violet-600 dark:text-neutral-300 dark:hover:text-violet-400">Monthly Routine</Link>
+          <Link to={`/monthly-close?year=${year}&month=${month}`} className="text-sm font-medium text-neutral-600 hover:text-violet-600 dark:text-neutral-300 dark:hover:text-violet-400">
+            Month Close{closeState.summary?.status === 'closed' ? ': Closed' : closeState.summary?.status === 'needs_review' ? ': Needs review' : ''}
+          </Link>
           <Link to={`/cashflow?year=${year}&month=${month}`} className="text-sm font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400">Cash Flow →</Link>
         </div>
       </div>
