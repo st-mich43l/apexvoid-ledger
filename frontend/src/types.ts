@@ -463,3 +463,106 @@ export interface LoanDetail {
   principalRepaid: number
   principalRepaidPercent: number
 }
+
+export type MonthlyCloseStatus = 'in_progress' | 'ready_to_close' | 'blocked' | 'closed' | 'needs_review'
+export type SavingPotCloseStatus =
+  | 'not_configured'
+  | 'not_applicable'
+  | 'missing'
+  | 'stale'
+  | 'synced'
+  | 'blocked'
+
+export interface MonthlyCloseCurrent {
+  reportingCurrency: CurrencyCode
+  scheduledIncomeTotal: number
+  manualIncomeTotal: number
+  incomeTotal: number
+  fixedExpenseTotal: number
+  variableExpenseTotal: number
+  loanPaymentTotal: number
+  expenseTotal: number
+  netCashFlow: number
+  manualTransactionCount: number
+  scheduledIncomeCount: number
+  fixedExpenseCount: number
+  loanPaymentCount: number
+  hasBudget: boolean
+  budgetCurrency: CurrencyCode | null
+  plannedSavingsAmount: number | null
+  plannedVariableBudgetTotal: number | null
+  budgetActualVariableExpenseTotal: number | null
+  unallocatedBuffer: number | null
+  safeToSpend: number | null
+  unbudgetedSpendTotal: number | null
+  budgetComparisonComplete: boolean | null
+  savingsTargetVariance: number | null
+  savingPotExists: boolean
+  savingPotApplicable: boolean
+  savingPotCurrency: CurrencyCode | null
+  savingPotMonthAppliedAmount: number | null
+  savingPotSynced: boolean | null
+  savingPotStatus: SavingPotCloseStatus
+  conversionComplete: boolean
+  unconvertedCurrencies: CurrencyCode[]
+}
+
+export interface MonthlyCloseSnapshot {
+  id: string
+  revisionNumber: number
+  reportingCurrency: CurrencyCode
+  scheduledIncomeTotal: number
+  manualIncomeTotal: number
+  incomeTotal: number
+  fixedExpenseTotal: number
+  variableExpenseTotal: number
+  loanPaymentTotal: number
+  expenseTotal: number
+  netCashFlow: number
+  manualTransactionCount: number
+  scheduledIncomeCount: number
+  fixedExpenseCount: number
+  loanPaymentCount: number
+  hasBudget: boolean
+  budgetCurrency: CurrencyCode | null
+  plannedSavingsAmount: number | null
+  plannedVariableBudgetTotal: number | null
+  budgetActualVariableExpenseTotal: number | null
+  unallocatedBuffer: number | null
+  safeToSpend: number | null
+  unbudgetedSpendTotal: number | null
+  budgetComparisonComplete: boolean | null
+  savingPotExists: boolean
+  savingPotApplicable: boolean
+  savingPotCurrency: CurrencyCode | null
+  savingPotMonthAppliedAmount: number | null
+  savingPotSynced: boolean | null
+  conversionComplete: boolean
+  note: string | null
+  closedAt: string
+  createdAt: string
+}
+
+export interface MonthlyCloseDifference {
+  field: string
+  label: string
+  previousAmount: number | null
+  currentAmount: number | null
+  currency: CurrencyCode | null
+}
+
+export interface MonthlyCloseSummary {
+  year: number
+  month: number
+  status: MonthlyCloseStatus
+  closeEligible: boolean
+  recloseEligible: boolean
+  current: MonthlyCloseCurrent
+  latestSnapshot: MonthlyCloseSnapshot | null
+  hasDrift: boolean
+  driftFields: string[]
+  differences: MonthlyCloseDifference[]
+  history: MonthlyCloseSnapshot[]
+  blockers: string[]
+  lastDay: string
+}

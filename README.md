@@ -117,6 +117,8 @@ activity ledger:
   projected remainder)
 - `/budget` — monthly planned savings, variable category allocations,
   budget-versus-actual progress, and safe-to-spend guidance
+- `/monthly-close` — month-end financial review, immutable close snapshots,
+  drift detection, and re-close
 - `/saving-pot` — savings balance, add/subtract/correct, and activity history;
   closed months sync and reconcile from cash flow
 - `/loan` — the loan table + form (reached from `/dashboard`'s Loan card)
@@ -125,7 +127,7 @@ activity ledger:
   forced on first login before the app is reachable
 
 Financial resources are scoped to their owning account. Loan, category,
-transaction, recurring-expense, monthly-budget, and saving-pot routers require authentication
+transaction, recurring-expense, monthly-budget, monthly-close, and saving-pot routers require authentication
 and filter every resource query by
 the logged-in user's id, so a mismatched id 404s instead of leaking that it
 belongs to someone else. Loans created before ownership existed were backfilled
@@ -188,6 +190,32 @@ Budget plans do not create transactions and do not directly move Saving Pot
 balances. Fixed recurring costs and loans are excluded from variable budget
 usage because they are already represented in Monthly Routine's committed
 costs and therefore already reduce the baseline.
+
+### Monthly Close (financial review)
+
+`/monthly-close` stores an auditable checkpoint of a completed month. It
+snapshots Cash Flow, the month's Budget result when one exists, and the
+relevant Saving Pot month application.
+
+- Closing a month **does not lock** historical transactions, recurring rules,
+  loans, or budgets.
+- Each close creates an immutable `MonthlyCloseSnapshot` revision. Re-closing
+  after a correction creates a new revision; earlier snapshots are never
+  rewritten.
+- If historical financial data later changes, Ledger marks the month as
+  **Needs review** instead of mutating the original close.
+- The current calendar month can be previewed but cannot be closed until it
+  has ended.
+- Explicit close may run the existing closed-month Saving Pot
+  synchronization. Ordinary Monthly Close GET requests remain read-only.
+- Manual Saving Pot add/subtract activity does not by itself cause month-close
+  drift, because close identity uses the month application amount, not the
+  pot's current balance.
+- Incomplete FX conversion blocks close so partial totals are never stored as
+  official.
+- Linked loan installments remain contractual schedule projections, not
+  payment-completion records. Monthly Close does not add paid/unpaid loan
+  tracking.
 
 ### Monthly Fixed Costs (recurring expenses)
 

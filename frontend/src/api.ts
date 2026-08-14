@@ -25,6 +25,7 @@ import type {
   TransactionInput,
   TransactionType,
   WeeklyExpenseBatchInput,
+  MonthlyCloseSummary,
 } from './types'
 import type { CurrencyCode } from './lib/currency'
 
@@ -333,6 +334,26 @@ export function copyPreviousMonthlyBudget(
     `${MONTHLY_BUDGET_URL}/copy-previous?${monthlyBudgetQuery(year, month)}`,
     { method: 'POST' },
   )
+}
+
+const MONTHLY_CLOSE_URL = '/api/monthly-close'
+
+export function fetchMonthlyClose(year: number, month: number): Promise<MonthlyCloseSummary> {
+  return authedRequest<MonthlyCloseSummary>(`${MONTHLY_CLOSE_URL}?${monthlyBudgetQuery(year, month)}`)
+}
+
+export function closeMonth(year: number, month: number, note?: string): Promise<MonthlyCloseSummary> {
+  return authedRequest<MonthlyCloseSummary>(`${MONTHLY_CLOSE_URL}/${year}/${month}/close`, {
+    method: 'POST',
+    body: JSON.stringify(note ? { note } : {}),
+  })
+}
+
+export function recloseMonth(year: number, month: number, reason: string): Promise<MonthlyCloseSummary> {
+  return authedRequest<MonthlyCloseSummary>(`${MONTHLY_CLOSE_URL}/${year}/${month}/reclose`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  })
 }
 
 const SAVING_POT_URL = '/api/saving-pot'

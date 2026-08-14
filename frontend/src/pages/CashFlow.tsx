@@ -148,6 +148,7 @@ export function CashFlowPage() {
           <button type="button" onClick={() => setShowWeeklyExpenses(true)} className="rounded-full border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-medium text-violet-700 hover:bg-violet-100 dark:border-violet-900/70 dark:bg-violet-950/30 dark:text-violet-300 dark:hover:bg-violet-950/60">Weekly expenses</button>
           <Link to="/monthly-routine" className="rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800">Monthly Routine</Link>
           <Link to={`/budget?year=${year}&month=${month}`} className="self-center px-2 text-sm font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400">View monthly budget</Link>
+          <Link to={`/monthly-close?year=${year}&month=${month}`} className="self-center px-2 text-sm font-medium text-neutral-600 hover:text-violet-600 dark:text-neutral-300 dark:hover:text-violet-400">Monthly Close</Link>
           <button type="button" onClick={() => setShowCreate(true)} className="rounded-full bg-violet-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-violet-500 dark:bg-violet-500 dark:hover:bg-violet-400">+ Add transaction</button>
         </div>
       </div>

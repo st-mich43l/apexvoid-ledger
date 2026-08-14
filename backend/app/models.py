@@ -485,3 +485,149 @@ class MonthlyBudgetAllocation(Base):
 
   monthly_budget: Mapped[MonthlyBudget] = relationship(back_populates="allocations")
   category: Mapped[Category] = relationship(back_populates="budget_allocations", lazy="joined")
+
+
+class MonthlyClose(Base):
+  __tablename__ = "MonthlyClose"
+  __table_args__ = (
+    UniqueConstraint("userId", "year", "month", name="uq_monthly_close_user_month"),
+    CheckConstraint('"year" >= 1 AND "year" <= 9999', name="ck_monthly_close_year"),
+    CheckConstraint('"month" >= 1 AND "month" <= 12', name="ck_monthly_close_month"),
+    Index("ix_monthly_close_user_id", "userId"),
+    Index("ix_monthly_close_user_year_month", "userId", "year", "month"),
+  )
+
+  id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+  user_id: Mapped[str] = mapped_column(
+    "userId", ForeignKey("User.id", ondelete="CASCADE"), nullable=False
+  )
+  year: Mapped[int] = mapped_column(Integer, nullable=False)
+  month: Mapped[int] = mapped_column(Integer, nullable=False)
+  created_at: Mapped[datetime] = mapped_column(
+    "createdAt", DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+  )
+  updated_at: Mapped[datetime] = mapped_column(
+    "updatedAt",
+    DateTime(timezone=True),
+    nullable=False,
+    default=lambda: datetime.now(timezone.utc),
+    onupdate=lambda: datetime.now(timezone.utc),
+  )
+
+  snapshots: Mapped[list["MonthlyCloseSnapshot"]] = relationship(
+    back_populates="monthly_close",
+    cascade="all, delete-orphan",
+    passive_deletes=True,
+    order_by="MonthlyCloseSnapshot.revision_number",
+  )
+
+
+class MonthlyCloseSnapshot(Base):
+  __tablename__ = "MonthlyCloseSnapshot"
+  __table_args__ = (
+    UniqueConstraint(
+      "monthlyCloseId", "revisionNumber", name="uq_monthly_close_snapshot_revision"
+    ),
+    CheckConstraint('"revisionNumber" >= 1', name="ck_monthly_close_snapshot_revision"),
+    CheckConstraint(
+      '"reportingCurrency" IN (\'USD\', \'EUR\', \'GBP\', \'AUD\', \'JPY\', \'CNY\', \'VND\')',
+      name="ck_monthly_close_snapshot_reporting_currency",
+    ),
+    CheckConstraint(
+      '"budgetCurrency" IS NULL OR "budgetCurrency" IN '
+      "('USD', 'EUR', 'GBP', 'AUD', 'JPY', 'CNY', 'VND')",
+      name="ck_monthly_close_snapshot_budget_currency",
+    ),
+    CheckConstraint(
+      '"savingPotCurrency" IS NULL OR "savingPotCurrency" IN '
+      "('USD', 'EUR', 'GBP', 'AUD', 'JPY', 'CNY', 'VND')",
+      name="ck_monthly_close_snapshot_saving_pot_currency",
+    ),
+    Index("ix_monthly_close_snapshot_close_id", "monthlyCloseId"),
+  )
+
+  id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+  monthly_close_id: Mapped[str] = mapped_column(
+    "monthlyCloseId",
+    ForeignKey("MonthlyClose.id", ondelete="CASCADE"),
+    nullable=False,
+  )
+  revision_number: Mapped[int] = mapped_column("revisionNumber", Integer, nullable=False)
+  reporting_currency: Mapped[str] = mapped_column("reportingCurrency", String(3), nullable=False)
+
+  scheduled_income_total: Mapped[Decimal] = mapped_column(
+    "scheduledIncomeTotal", Numeric(18, 2), nullable=False
+  )
+  manual_income_total: Mapped[Decimal] = mapped_column(
+    "manualIncomeTotal", Numeric(18, 2), nullable=False
+  )
+  income_total: Mapped[Decimal] = mapped_column("incomeTotal", Numeric(18, 2), nullable=False)
+  fixed_expense_total: Mapped[Decimal] = mapped_column(
+    "fixedExpenseTotal", Numeric(18, 2), nullable=False
+  )
+  variable_expense_total: Mapped[Decimal] = mapped_column(
+    "variableExpenseTotal", Numeric(18, 2), nullable=False
+  )
+  loan_payment_total: Mapped[Decimal] = mapped_column(
+    "loanPaymentTotal", Numeric(18, 2), nullable=False
+  )
+  expense_total: Mapped[Decimal] = mapped_column("expenseTotal", Numeric(18, 2), nullable=False)
+  net_cash_flow: Mapped[Decimal] = mapped_column("netCashFlow", Numeric(18, 2), nullable=False)
+
+  manual_transaction_count: Mapped[int] = mapped_column(
+    "manualTransactionCount", Integer, nullable=False
+  )
+  scheduled_income_count: Mapped[int] = mapped_column(
+    "scheduledIncomeCount", Integer, nullable=False
+  )
+  fixed_expense_count: Mapped[int] = mapped_column("fixedExpenseCount", Integer, nullable=False)
+  loan_payment_count: Mapped[int] = mapped_column("loanPaymentCount", Integer, nullable=False)
+
+  has_budget: Mapped[bool] = mapped_column("hasBudget", Boolean, nullable=False)
+  budget_currency: Mapped[str | None] = mapped_column("budgetCurrency", String(3), nullable=True)
+  planned_savings_amount: Mapped[Decimal | None] = mapped_column(
+    "plannedSavingsAmount", Numeric(18, 2), nullable=True
+  )
+  planned_variable_budget_total: Mapped[Decimal | None] = mapped_column(
+    "plannedVariableBudgetTotal", Numeric(18, 2), nullable=True
+  )
+  budget_actual_variable_expense_total: Mapped[Decimal | None] = mapped_column(
+    "budgetActualVariableExpenseTotal", Numeric(18, 2), nullable=True
+  )
+  unallocated_buffer: Mapped[Decimal | None] = mapped_column(
+    "unallocatedBuffer", Numeric(18, 2), nullable=True
+  )
+  safe_to_spend: Mapped[Decimal | None] = mapped_column(
+    "safeToSpend", Numeric(18, 2), nullable=True
+  )
+  unbudgeted_spend_total: Mapped[Decimal | None] = mapped_column(
+    "unbudgetedSpendTotal", Numeric(18, 2), nullable=True
+  )
+  budget_comparison_complete: Mapped[bool | None] = mapped_column(
+    "budgetComparisonComplete", Boolean, nullable=True
+  )
+
+  saving_pot_exists: Mapped[bool] = mapped_column("savingPotExists", Boolean, nullable=False)
+  saving_pot_applicable: Mapped[bool] = mapped_column(
+    "savingPotApplicable", Boolean, nullable=False
+  )
+  saving_pot_currency: Mapped[str | None] = mapped_column(
+    "savingPotCurrency", String(3), nullable=True
+  )
+  saving_pot_month_applied_amount: Mapped[Decimal | None] = mapped_column(
+    "savingPotMonthAppliedAmount", Numeric(18, 2), nullable=True
+  )
+  saving_pot_synced: Mapped[bool | None] = mapped_column(
+    "savingPotSynced", Boolean, nullable=True
+  )
+
+  conversion_complete: Mapped[bool] = mapped_column(
+    "conversionComplete", Boolean, nullable=False
+  )
+  note: Mapped[str | None] = mapped_column(String(240), nullable=True)
+  closed_at: Mapped[datetime] = mapped_column("closedAt", DateTime(timezone=True), nullable=False)
+  created_at: Mapped[datetime] = mapped_column(
+    "createdAt", DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+  )
+
+  monthly_close: Mapped[MonthlyClose] = relationship(back_populates="snapshots")
