@@ -259,14 +259,14 @@ export function MonthlyRoutinePage() {
               </div>
             )
           ) : (
-            <ul className="divide-y divide-neutral-100 dark:divide-neutral-800">
+            <ul className="max-h-64 divide-y divide-neutral-100 overflow-y-auto dark:divide-neutral-800">
               {summary.expectedIncome.map((item) => (
-                <li key={item.id} className="flex items-start justify-between gap-4 px-5 py-4">
+                <li key={item.id} className="flex items-start justify-between gap-4 px-5 py-2.5">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-neutral-900 dark:text-neutral-100">
+                    <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
                       {item.categoryIcon ? `${item.categoryIcon} ` : ''}{item.name}
                     </p>
-                    <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                    <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
                       {item.categoryName} · Expected {formatDate(item.expectedAt)}
                     </p>
                   </div>
@@ -315,14 +315,14 @@ export function MonthlyRoutinePage() {
           ) : summary.fixedExpenses.length + summary.loanPayments.length === 0 ? (
             <p className="p-8 text-center text-sm text-neutral-500">No committed costs this month.</p>
           ) : (
-            <ul className="divide-y divide-neutral-100 dark:divide-neutral-800">
+            <ul className="max-h-64 divide-y divide-neutral-100 overflow-y-auto dark:divide-neutral-800">
               {summary.fixedExpenses.map((item) => (
-                <li key={item.id} className="flex items-start justify-between gap-4 px-5 py-4">
+                <li key={item.id} className="flex items-start justify-between gap-4 px-5 py-2.5">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-neutral-900 dark:text-neutral-100">
+                    <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
                       {item.categoryIcon ? `${item.categoryIcon} ` : ''}{item.name}
                     </p>
-                    <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                    <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
                       Fixed cost · Due {formatDate(item.dueAt)}
                     </p>
                   </div>
@@ -332,10 +332,10 @@ export function MonthlyRoutinePage() {
                 </li>
               ))}
               {summary.loanPayments.map((item) => (
-                <li key={item.id} className="flex items-start justify-between gap-4 px-5 py-4">
+                <li key={item.id} className="flex items-start justify-between gap-4 px-5 py-2.5">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-neutral-900 dark:text-neutral-100">🏦 {item.bankName}</p>
-                    <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                    <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">🏦 {item.bankName}</p>
+                    <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
                       Loan · Term {item.term} · Due {formatDate(item.dueAt)}
                     </p>
                   </div>
