@@ -1,13 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
-  createRecurringExpense,
   createTransaction,
   createWeeklyExpenses,
-  deactivateRecurringExpense,
   deleteTransaction,
-  reactivateRecurringExpense,
-  updateRecurringExpense,
   updateTransaction,
 } from '../api'
 import { CashFlowSummaryCards } from '../components/cashflow/CashFlowSummaryCards'
@@ -15,9 +11,6 @@ import { CategoryManagerDialog } from '../components/cashflow/CategoryManagerDia
 import { CurrencyConversionNotice } from '../components/cashflow/CurrencyConversionNotice'
 import { DeleteTransactionDialog } from '../components/cashflow/DeleteTransactionDialog'
 import { IncomeExpenseChart } from '../components/cashflow/IncomeExpenseChart'
-import { MonthlyFixedCosts } from '../components/cashflow/MonthlyFixedCosts'
-import { RecurringExpenseFormDialog } from '../components/cashflow/RecurringExpenseFormDialog'
-import { RecurringExpenseManageDialog } from '../components/cashflow/RecurringExpenseManageDialog'
 import { SpendingByCategory } from '../components/cashflow/SpendingByCategory'
 import { TransactionFormDialog } from '../components/cashflow/TransactionFormDialog'
 import { TransactionList } from '../components/cashflow/TransactionList'
@@ -25,16 +18,8 @@ import { WeeklyExpenseDialog } from '../components/cashflow/WeeklyExpenseDialog'
 import { useCurrency } from '../context/CurrencyContext'
 import { useCashFlowSummary } from '../hooks/useCashFlowSummary'
 import { useCategories } from '../hooks/useCategories'
-import { useRecurringExpenses } from '../hooks/useRecurringExpenses'
 import { useTransactions } from '../hooks/useTransactions'
-import type {
-  LedgerTransaction,
-  RecurringExpense,
-  RecurringExpenseInput,
-  RecurringExpenseUpdateInput,
-  TransactionInput,
-  WeeklyExpenseBatchInput,
-} from '../types'
+import type { LedgerTransaction, TransactionInput, WeeklyExpenseBatchInput } from '../types'
 
 function selectedMonth(searchParams: URLSearchParams): { year: number; month: number } {
   const today = new Date()
@@ -59,15 +44,11 @@ export function CashFlowPage() {
   const categoriesState = useCategories(true)
   const transactionsState = useTransactions(year, month)
   const summaryState = useCashFlowSummary(year, month, currency)
-  const recurringState = useRecurringExpenses()
   const [showCreate, setShowCreate] = useState(false)
   const [editing, setEditing] = useState<LedgerTransaction | null>(null)
   const [pendingDelete, setPendingDelete] = useState<LedgerTransaction | null>(null)
   const [showCategories, setShowCategories] = useState(false)
   const [showWeeklyExpenses, setShowWeeklyExpenses] = useState(false)
-  const [showAddFixed, setShowAddFixed] = useState(false)
-  const [showManageFixed, setShowManageFixed] = useState(false)
-  const [editingFixed, setEditingFixed] = useState<RecurringExpense | null>(null)
   const label = monthName(year, month)
 
   function navigateMonth(offset: number) {
@@ -76,11 +57,7 @@ export function CashFlowPage() {
   }
 
   async function refreshFinancials() {
-    await Promise.all([transactionsState.reload(), summaryState.reload(), recurringState.reload()])
-  }
-
-  async function refreshAfterRecurring() {
-    await Promise.all([summaryState.reload(), recurringState.reload()])
+    await Promise.all([transactionsState.reload(), summaryState.reload()])
   }
 
   async function handleCreate(input: TransactionInput) {
@@ -102,34 +79,10 @@ export function CashFlowPage() {
     setShowWeeklyExpenses(false)
   }
 
-  async function handleCreateFixed(input: RecurringExpenseInput) {
-    await createRecurringExpense(input)
-    await refreshAfterRecurring()
-    setShowAddFixed(false)
-  }
-
-  async function handleUpdateFixed(id: string, input: RecurringExpenseUpdateInput) {
-    await updateRecurringExpense(id, input)
-    await refreshAfterRecurring()
-    setEditingFixed(null)
-    setShowManageFixed(true)
-  }
-
-  async function handleStopFixed(id: string, effectiveFromMonth: string) {
-    await deactivateRecurringExpense(id, effectiveFromMonth)
-    await refreshAfterRecurring()
-  }
-
-  async function handleResumeFixed(id: string, resumeFromMonth: string) {
-    await reactivateRecurringExpense(id, resumeFromMonth)
-    await refreshAfterRecurring()
-  }
-
   const error =
     categoriesState.error ||
     transactionsState.error ||
-    summaryState.error ||
-    recurringState.error
+    summaryState.error
 
   return (
     <section>
@@ -167,14 +120,6 @@ export function CashFlowPage() {
       )}
 
       <CashFlowSummaryCards summary={summaryState.summary} loading={summaryState.loading} currency={currency} />
-
-      <MonthlyFixedCosts
-        summary={summaryState.summary}
-        loading={summaryState.loading}
-        monthLabel={label}
-        onAdd={() => setShowAddFixed(true)}
-        onManage={() => setShowManageFixed(true)}
-      />
 
       {summaryState.summary && (
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
@@ -222,48 +167,6 @@ export function CashFlowPage() {
           monthLabel={label}
           onClose={() => setShowWeeklyExpenses(false)}
           onSubmit={handleWeeklyExpenses}
-        />
-      )}
-      {showAddFixed && (
-        <RecurringExpenseFormDialog
-          mode="create"
-          currency={currency}
-          categories={categoriesState.categories}
-          year={year}
-          month={month}
-          onClose={() => setShowAddFixed(false)}
-          onCreate={handleCreateFixed}
-          onUpdate={handleUpdateFixed}
-        />
-      )}
-      {editingFixed && (
-        <RecurringExpenseFormDialog
-          mode="edit"
-          currency={currency}
-          categories={categoriesState.categories}
-          year={year}
-          month={month}
-          expense={editingFixed}
-          onClose={() => {
-            setEditingFixed(null)
-            setShowManageFixed(true)
-          }}
-          onCreate={handleCreateFixed}
-          onUpdate={handleUpdateFixed}
-        />
-      )}
-      {showManageFixed && !editingFixed && (
-        <RecurringExpenseManageDialog
-          items={recurringState.items}
-          year={year}
-          month={month}
-          onClose={() => setShowManageFixed(false)}
-          onEdit={(expense) => {
-            setShowManageFixed(false)
-            setEditingFixed(expense)
-          }}
-          onStop={handleStopFixed}
-          onResume={handleResumeFixed}
         />
       )}
     </section>

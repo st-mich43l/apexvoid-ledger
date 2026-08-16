@@ -1,21 +1,31 @@
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
+  createRecurringExpense,
   createRecurringIncome,
+  deactivateRecurringExpense,
   deactivateRecurringIncome,
+  reactivateRecurringExpense,
   reactivateRecurringIncome,
+  updateRecurringExpense,
   updateRecurringIncome,
 } from '../api'
+import { RecurringExpenseFormDialog } from '../components/routine/RecurringExpenseFormDialog'
+import { RecurringExpenseManageDialog } from '../components/routine/RecurringExpenseManageDialog'
 import { RecurringIncomeFormDialog } from '../components/routine/RecurringIncomeFormDialog'
 import { RecurringIncomeManageDialog } from '../components/routine/RecurringIncomeManageDialog'
 import { useCurrency } from '../context/CurrencyContext'
 import { useCategories } from '../hooks/useCategories'
 import { useMonthlyRoutine } from '../hooks/useMonthlyRoutine'
 import { useMonthlyBudget } from '../hooks/useMonthlyBudget'
+import { useRecurringExpenses } from '../hooks/useRecurringExpenses'
 import { useRecurringIncomes } from '../hooks/useRecurringIncomes'
 import { formatCurrency } from '../lib/currency'
 import { formatDate } from '../lib/date'
 import type {
+  RecurringExpense,
+  RecurringExpenseInput,
+  RecurringExpenseUpdateInput,
   RecurringIncome,
   RecurringIncomeInput,
   RecurringIncomeUpdateInput,
@@ -50,9 +60,13 @@ export function MonthlyRoutinePage() {
   const routineState = useMonthlyRoutine(year, month, currency)
   const budgetState = useMonthlyBudget(year, month)
   const incomesState = useRecurringIncomes()
+  const expensesState = useRecurringExpenses()
   const [showAdd, setShowAdd] = useState(false)
   const [showManage, setShowManage] = useState(false)
   const [editing, setEditing] = useState<RecurringIncome | null>(null)
+  const [showAddFixed, setShowAddFixed] = useState(false)
+  const [showManageFixed, setShowManageFixed] = useState(false)
+  const [editingFixed, setEditingFixed] = useState<RecurringExpense | null>(null)
   const label = monthName(year, month)
   const summary = routineState.summary
   const incomeControlsReady = !incomesState.loading
@@ -60,6 +74,10 @@ export function MonthlyRoutinePage() {
     && !categoriesState.loading
     && !categoriesState.error
   const isInitialIncomeSetup = incomeControlsReady && incomesState.items.length === 0
+  const expenseControlsReady = !expensesState.loading
+    && !expensesState.error
+    && !categoriesState.loading
+    && !categoriesState.error
 
   function navigateMonth(offset: number) {
     const next = new Date(Date.UTC(year, month - 1 + offset, 1))
@@ -67,7 +85,7 @@ export function MonthlyRoutinePage() {
   }
 
   async function refresh() {
-    await Promise.all([routineState.reload(), incomesState.reload()])
+    await Promise.all([routineState.reload(), incomesState.reload(), expensesState.reload()])
   }
 
   async function handleCreate(input: RecurringIncomeInput) {
@@ -93,7 +111,30 @@ export function MonthlyRoutinePage() {
     await refresh()
   }
 
-  const error = categoriesState.error || routineState.error || incomesState.error || budgetState.error
+  async function handleCreateFixed(input: RecurringExpenseInput) {
+    await createRecurringExpense(input)
+    await refresh()
+    setShowAddFixed(false)
+  }
+
+  async function handleUpdateFixed(id: string, input: RecurringExpenseUpdateInput) {
+    await updateRecurringExpense(id, input)
+    await refresh()
+    setEditingFixed(null)
+    setShowManageFixed(true)
+  }
+
+  async function handleStopFixed(id: string, effectiveFromMonth: string) {
+    await deactivateRecurringExpense(id, effectiveFromMonth)
+    await refresh()
+  }
+
+  async function handleResumeFixed(id: string, resumeFromMonth: string) {
+    await reactivateRecurringExpense(id, resumeFromMonth)
+    await refresh()
+  }
+
+  const error = categoriesState.error || routineState.error || incomesState.error || budgetState.error || expensesState.error
 
   return (
     <section>
@@ -218,14 +259,14 @@ export function MonthlyRoutinePage() {
               </div>
             )
           ) : (
-            <ul className="divide-y divide-neutral-100 dark:divide-neutral-800">
+            <ul className="max-h-64 divide-y divide-neutral-100 overflow-y-auto dark:divide-neutral-800">
               {summary.expectedIncome.map((item) => (
-                <li key={item.id} className="flex items-start justify-between gap-4 px-5 py-4">
+                <li key={item.id} className="flex items-start justify-between gap-4 px-5 py-2.5">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-neutral-900 dark:text-neutral-100">
+                    <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
                       {item.categoryIcon ? `${item.categoryIcon} ` : ''}{item.name}
                     </p>
-                    <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                    <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
                       {item.categoryName} · Expected {formatDate(item.expectedAt)}
                     </p>
                   </div>
@@ -242,12 +283,26 @@ export function MonthlyRoutinePage() {
         </article>
 
         <article className="overflow-hidden rounded-3xl border border-neutral-200/80 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-          <div className="border-b border-neutral-200/80 px-5 py-5 dark:border-neutral-800">
-            <h3 className="font-semibold text-neutral-900 dark:text-neutral-50">Committed costs</h3>
-            <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-              Fixed bills and loan obligations already included in Cash Flow.
-            </p>
-            <p className="mt-3 text-lg font-semibold tabular-nums text-neutral-900 dark:text-neutral-50">
+          <div className="flex flex-col gap-3 border-b border-neutral-200/80 px-5 py-5 sm:flex-row sm:items-start sm:justify-between dark:border-neutral-800">
+            <div>
+              <h3 className="font-semibold text-neutral-900 dark:text-neutral-50">Committed costs</h3>
+              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                Fixed bills and loan obligations already included in Cash Flow.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {expenseControlsReady && (
+                <button type="button" onClick={() => setShowAddFixed(true)} className="rounded-full bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500">
+                  + Add fixed cost
+                </button>
+              )}
+              {expensesState.items.length > 0 && (
+                <button type="button" onClick={() => setShowManageFixed(true)} className="rounded-full border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800">Manage</button>
+              )}
+            </div>
+          </div>
+          <div className="border-b border-neutral-200/80 px-5 py-4 dark:border-neutral-800">
+            <p className="text-lg font-semibold tabular-nums text-neutral-900 dark:text-neutral-50">
               {summary ? formatCurrency(summary.committedExpenseTotal, currency) : '—'}
             </p>
             <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
@@ -260,14 +315,14 @@ export function MonthlyRoutinePage() {
           ) : summary.fixedExpenses.length + summary.loanPayments.length === 0 ? (
             <p className="p-8 text-center text-sm text-neutral-500">No committed costs this month.</p>
           ) : (
-            <ul className="divide-y divide-neutral-100 dark:divide-neutral-800">
+            <ul className="max-h-64 divide-y divide-neutral-100 overflow-y-auto dark:divide-neutral-800">
               {summary.fixedExpenses.map((item) => (
-                <li key={item.id} className="flex items-start justify-between gap-4 px-5 py-4">
+                <li key={item.id} className="flex items-start justify-between gap-4 px-5 py-2.5">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-neutral-900 dark:text-neutral-100">
+                    <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
                       {item.categoryIcon ? `${item.categoryIcon} ` : ''}{item.name}
                     </p>
-                    <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                    <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
                       Fixed cost · Due {formatDate(item.dueAt)}
                     </p>
                   </div>
@@ -277,10 +332,10 @@ export function MonthlyRoutinePage() {
                 </li>
               ))}
               {summary.loanPayments.map((item) => (
-                <li key={item.id} className="flex items-start justify-between gap-4 px-5 py-4">
+                <li key={item.id} className="flex items-start justify-between gap-4 px-5 py-2.5">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-neutral-900 dark:text-neutral-100">🏦 {item.bankName}</p>
-                    <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                    <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">🏦 {item.bankName}</p>
+                    <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
                       Loan · Term {item.term} · Due {formatDate(item.dueAt)}
                     </p>
                   </div>
@@ -291,11 +346,6 @@ export function MonthlyRoutinePage() {
               ))}
             </ul>
           )}
-          <div className="border-t border-neutral-200/80 px-5 py-4 dark:border-neutral-800">
-            <Link to="/cashflow" className="text-sm font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400">
-              Manage fixed costs in Cash Flow →
-            </Link>
-          </div>
         </article>
       </div>
 
@@ -393,6 +443,49 @@ export function MonthlyRoutinePage() {
           }}
           onStop={handleStop}
           onResume={handleResume}
+        />
+      )}
+
+      {showAddFixed && (
+        <RecurringExpenseFormDialog
+          mode="create"
+          currency={currency}
+          categories={categoriesState.categories}
+          year={year}
+          month={month}
+          onClose={() => setShowAddFixed(false)}
+          onCreate={handleCreateFixed}
+          onUpdate={handleUpdateFixed}
+        />
+      )}
+      {editingFixed && (
+        <RecurringExpenseFormDialog
+          mode="edit"
+          currency={currency}
+          categories={categoriesState.categories}
+          year={year}
+          month={month}
+          expense={editingFixed}
+          onClose={() => {
+            setEditingFixed(null)
+            setShowManageFixed(true)
+          }}
+          onCreate={handleCreateFixed}
+          onUpdate={handleUpdateFixed}
+        />
+      )}
+      {showManageFixed && !editingFixed && (
+        <RecurringExpenseManageDialog
+          items={expensesState.items}
+          year={year}
+          month={month}
+          onClose={() => setShowManageFixed(false)}
+          onEdit={(expense) => {
+            setShowManageFixed(false)
+            setEditingFixed(expense)
+          }}
+          onStop={handleStopFixed}
+          onResume={handleResumeFixed}
         />
       )}
     </section>
