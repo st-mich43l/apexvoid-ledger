@@ -4,6 +4,7 @@ import { PremiumCard } from '../components/PremiumCard'
 import { useCurrency } from '../context/CurrencyContext'
 import { useLoans } from '../hooks/useLoans'
 import { formatCurrency } from '../lib/currency'
+import { FinanceCalculators } from './Tools'
 
 export function HomePage() {
   const { loans, loading: loansLoading } = useLoans()
@@ -42,6 +43,17 @@ export function HomePage() {
           to="/dashboard"
           icon={<GridIcon />}
         />
+      </div>
+
+      <div className="mt-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-violet-600 dark:text-violet-400">Tools</p>
+        <h3 className="mt-1 text-lg font-semibold text-neutral-900 dark:text-neutral-50">Finance calculators</h3>
+        <p className="mt-1 max-w-2xl text-sm text-neutral-500 dark:text-neutral-400">
+          Quick what-if helpers. The loan calculator uses the same EMI / interest-only formulas as Loans. These tools do not create or change loan records.
+        </p>
+        <div className="mt-5">
+          <FinanceCalculators />
+        </div>
       </div>
     </section>
   )

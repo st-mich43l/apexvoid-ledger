@@ -66,7 +66,7 @@ export function validateLoanForm(values: LoanFormValues): string | null {
   return null
 }
 
-function sanitizeAmountInput(value: string): string {
+export function sanitizeAmountInput(value: string): string {
   let cleaned = value.replace(/,/g, '').replace(/[^\d.-]/g, '')
   const isNegative = cleaned.startsWith('-')
   cleaned = cleaned.replace(/-/g, '')
