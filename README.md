@@ -106,8 +106,10 @@ activity ledger:
 ### Page structure
 
 - `/login` — sign in (username, not email)
-- `/home` — admin hub: portal shortcuts + overview (admins only; other users
-  skip straight to `/dashboard`)
+- `/home` — admin hub: portal shortcuts, dashboard entry, compound-interest
+  calculator, and a loan calculator (disbursement, annual rate, term,
+  unsecured/secured) that derives monthly payment. Calculators do not write
+  ledger data. Admins only; other users skip straight to `/dashboard`.
 - `/dashboard` — account overview with saving pot, current-month cash flow, and
   loan summary (trading remains planned)
 - `/cashflow` — monthly cash-flow summary, visualizations, transaction CRUD,

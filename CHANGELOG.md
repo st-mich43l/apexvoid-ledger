@@ -7,6 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### ✨ Added
+- 🧮 Finance tools on `/home`: compound interest plus a loan calculator
+  (disbursement, annual rate, term, unsecured EMI or secured interest-only)
+  that derives monthly payment without writing loan or Cash Flow data.
 - 🎯 v0.4.3 Monthly Close / Financial Review (`/monthly-close`): auditable
   month-end snapshots of Cash Flow, Budget results, and Saving Pot month
   applications, with immutable revisions, historical drift detection, and

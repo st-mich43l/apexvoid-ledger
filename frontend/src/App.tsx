@@ -17,8 +17,8 @@ import { MonthlyRoutinePage } from './pages/MonthlyRoutine'
 import { SavingPotPage } from './pages/SavingPot'
 import { SelectCurrencyPage } from './pages/SelectCurrency'
 
-// Admins land on /home (admin portal + dashboard hub); everyone else goes
-// straight to /dashboard, since /home has nothing for them.
+// Admins land on /home (admin portal, dashboard hub, and finance tools);
+// everyone else goes straight to /dashboard.
 function DefaultRoute() {
   const { user } = useAuth()
   return <Navigate to={user?.isAdmin ? '/home' : '/dashboard'} replace />
@@ -46,6 +46,7 @@ function App() {
           <Route path="saving-pot" element={<SavingPotPage />} />
           <Route path="loan" element={<LoanPage />} />
           <Route path="loan/:loanId" element={<LoanDetailPage />} />
+          <Route path="tools" element={<Navigate to="/home" replace />} />
 
           <Route element={<RequireAdmin />}>
             <Route path="home" element={<HomePage />} />
