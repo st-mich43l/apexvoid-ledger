@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  connectNetWorthAccount,
+  disconnectNetWorthAccount,
   fetchNetWorthAccounts,
   fetchNetWorthSummary,
   refreshNetWorthAccount,
 } from '../api'
-import type { FinancialAccount, NetWorthSummary } from '../types'
+import type { FinancialAccount, NetWorthSummary, SePayConnectionInput } from '../types'
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000
 
@@ -13,6 +15,7 @@ export function useNetWorth() {
   const [accounts, setAccounts] = useState<FinancialAccount[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [connecting, setConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const alive = useRef(true)
 
@@ -58,5 +61,32 @@ export function useNetWorth() {
     }
   }, [load])
 
-  return { summary, accounts, loading, refreshing, error, refresh, reload: load }
+  const connect = useCallback(async (input: SePayConnectionInput) => {
+    setConnecting(true)
+    setError(null)
+    try {
+      await connectNetWorthAccount(input)
+      await load()
+    } catch (err) {
+      if (alive.current) setError(err instanceof Error ? err.message : 'Unable to connect SePay account')
+      throw err
+    } finally {
+      if (alive.current) setConnecting(false)
+    }
+  }, [load])
+
+  const disconnect = useCallback(async (accountId: string) => {
+    setRefreshing(true)
+    setError(null)
+    try {
+      await disconnectNetWorthAccount(accountId)
+      await load()
+    } catch (err) {
+      if (alive.current) setError(err instanceof Error ? err.message : 'Unable to disconnect SePay account')
+    } finally {
+      if (alive.current) setRefreshing(false)
+    }
+  }, [load])
+
+  return { summary, accounts, loading, refreshing, connecting, error, refresh, connect, disconnect, reload: load }
 }

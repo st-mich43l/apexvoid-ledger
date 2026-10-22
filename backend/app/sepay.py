@@ -7,6 +7,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 import httpx
+from cryptography.fernet import Fernet, InvalidToken
 
 
 class SePayError(RuntimeError):
@@ -35,8 +36,15 @@ class SePayConfigurationError(SePayError):
 @dataclass(frozen=True)
 class SePayConfig:
   api_token: str
-  bank_account_id: str
-  ledger_user_id: str
+  bank_account_id: str | None = None
+
+
+@dataclass(frozen=True)
+class SePayAccountReference:
+  external_account_id: str
+  account_number: str
+  bank_name: str
+  active: bool | None
 
 
 @dataclass(frozen=True)
@@ -49,24 +57,42 @@ class SePayAccountDetails:
   last_transaction_at: datetime | None
 
 
-def get_sepay_config() -> SePayConfig | None:
-  token = os.getenv("SEPAY_API_TOKEN", "").strip()
-  account_id = os.getenv("SEPAY_BANK_ACCOUNT_ID", "").strip()
-  ledger_user_id = os.getenv("SEPAY_LEDGER_USER_ID", "").strip()
+def _credential_fernet() -> Fernet:
+  key = os.getenv("SEPAY_CREDENTIAL_ENCRYPTION_KEY", "").strip()
+  if not key:
+    raise SePayConfigurationError("SePay credential encryption is not configured")
+  try:
+    return Fernet(key.encode("ascii"))
+  except (ValueError, TypeError) as error:
+    raise SePayConfigurationError("SePay credential encryption is invalid") from error
 
-  if not token and not account_id and not ledger_user_id:
-    return None
-  if not token or not account_id or not ledger_user_id:
-    raise SePayConfigurationError("SePay integration configuration is incomplete")
-  if not account_id.isdigit() or int(account_id) <= 0:
-    raise SePayConfigurationError("SePay bank account configuration is invalid")
-  return SePayConfig(token, account_id, ledger_user_id)
+
+def encrypt_api_token(api_token: str) -> str:
+  token = api_token.strip()
+  if not token:
+    raise SePayConfigurationError("SePay API token is empty")
+  return _credential_fernet().encrypt(token.encode("utf-8")).decode("ascii")
+
+
+def decrypt_api_token(ciphertext: str) -> str:
+  try:
+    token = _credential_fernet().decrypt(ciphertext.encode("ascii")).decode("utf-8").strip()
+  except (InvalidToken, UnicodeDecodeError, ValueError, TypeError) as error:
+    raise SePayConfigurationError("Stored SePay credentials are invalid") from error
+  if not token:
+    raise SePayConfigurationError("Stored SePay credentials are empty")
+  return token
+
+
+def normalize_account_number(value: str) -> str:
+  normalized = "".join(value.split()).replace("-", "")
+  if not normalized or not normalized.isdigit():
+    raise SePayError("Bank account number is invalid", kind="validation", status_code=422)
+  return normalized
 
 
 def _mask_account_number(value: str) -> str:
-  compact = "".join(value.split())
-  if not compact:
-    raise SePayError("SePay returned an invalid account number", kind="invalid_response")
+  compact = normalize_account_number(value)
   return f"••••{compact[-4:]}"
 
 
@@ -92,6 +118,16 @@ def _parse_datetime(value: Any) -> datetime | None:
   return parsed.astimezone(timezone.utc)
 
 
+def _parse_active(value: Any) -> bool | None:
+  if value is None:
+    return None
+  if value is True or value == 1 or value == "1":
+    return True
+  if value is False or value == 0 or value == "0":
+    return False
+  raise SePayError("SePay returned an invalid response", kind="invalid_response")
+
+
 class SePayClient:
   def __init__(
     self,
@@ -111,23 +147,22 @@ class SePayClient:
     if self._owns_client:
       self._client.close()
 
-  def get_account_details(self) -> SePayAccountDetails:
+  def _get_json(self, path: str) -> dict[str, Any]:
     try:
       response = self._client.get(
-        f"{self._base_url}/bankaccounts/details/{self._config.bank_account_id}",
-        headers={"Authorization": f"Bearer {self._config.api_token}"},
+        f"{self._base_url}/{path.lstrip('/')}",
+        headers={
+          "Authorization": f"Bearer {self._config.api_token}",
+          "Content-Type": "application/json",
+        },
       )
     except httpx.TimeoutException as error:
       raise SePayError(
-        "SePay is temporarily unavailable",
-        kind="timeout",
-        status_code=503,
+        "SePay is temporarily unavailable", kind="timeout", status_code=503
       ) from error
     except httpx.HTTPError as error:
       raise SePayError(
-        "SePay is temporarily unavailable",
-        kind="network",
-        status_code=503,
+        "SePay is temporarily unavailable", kind="network", status_code=503
       ) from error
 
     if response.status_code == 401:
@@ -153,8 +188,53 @@ class SePayClient:
       raise SePayError(
         "SePay returned an invalid response", kind="invalid_response"
       ) from error
+    if not isinstance(payload, dict):
+      raise SePayError("SePay returned an invalid response", kind="invalid_response")
+    return payload
 
-    if not isinstance(payload, dict) or not isinstance(payload.get("bankaccount"), dict):
+  def list_accounts(self) -> list[SePayAccountReference]:
+    payload = self._get_json("bankaccounts/list")
+    raw_accounts = payload.get("bankaccounts")
+    if not isinstance(raw_accounts, list):
+      raise SePayError("SePay returned an invalid response", kind="invalid_response")
+
+    accounts: list[SePayAccountReference] = []
+    for raw_account in raw_accounts:
+      if not isinstance(raw_account, dict):
+        raise SePayError("SePay returned an invalid response", kind="invalid_response")
+      raw_id = raw_account.get("id")
+      raw_number = raw_account.get("account_number")
+      if raw_id is None or not str(raw_id).isdigit() or not isinstance(raw_number, str):
+        raise SePayError("SePay returned an invalid account", kind="invalid_response")
+      bank_name = raw_account.get("bank_full_name") or raw_account.get("bank_short_name")
+      if not isinstance(bank_name, str) or not bank_name.strip():
+        bank_name = "SePay bank account"
+      accounts.append(
+        SePayAccountReference(
+          external_account_id=str(raw_id),
+          account_number=normalize_account_number(raw_number),
+          bank_name=bank_name.strip()[:100],
+          active=_parse_active(raw_account.get("active")),
+        )
+      )
+    return accounts
+
+  def find_account(self, account_number: str) -> SePayAccountReference:
+    normalized = normalize_account_number(account_number)
+    matches = [account for account in self.list_accounts() if account.account_number == normalized]
+    if not matches:
+      raise SePayError("The SePay bank account was not found", kind="not_found", status_code=404)
+    if len(matches) > 1:
+      raise SePayError("The SePay bank account is ambiguous", kind="invalid_response")
+    if matches[0].active is False:
+      raise SePayError("The SePay bank account is inactive", kind="inactive", status_code=503)
+    return matches[0]
+
+  def get_account_details(self) -> SePayAccountDetails:
+    if not self._config.bank_account_id:
+      raise SePayConfigurationError("SePay bank account is not selected")
+    payload = self._get_json(f"bankaccounts/details/{self._config.bank_account_id}")
+    if not isinstance(payload.get("bankaccount"), dict):
       raise SePayError("SePay returned an invalid response", kind="invalid_response")
     bank_account = payload["bankaccount"]
 
@@ -166,25 +246,19 @@ class SePayClient:
     try:
       balance = Decimal(str(raw_balance))
     except (InvalidOperation, TypeError, ValueError) as error:
-      raise SePayError(
-        "SePay returned an invalid balance", kind="invalid_response"
-      ) from error
+      raise SePayError("SePay returned an invalid balance", kind="invalid_response") from error
     if not balance.is_finite() or abs(balance) >= Decimal("10000000000000000"):
       raise SePayError("SePay returned an invalid balance", kind="invalid_response")
 
-    active = bank_account.get("active")
-    if active is False:
+    if _parse_active(bank_account.get("active")) is False:
       raise SePayError("The SePay bank account is inactive", kind="inactive", status_code=503)
-    if active is not None and not isinstance(active, bool):
-      raise SePayError("SePay returned an invalid response", kind="invalid_response")
 
     raw_account_number = bank_account.get("account_number")
     if not isinstance(raw_account_number, str):
       raise SePayError("SePay returned an invalid account", kind="invalid_response")
-
     bank_name = bank_account.get("bank_full_name") or bank_account.get("bank_short_name")
     if not isinstance(bank_name, str) or not bank_name.strip():
-      bank_name = "TPBank"
+      bank_name = "SePay bank account"
     account_name = bank_account.get("account_holder_name")
     if not isinstance(account_name, str):
       account_name = None

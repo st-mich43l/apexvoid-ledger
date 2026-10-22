@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### ✨ Added
+- 🔐 Per-user SePay connections: users connect their own token and bank
+  account number from `/net-worth`; tokens are Fernet-encrypted at rest,
+  account IDs are resolved through SePay, and users can disconnect accounts.
+- 🧬 Migration `0020` adds encrypted per-user SePay credential storage.
 - 🧾 v0.5.0 Net Worth foundation: user-owned FinancialAccount balances,
   read-only SePay TPBank synchronization, stale/unavailable states, and the
   `/net-worth` page with loan liabilities.

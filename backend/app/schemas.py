@@ -2,7 +2,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_serializer, field_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, StringConstraints, field_serializer, field_validator
 from pydantic.alias_generators import to_camel
 
 LoanType = Literal["secured", "unsecured"]
@@ -860,6 +860,11 @@ class FinancialAccountRead(CamelModel):
   @field_serializer("last_synced_at", "last_transaction_at")
   def _serialize_optional_dt(self, dt: datetime | None, _info) -> str | None:
     return _to_js_iso(dt) if dt is not None else None
+
+
+class SePayConnectionCreate(CamelModel):
+  api_token: SecretStr = Field(min_length=16, max_length=512)
+  account_number: Annotated[str, StringConstraints(strip_whitespace=True, min_length=4, max_length=64)]
 
 
 class NetWorthLineRead(CamelModel):

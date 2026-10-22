@@ -4,11 +4,13 @@ from decimal import Decimal
 import httpx
 import pytest
 
-from app.sepay import SePayClient, SePayConfig, SePayError, get_sepay_config
+from cryptography.fernet import Fernet
+
+from app.sepay import SePayClient, SePayConfig, SePayError, decrypt_api_token, encrypt_api_token
 
 
 def _config() -> SePayConfig:
-  return SePayConfig("test-token", "42", "user-1")
+  return SePayConfig("test-token", "42")
 
 
 def test_parses_decimal_zero_and_masks_account_number():
@@ -24,7 +26,7 @@ def test_parses_decimal_zero_and_masks_account_number():
             "account_number": "0123456789",
             "account_holder_name": "ALICE",
             "accumulated": "0",
-            "active": True,
+            "active": "1",
             "last_transaction": {"transaction_date": "2026-10-22T01:02:03Z"},
           }
         },
@@ -35,6 +37,24 @@ def test_parses_decimal_zero_and_masks_account_number():
   assert result.balance == Decimal("0")
   assert result.account_number_masked == "••••6789"
   assert result.last_transaction_at == datetime(2026, 10, 22, 1, 2, 3, tzinfo=timezone.utc)
+
+
+def test_lists_accounts_and_resolves_bank_account_number():
+  client = httpx.Client(
+    transport=httpx.MockTransport(
+      lambda request: httpx.Response(
+        200,
+        json={
+          "bankaccounts": [
+            {"id": "92484", "account_number": "10937375404", "bank_short_name": "TPB", "active": "1"},
+          ]
+        },
+      )
+    )
+  )
+  result = SePayClient(SePayConfig("test-token"), client=client).find_account("10 937 375 404")
+  assert result.external_account_id == "92484"
+  assert result.account_number == "10937375404"
 
 
 @pytest.mark.parametrize(
@@ -76,10 +96,8 @@ def test_maps_timeout_without_exposing_credentials():
   assert raised.value.status_code == 503
 
 
-def test_missing_configuration_is_distinguished_from_unconfigured_environment(monkeypatch):
-  for name in ("SEPAY_API_TOKEN", "SEPAY_BANK_ACCOUNT_ID", "SEPAY_LEDGER_USER_ID"):
-    monkeypatch.delenv(name, raising=False)
-  assert get_sepay_config() is None
-  monkeypatch.setenv("SEPAY_API_TOKEN", "token")
-  with pytest.raises(SePayError, match="incomplete"):
-    get_sepay_config()
+def test_encrypts_and_decrypts_tokens(monkeypatch):
+  monkeypatch.setenv("SEPAY_CREDENTIAL_ENCRYPTION_KEY", Fernet.generate_key().decode())
+  ciphertext = encrypt_api_token("test-token")
+  assert ciphertext != "test-token"
+  assert decrypt_api_token(ciphertext) == "test-token"

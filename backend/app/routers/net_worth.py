@@ -8,19 +8,14 @@ from sqlalchemy.orm import Session
 from ..auth import require_password_changed
 from ..database import get_db
 from ..models import FinancialAccount, User
-from ..net_worth import (
-  build_net_worth,
-  ensure_configured_account,
-  mark_stale_if_old,
-  sync_account,
-  sync_if_due,
-)
+from ..net_worth import build_net_worth, connect_sepay_account, mark_stale_if_old, sync_account, sync_if_due
 from ..schemas import (
   FinancialAccountRead,
   NetWorthLineRead,
   NetWorthSummaryRead,
+  SePayConnectionCreate,
 )
-from ..sepay import SePayError, get_sepay_config
+from ..sepay import SePayError
 
 router = APIRouter(prefix="/api/net-worth", tags=["net-worth"])
 
@@ -56,26 +51,9 @@ def _sync_configured_accounts(
   accounts: list[FinancialAccount],
 ) -> list[str]:
   warnings: list[str] = []
-  try:
-    config = get_sepay_config()
-    configured = ensure_configured_account(db, user)
-  except SePayError as error:
-    for account in accounts:
-      mark_stale_if_old(db, account)
-    warnings.append(error.public_message)
-    return warnings
-
-  if config is None or configured is None:
-    for account in accounts:
-      mark_stale_if_old(db, account)
-    return warnings
-
-  # The query is repeated after provisioning so the returned list remains
-  # the complete user-owned set if additional providers are added later.
-  accounts[:] = _owned_accounts(db, user)
   for account in accounts:
     mark_stale_if_old(db, account)
-    if account.provider != "sepay" or account.external_account_id != config.bank_account_id:
+    if account.provider != "sepay":
       continue
     error = sync_if_due(db, account)
     if error is not None:
@@ -85,6 +63,24 @@ def _sync_configured_accounts(
 
 def _account_read(account: FinancialAccount) -> FinancialAccountRead:
   return FinancialAccountRead.model_validate(account)
+
+
+@router.post("/accounts", response_model=FinancialAccountRead, status_code=201)
+def connect_account(
+  payload: SePayConnectionCreate,
+  db: Session = Depends(get_db),
+  current_user: User = Depends(require_password_changed),
+):
+  try:
+    account = connect_sepay_account(
+      db,
+      current_user,
+      api_token=payload.api_token.get_secret_value(),
+      account_number=payload.account_number,
+    )
+  except SePayError as error:
+    raise _provider_http_error(error) from error
+  return _account_read(account)
 
 
 @router.get("/accounts", response_model=list[FinancialAccountRead])
@@ -139,3 +135,14 @@ def refresh_account(
   except SePayError as error:
     raise _provider_http_error(error) from error
   return _account_read(account)
+
+
+@router.delete("/accounts/{account_id}", status_code=204)
+def disconnect_account(
+  account_id: UUID,
+  db: Session = Depends(get_db),
+  current_user: User = Depends(require_password_changed),
+):
+  account = _get_owned_account(db, account_id, current_user)
+  db.delete(account)
+  db.commit()

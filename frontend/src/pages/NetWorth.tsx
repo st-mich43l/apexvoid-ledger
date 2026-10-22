@@ -1,3 +1,4 @@
+import { useState, type FormEvent } from 'react'
 import type { FinancialAccount, NetWorthLine } from '../types'
 import { useNetWorth } from '../hooks/useNetWorth'
 import { formatCurrency } from '../lib/currency'
@@ -5,7 +6,7 @@ import { useCurrency } from '../context/CurrencyContext'
 
 export function NetWorthPage() {
   const { currency } = useCurrency()
-  const { summary, accounts, loading, refreshing, error, refresh } = useNetWorth()
+  const { summary, accounts, loading, refreshing, connecting, error, refresh, connect, disconnect } = useNetWorth()
   const reportingCurrency = summary?.reportingCurrency ?? currency
 
   return (
@@ -34,6 +35,8 @@ export function NetWorthPage() {
           </ul>
         </div>
       ) : null}
+
+      <ConnectSePayCard connecting={connecting} onConnect={connect} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <SummaryCard
@@ -73,6 +76,7 @@ export function NetWorthPage() {
                 account={account}
                 refreshing={refreshing}
                 onRefresh={() => void refresh(account.id)}
+                onDisconnect={() => void disconnect(account.id)}
               />
             ))}
           </div>
@@ -130,10 +134,12 @@ function BankAccountCard({
   account,
   refreshing,
   onRefresh,
+  onDisconnect,
 }: {
   account: FinancialAccount
   refreshing: boolean
   onRefresh: () => void
+  onDisconnect: () => void
 }) {
   const isUnavailable = account.balance === null
   const statusText = account.balanceStatus === 'verified'
@@ -167,6 +173,14 @@ function BankAccountCard({
         >
           {refreshing ? 'Refreshing…' : 'Refresh'}
         </button>
+        <button
+          type="button"
+          onClick={onDisconnect}
+          disabled={refreshing}
+          className="rounded-full border border-red-200 px-3.5 py-2 text-sm font-medium text-red-700 transition hover:border-red-400 disabled:cursor-wait disabled:opacity-50 dark:border-red-900/60 dark:text-red-300"
+        >
+          Disconnect
+        </button>
       </div>
       <p className={'mt-5 text-2xl font-semibold tabular-nums ' + (isUnavailable ? 'text-neutral-400 dark:text-neutral-500' : 'text-neutral-900 dark:text-neutral-50')}>
         {isUnavailable ? 'Unavailable' : formatCurrency(account.balance ?? 0, account.currency)}
@@ -179,6 +193,73 @@ function BankAccountCard({
         <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">{account.lastSyncError}</p>
       )}
     </div>
+  )
+}
+
+function ConnectSePayCard({
+  connecting,
+  onConnect,
+}: {
+  connecting: boolean
+  onConnect: (input: { apiToken: string; accountNumber: string }) => Promise<void>
+}) {
+  const [apiToken, setApiToken] = useState('')
+  const [accountNumber, setAccountNumber] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setSubmitted(true)
+    try {
+      await onConnect({ apiToken, accountNumber })
+      setApiToken('')
+      setAccountNumber('')
+      setSubmitted(false)
+    } catch {
+      // The shared page error displays the safe server message.
+    }
+  }
+
+  return (
+    <section className="mb-6 rounded-3xl border border-violet-200 bg-violet-50/60 p-6 dark:border-violet-900/60 dark:bg-violet-950/20">
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-violet-600 dark:text-violet-400">Personal connection</p>
+      <h3 className="mt-1 text-lg font-semibold text-neutral-900 dark:text-neutral-50">Connect a SePay account</h3>
+      <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
+        Your token is encrypted on the server and belongs only to your Ledger account. Use the bank account number, not SePay’s internal ID.
+      </p>
+      <form className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end" onSubmit={(event) => void submit(event)}>
+        <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+          SePay API token
+          <input
+            type="password"
+            value={apiToken}
+            onChange={(event) => setApiToken(event.target.value)}
+            autoComplete="off"
+            required
+            className="mt-1 block w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 font-normal text-neutral-900 outline-none focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50"
+          />
+        </label>
+        <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+          Bank account number
+          <input
+            type="text"
+            inputMode="numeric"
+            value={accountNumber}
+            onChange={(event) => setAccountNumber(event.target.value)}
+            autoComplete="off"
+            required
+            className="mt-1 block w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 font-normal text-neutral-900 outline-none focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50"
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={connecting || !apiToken || !accountNumber}
+          className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-wait disabled:opacity-50"
+        >
+          {connecting ? 'Connecting…' : submitted ? 'Try again' : 'Connect'}
+        </button>
+      </form>
+    </section>
   )
 }
 

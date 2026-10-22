@@ -28,6 +28,7 @@ import type {
   MonthlyCloseSummary,
   FinancialAccount,
   NetWorthSummary,
+  SePayConnectionInput,
 } from './types'
 import type { CurrencyCode } from './lib/currency'
 
@@ -94,8 +95,19 @@ export function fetchNetWorthAccounts(): Promise<FinancialAccount[]> {
   return authedRequest<FinancialAccount[]>('/api/net-worth/accounts')
 }
 
+export function connectNetWorthAccount(input: SePayConnectionInput): Promise<FinancialAccount> {
+  return authedRequest<FinancialAccount>('/api/net-worth/accounts', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
 export function refreshNetWorthAccount(id: string): Promise<FinancialAccount> {
   return authedRequest<FinancialAccount>('/api/net-worth/accounts/' + id + '/refresh', { method: 'POST' })
+}
+
+export function disconnectNetWorthAccount(id: string): Promise<void> {
+  return authedRequest<void>('/api/net-worth/accounts/' + id, { method: 'DELETE' })
 }
 
 export function createLoan(input: LoanInput): Promise<Loan> {

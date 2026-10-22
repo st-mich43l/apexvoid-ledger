@@ -15,7 +15,13 @@ from .exchange_rates import (
   quote_for_date,
 )
 from .models import FinancialAccount, Loan, User
-from .sepay import SePayClient, SePayError, get_sepay_config
+from .sepay import (
+  SePayClient,
+  SePayConfig,
+  SePayError,
+  decrypt_api_token,
+  encrypt_api_token,
+)
 
 SYNC_INTERVAL_SECONDS = 5 * 60
 _sync_lock = threading.Lock()
@@ -33,62 +39,76 @@ def _as_utc(value: datetime | None) -> datetime | None:
   return value.astimezone(timezone.utc)
 
 
-def ensure_configured_account(db: Session, user: User) -> FinancialAccount | None:
-  """Create the configured mapping only for its explicitly configured owner."""
-  config = get_sepay_config()
-  if config is None or config.ledger_user_id != user.id:
-    return None
+def connect_sepay_account(
+  db: Session,
+  user: User,
+  *,
+  api_token: str,
+  account_number: str,
+) -> FinancialAccount:
+  """Validate and attach one SePay account to the currently authenticated user."""
+  token = api_token.strip()
+  if not token:
+    raise SePayError("SePay API token is required", kind="validation", status_code=422)
 
-  # Also serialize first-time provisioning in this process. The database
-  # unique constraint remains the final guard across multiple workers.
+  client = SePayClient(SePayConfig(token))
+  try:
+    reference = client.find_account(account_number)
+  finally:
+    client.close()
+
+  client = SePayClient(SePayConfig(token, reference.external_account_id))
+  try:
+    details = client.get_account_details()
+  finally:
+    client.close()
+
+  ciphertext = encrypt_api_token(token)
+  now = utcnow()
   with _sync_lock:
     account = (
       db.query(FinancialAccount)
       .filter(
+        FinancialAccount.user_id == user.id,
         FinancialAccount.provider == "sepay",
-        FinancialAccount.external_account_id == config.bank_account_id,
+        FinancialAccount.external_account_id == reference.external_account_id,
       )
       .first()
     )
-    if account is not None:
-      if account.user_id != user.id:
-        raise SePayError(
-          "SePay account association is invalid",
-          kind="configuration",
-          status_code=503,
-        )
-      return account
+    if account is None:
+      account = FinancialAccount(
+        user_id=user.id,
+        provider="sepay",
+        external_account_id=details.external_account_id,
+        bank_name=details.bank_name,
+        account_number_masked=details.account_number_masked,
+        account_name=details.account_name,
+        currency="VND",
+        balance=None,
+        balance_status="unavailable",
+        credential_ciphertext=ciphertext,
+      )
+      db.add(account)
+    else:
+      account.credential_ciphertext = ciphertext
 
-    account = FinancialAccount(
-      user_id=user.id,
-      provider="sepay",
-      external_account_id=config.bank_account_id,
-      bank_name="TPBank",
-      account_number_masked="••••",
-      account_name=None,
-      currency="VND",
-      balance=None,
-      balance_status="unavailable",
-    )
-    db.add(account)
+    account.bank_name = details.bank_name
+    account.account_number_masked = details.account_number_masked
+    account.account_name = details.account_name
+    account.currency = "VND"
+    account.balance = details.balance.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    account.balance_status = "verified"
+    account.last_synced_at = now
+    account.last_transaction_at = details.last_transaction_at
+    account.last_sync_attempt_at = now
+    account.last_sync_error = None
     try:
       db.commit()
     except IntegrityError as error:
       db.rollback()
-      account = (
-        db.query(FinancialAccount)
-        .filter(
-          FinancialAccount.provider == "sepay",
-          FinancialAccount.external_account_id == config.bank_account_id,
-        )
-        .first()
-      )
-      if account is None or account.user_id != user.id:
-        raise SePayError(
-          "SePay account association is invalid",
-          kind="configuration",
-          status_code=503,
-        ) from error
+      raise SePayError(
+        "This SePay account could not be connected", kind="conflict", status_code=409
+      ) from error
     db.refresh(account)
     return account
 
@@ -104,10 +124,9 @@ def sync_account(
   *,
   force: bool = False,
 ) -> FinancialAccount:
-  config = get_sepay_config()
-  if config is None or config.bank_account_id != account.external_account_id:
+  if account.provider != "sepay" or not account.credential_ciphertext:
     raise SePayError(
-      "SePay integration is not configured for this account",
+      "Reconnect this SePay account to continue syncing",
       kind="configuration",
       status_code=503,
     )
@@ -145,8 +164,10 @@ def sync_account(
     # workers therefore cannot start a duplicate sync for the same account.
     db.flush()
 
-    client = SePayClient(config)
+    client: SePayClient | None = None
     try:
+      token = decrypt_api_token(account.credential_ciphertext)
+      client = SePayClient(SePayConfig(token, account.external_account_id))
       details = client.get_account_details()
     except SePayError as error:
       db.rollback()
@@ -163,7 +184,8 @@ def sync_account(
       db.commit()
       raise
     finally:
-      client.close()
+      if client is not None:
+        client.close()
 
     account.bank_name = details.bank_name
     account.account_number_masked = details.account_number_masked

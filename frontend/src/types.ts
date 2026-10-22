@@ -49,6 +49,11 @@ export interface FinancialAccount {
   lastSyncError: string | null
 }
 
+export interface SePayConnectionInput {
+  apiToken: string
+  accountNumber: string
+}
+
 export interface NetWorthLine {
   id: string
   type: string

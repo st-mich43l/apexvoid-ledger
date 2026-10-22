@@ -48,7 +48,10 @@ class FinancialAccount(Base):
   __tablename__ = "FinancialAccount"
   __table_args__ = (
     UniqueConstraint(
-      "provider", "externalAccountId", name="uq_financial_account_provider_external"
+      "userId",
+      "provider",
+      "externalAccountId",
+      name="uq_financial_account_user_provider_external",
     ),
     CheckConstraint(
       "currency IN ('USD', 'EUR', 'GBP', 'AUD', 'JPY', 'CNY', 'VND')",
@@ -67,6 +70,10 @@ class FinancialAccount(Base):
   )
   provider: Mapped[str] = mapped_column(String(32), nullable=False)
   external_account_id: Mapped[str] = mapped_column("externalAccountId", String(128), nullable=False)
+  # Fernet-encrypted SePay API token. Never expose this through a response schema.
+  credential_ciphertext: Mapped[str | None] = mapped_column(
+    "credentialCiphertext", String(2048), nullable=True
+  )
   bank_name: Mapped[str] = mapped_column("bankName", String(100), nullable=False)
   account_number_masked: Mapped[str] = mapped_column(
     "accountNumberMasked", String(32), nullable=False
