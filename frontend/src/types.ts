@@ -2,6 +2,7 @@ import type { CurrencyCode } from './lib/currency'
 
 export type LoanType = 'secured' | 'unsecured'
 export type TransactionType = 'income' | 'expense'
+export type FinancialAccountStatus = 'verified' | 'stale' | 'unavailable' | 'inactive'
 
 export interface Category {
   id: string
@@ -32,6 +33,49 @@ export interface LedgerTransaction {
   source: 'manual'
   createdAt: string
   updatedAt: string
+}
+
+export interface FinancialAccount {
+  id: string
+  provider: string
+  bankName: string
+  accountNumberMasked: string
+  accountName: string | null
+  currency: CurrencyCode
+  balance: number | null
+  balanceStatus: FinancialAccountStatus
+  lastSyncedAt: string | null
+  lastTransactionAt: string | null
+  lastSyncError: string | null
+}
+
+export interface NetWorthLine {
+  id: string
+  type: string
+  name: string
+  provider: string | null
+  amount: number | null
+  currency: CurrencyCode
+  reportingAmount: number | null
+  reportingCurrency: CurrencyCode
+  included: boolean
+  status: string
+  stale: boolean
+  lastUpdatedAt: string | null
+  warning: string | null
+}
+
+export interface NetWorthSummary {
+  reportingCurrency: CurrencyCode
+  totalAssets: number | null
+  totalLiabilities: number | null
+  netWorth: number | null
+  conversionComplete: boolean
+  valuationComplete: boolean
+  assetBreakdown: NetWorthLine[]
+  liabilityBreakdown: NetWorthLine[]
+  warnings: string[]
+  lastUpdatedAt: string | null
 }
 
 export interface TransactionInput {

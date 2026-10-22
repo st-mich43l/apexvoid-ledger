@@ -839,3 +839,61 @@ class UserRead(CamelModel):
   @field_serializer("created_at")
   def _serialize_dt(self, dt: datetime, _info) -> str:
     return _to_js_iso(dt)
+
+
+BalanceStatus = Literal["verified", "stale", "unavailable", "inactive"]
+
+
+class FinancialAccountRead(CamelModel):
+  id: str
+  provider: str
+  bank_name: str
+  account_number_masked: str
+  account_name: str | None
+  currency: CurrencyCode
+  balance: float | None
+  balance_status: BalanceStatus
+  last_synced_at: datetime | None
+  last_transaction_at: datetime | None
+  last_sync_error: str | None
+
+  @field_serializer("last_synced_at", "last_transaction_at")
+  def _serialize_optional_dt(self, dt: datetime | None, _info) -> str | None:
+    return _to_js_iso(dt) if dt is not None else None
+
+
+class NetWorthLineRead(CamelModel):
+  id: str
+  type: str
+  name: str
+  provider: str | None = None
+  amount: float | None
+  currency: CurrencyCode
+  reporting_amount: float | None
+  reporting_currency: CurrencyCode
+  included: bool
+  status: str
+  stale: bool
+  last_updated_at: datetime | None
+  warning: str | None = None
+
+  @field_serializer("last_updated_at")
+  def _serialize_optional_dt(self, dt: datetime | None, _info) -> str | None:
+    return _to_js_iso(dt) if dt is not None else None
+
+
+class NetWorthSummaryRead(CamelModel):
+  reporting_currency: CurrencyCode
+  total_assets: float | None
+  total_liabilities: float | None
+  net_worth: float | None
+  conversion_complete: bool
+  valuation_complete: bool
+  asset_breakdown: list[NetWorthLineRead]
+  liability_breakdown: list[NetWorthLineRead]
+  warnings: list[str]
+  last_updated_at: datetime | None
+
+  @field_serializer("last_updated_at")
+  def _serialize_optional_dt(self, dt: datetime | None, _info) -> str | None:
+    return _to_js_iso(dt) if dt is not None else None

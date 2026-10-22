@@ -14,6 +14,7 @@ import { LoanDetailPage } from './pages/LoanDetail'
 import { LoginPage } from './pages/Login'
 import { MonthlyClosePage } from './pages/MonthlyClose'
 import { MonthlyRoutinePage } from './pages/MonthlyRoutine'
+import { NetWorthPage } from './pages/NetWorth'
 import { SavingPotPage } from './pages/SavingPot'
 import { SelectCurrencyPage } from './pages/SelectCurrency'
 
@@ -43,6 +44,7 @@ function App() {
           <Route path="budget" element={<BudgetPage />} />
           <Route path="monthly-close" element={<MonthlyClosePage />} />
           <Route path="monthly-routine" element={<MonthlyRoutinePage />} />
+          <Route path="net-worth" element={<NetWorthPage />} />
           <Route path="saving-pot" element={<SavingPotPage />} />
           <Route path="loan" element={<LoanPage />} />
           <Route path="loan/:loanId" element={<LoanDetailPage />} />

@@ -112,6 +112,8 @@ activity ledger:
   ledger data. Admins only; other users skip straight to `/dashboard`.
 - `/dashboard` — account overview with saving pot, current-month cash flow, and
   loan summary (trading remains planned)
+- `/net-worth` — verified SePay bank assets minus outstanding loan liabilities,
+  with stale/unavailable balance states and manual synchronization
 - `/cashflow` — monthly cash-flow summary, visualizations, transaction CRUD,
   category management, and **Monthly Fixed Costs** (recurring expenses)
 - `/monthly-routine` — expected monthly income plan composed with fixed costs,
@@ -140,7 +142,47 @@ migration `0014` adds the Saving Pot activity ledger with a non-destructive
 backfill, migration `0015` adds recurring expenses with effective-dated
 revisions, migration `0016` adds recurring expected income for Monthly
 Routine planning, and migration `0017` adds monthly budgets and category
-allocations.
+allocations. Migration 0018 adds monthly-close snapshots, and migration
+0019 adds user-owned financial accounts for Net Worth.
+
+### Net Worth and SePay
+
+Net Worth is intentionally limited to:
+
+- verified balances from explicitly linked SePay bank accounts;
+- outstanding balances from the existing Loan calculation.
+
+Cash-flow income/expenses, expected income, Saving Pots, and scheduled loan
+payments are not added as separate assets or liabilities. Saving Pots are
+excluded because they may already be part of a synchronized bank balance.
+
+To enable the initial TPBank integration, configure these backend-only
+environment variables:
+
+- SEPAY_API_TOKEN — the SePay API token.
+- SEPAY_BANK_ACCOUNT_ID — the numeric bank-account ID used by SePay's
+  GET /userapi/bankaccounts/details/{id} endpoint.
+- SEPAY_LEDGER_USER_ID — the exact User.id that owns this account. This
+  explicit association prevents the configured account from appearing for
+  another Ledger user.
+- SEPAY_API_BASE_URL — optional test/deployment override; defaults to
+  https://my.sepay.vn/userapi.
+
+Find the SePay bank account ID in SePay's API Banking bank-account details
+view, or call the account-list/details API using the token in a secure
+backend-only environment. Do not put the token in browser code or commit it.
+Find the Ledger user ID with a privileged database query such as:
+
+    SELECT id, username FROM "User" ORDER BY username;
+
+The app creates the user-owned FinancialAccount mapping on the first
+authenticated Net Worth request for the configured SEPAY_LEDGER_USER_ID.
+It synchronizes on demand while the Net Worth/Dashboard UI is active, no more
+often than every five minutes, and manual refreshes are server-rate-limited.
+The integration is read-only: it does not import transactions, initiate
+transfers, or request bank credentials/OTPs. A failed synchronization preserves
+the last valid balance and marks it stale; an unavailable balance is shown as
+unavailable rather than as 0.
 
 ### Monthly Routine (expected income)
 

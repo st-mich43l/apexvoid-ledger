@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### ✨ Added
+- 🧾 v0.5.0 Net Worth foundation: user-owned FinancialAccount balances,
+  read-only SePay TPBank synchronization, stale/unavailable states, and the
+  `/net-worth` page with loan liabilities.
+- 🧬 Migration `0019` adds FinancialAccount with provider/account uniqueness,
+  masked account metadata, sync timestamps, and last-known-balance retention.
 - 🧮 Finance tools on `/home`: compound interest plus a loan calculator
   (disbursement, annual rate, term, unsecured EMI or secured interest-only)
   that derives monthly payment without writing loan or Cash Flow data.
