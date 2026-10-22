@@ -226,6 +226,8 @@ def test_matching_sepay_expense_reconciles_recurring_occurrence_once(
   assert body["fixedExpenseTotal"] == 0
   assert body["recurringExpenses"] == []
 
+  user.preferred_currency = "VND"
+  db_session.commit()
   budget = auth_client.put(
     "/api/monthly-budget?year=2026&month=10",
     json={
