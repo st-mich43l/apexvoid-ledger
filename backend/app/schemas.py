@@ -8,7 +8,7 @@ from pydantic.alias_generators import to_camel
 LoanType = Literal["secured", "unsecured"]
 ScheduleStatus = Literal["completed", "current", "upcoming"]
 CashFlowType = Literal["income", "expense"]
-TransactionSource = Literal["manual"]
+TransactionSource = Literal["manual", "sepay"]
 
 USERNAME_PATTERN = r"^[a-zA-Z0-9_.-]+$"
 
@@ -256,6 +256,54 @@ class TransactionRead(CamelModel):
   @field_serializer("occurred_at", "created_at", "updated_at")
   def _serialize_dt(self, dt: datetime, _info) -> str:
     return _to_js_iso(dt)
+
+
+BankActivityDirection = Literal["in", "out"]
+BankActivityStatus = Literal["pending_review", "processed", "unmatched", "failed"]
+BankActivityClassification = Literal[
+  "unreviewed",
+  "income",
+  "expense",
+  "internal_transfer",
+  "loan_repayment",
+  "loan_interest",
+  "savings_transfer",
+]
+
+
+class BankActivityRead(CamelModel):
+  id: str
+  provider: str
+  provider_transaction_id: str
+  financial_account_id: str | None
+  account_number_masked: str
+  bank_name: str | None
+  occurred_at: datetime
+  direction: BankActivityDirection
+  amount: float
+  currency: CurrencyCode
+  description: str | None
+  bank_reference: str | None
+  running_balance: float | None
+  processing_status: BankActivityStatus
+  classification: BankActivityClassification
+  linked_transaction_id: str | None
+  matched_kind: str | None
+  matched_id: str | None
+  category_id: str | None
+  category_name: str | None
+  category_icon: str | None
+  processed_at: datetime | None
+  received_at: datetime
+
+  @field_serializer("occurred_at", "processed_at", "received_at")
+  def _serialize_activity_dt(self, dt: datetime | None, _info) -> str | None:
+    return _to_js_iso(dt) if dt is not None else None
+
+
+class BankActivityClassify(CamelModel):
+  classification: BankActivityClassification
+  category_id: str | None = None
 
 
 class CategorySpendingSummary(CamelModel):

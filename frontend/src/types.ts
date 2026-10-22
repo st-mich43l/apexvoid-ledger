@@ -3,6 +3,16 @@ import type { CurrencyCode } from './lib/currency'
 export type LoanType = 'secured' | 'unsecured'
 export type TransactionType = 'income' | 'expense'
 export type FinancialAccountStatus = 'verified' | 'stale' | 'unavailable' | 'inactive'
+export type BankActivityDirection = 'in' | 'out'
+export type BankActivityStatus = 'pending_review' | 'processed' | 'unmatched' | 'failed'
+export type BankActivityClassification =
+  | 'unreviewed'
+  | 'income'
+  | 'expense'
+  | 'internal_transfer'
+  | 'loan_repayment'
+  | 'loan_interest'
+  | 'savings_transfer'
 
 export interface Category {
   id: string
@@ -30,7 +40,7 @@ export interface LedgerTransaction {
   currency: CurrencyCode
   occurredAt: string
   description: string | null
-  source: 'manual'
+  source: 'manual' | 'sepay'
   createdAt: string
   updatedAt: string
 }
@@ -47,6 +57,32 @@ export interface FinancialAccount {
   lastSyncedAt: string | null
   lastTransactionAt: string | null
   lastSyncError: string | null
+}
+
+export interface BankActivity {
+  id: string
+  provider: string
+  providerTransactionId: string
+  financialAccountId: string | null
+  accountNumberMasked: string
+  bankName: string | null
+  occurredAt: string
+  direction: BankActivityDirection
+  amount: number
+  currency: CurrencyCode
+  description: string | null
+  bankReference: string | null
+  runningBalance: number | null
+  processingStatus: BankActivityStatus
+  classification: BankActivityClassification
+  linkedTransactionId: string | null
+  matchedKind: string | null
+  matchedId: string | null
+  categoryId: string | null
+  categoryName: string | null
+  categoryIcon: string | null
+  processedAt: string | null
+  receivedAt: string
 }
 
 export interface SePayConnectionInput {

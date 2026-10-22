@@ -3,6 +3,9 @@ import type {
   CashFlowMonthlySummary,
   CashFlowTrendSummary,
   Category,
+  BankActivity,
+  BankActivityClassification,
+  BankActivityDirection,
   CategoryInput,
   LedgerTransaction,
   Loan,
@@ -204,6 +207,35 @@ export function updateTransaction(id: string, input: TransactionInput): Promise<
 
 export function deleteTransaction(id: string): Promise<void> {
   return authedRequest<void>(`${TRANSACTIONS_URL}/${id}`, { method: 'DELETE' })
+}
+
+export function fetchBankActivities(filters: {
+  year: number
+  month: number
+  direction?: BankActivityDirection
+  classification?: BankActivityClassification
+  categoryId?: string
+  accountId?: string
+  processingStatus?: string
+}): Promise<BankActivity[]> {
+  const query = new URLSearchParams({ year: String(filters.year), month: String(filters.month) })
+  if (filters.direction) query.set('direction', filters.direction)
+  if (filters.classification) query.set('classification', filters.classification)
+  if (filters.categoryId) query.set('categoryId', filters.categoryId)
+  if (filters.accountId) query.set('accountId', filters.accountId)
+  if (filters.processingStatus) query.set('processingStatus', filters.processingStatus)
+  return authedRequest<BankActivity[]>(`/api/bank-activities?${query}`)
+}
+
+export function classifyBankActivity(
+  id: string,
+  classification: BankActivityClassification,
+  categoryId?: string,
+): Promise<BankActivity> {
+  return authedRequest<BankActivity>(`/api/bank-activities/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ classification, categoryId }),
+  })
 }
 
 export function fetchCashFlowSummary(

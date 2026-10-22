@@ -7,6 +7,7 @@ import {
   updateTransaction,
 } from '../api'
 import { CashFlowSummaryCards } from '../components/cashflow/CashFlowSummaryCards'
+import { BankActivityList } from '../components/cashflow/BankActivityList'
 import { CategoryManagerDialog } from '../components/cashflow/CategoryManagerDialog'
 import { CurrencyConversionNotice } from '../components/cashflow/CurrencyConversionNotice'
 import { DeleteTransactionDialog } from '../components/cashflow/DeleteTransactionDialog'
@@ -17,6 +18,7 @@ import { TransactionList } from '../components/cashflow/TransactionList'
 import { WeeklyExpenseDialog } from '../components/cashflow/WeeklyExpenseDialog'
 import { useCurrency } from '../context/CurrencyContext'
 import { useCashFlowSummary } from '../hooks/useCashFlowSummary'
+import { useBankActivities } from '../hooks/useBankActivities'
 import { useCategories } from '../hooks/useCategories'
 import { useTransactions } from '../hooks/useTransactions'
 import type { LedgerTransaction, TransactionInput, WeeklyExpenseBatchInput } from '../types'
@@ -44,6 +46,7 @@ export function CashFlowPage() {
   const categoriesState = useCategories(true)
   const transactionsState = useTransactions(year, month)
   const summaryState = useCashFlowSummary(year, month, currency)
+  const bankActivitiesState = useBankActivities(year, month)
   const [showCreate, setShowCreate] = useState(false)
   const [editing, setEditing] = useState<LedgerTransaction | null>(null)
   const [pendingDelete, setPendingDelete] = useState<LedgerTransaction | null>(null)
@@ -57,7 +60,7 @@ export function CashFlowPage() {
   }
 
   async function refreshFinancials() {
-    await Promise.all([transactionsState.reload(), summaryState.reload()])
+    await Promise.all([transactionsState.reload(), summaryState.reload(), bankActivitiesState.reload()])
   }
 
   async function handleCreate(input: TransactionInput) {
@@ -82,7 +85,8 @@ export function CashFlowPage() {
   const error =
     categoriesState.error ||
     transactionsState.error ||
-    summaryState.error
+    summaryState.error ||
+    bankActivitiesState.error
 
   return (
     <section>
@@ -141,6 +145,14 @@ export function CashFlowPage() {
           onDelete={setPendingDelete}
         />
       </div>
+
+      <BankActivityList
+        activities={bankActivitiesState.activities}
+        categories={categoriesState.categories}
+        loading={bankActivitiesState.loading}
+        monthLabel={label}
+        onChanged={refreshFinancials}
+      />
 
       {showCreate && (
         <TransactionFormDialog currency={currency} categories={categoriesState.categories} onClose={() => setShowCreate(false)} onSubmit={handleCreate} />

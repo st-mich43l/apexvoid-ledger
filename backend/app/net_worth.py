@@ -19,6 +19,7 @@ from .sepay import (
   SePayClient,
   SePayConfig,
   SePayError,
+  account_number_fingerprint,
   decrypt_api_token,
   encrypt_api_token,
 )
@@ -102,6 +103,7 @@ def connect_sepay_account(
     account.last_transaction_at = details.last_transaction_at
     account.last_sync_attempt_at = now
     account.last_sync_error = None
+    account.account_number_fingerprint = account_number_fingerprint(account_number)
     try:
       db.commit()
     except IntegrityError as error:
