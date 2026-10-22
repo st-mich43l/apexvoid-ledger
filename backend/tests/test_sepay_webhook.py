@@ -45,6 +45,21 @@ def add_account(db_session: Session, user_id: str, account_number: str = "109373
   return account
 
 
+def configure_rule(client: TestClient, category_id: str, **overrides) -> dict:
+  response = client.put(
+    "/api/bank-activities/categorization-rule",
+    json={
+      "enabled": True,
+      "categoryId": category_id,
+      "descriptionContains": "MONTHLY ALLOWANCE",
+      "referenceContains": None,
+      **overrides,
+    },
+  )
+  assert response.status_code == 200, response.text
+  return response.json()
+
+
 def test_webhook_accepts_incoming_and_outgoing_events_once(
   client: TestClient,
   db_session: Session,
@@ -80,6 +95,148 @@ def test_webhook_accepts_incoming_and_outgoing_events_once(
   assert stored.processing_status == "pending_review"
   assert stored.original_payload["accountNumber"] == "••••5404"
   assert "10937375404" not in str(stored.original_payload)
+  assert db_session.query(Transaction).count() == 0
+
+
+def test_outgoing_without_a_rule_stays_uncategorized_for_review(
+  client: TestClient,
+  db_session: Session,
+  user,
+  monkeypatch,
+):
+  monkeypatch.setenv("SEPAY_WEBHOOK_API_KEY", "webhook-test-key")
+  add_account(db_session, user.id)
+
+  response = client.post(
+    "/api/integrations/sepay/webhook",
+    json=payload(transaction_id=92708, direction="out"),
+    headers=webhook_headers(),
+  )
+
+  assert response.status_code == 200
+  activity = db_session.query(SePayBankActivity).one()
+  assert activity.processing_status == "pending_review"
+  assert activity.classification == "unreviewed"
+  assert db_session.query(Transaction).count() == 0
+
+
+def test_auto_categorizes_high_confidence_outgoing_and_deduplicates_delivery(
+  auth_client: TestClient,
+  client: TestClient,
+  db_session: Session,
+  user,
+  monkeypatch,
+):
+  monkeypatch.setenv("SEPAY_WEBHOOK_API_KEY", "webhook-test-key")
+  add_account(db_session, user.id)
+  categories = auth_client.get("/api/categories?type=expense").json()
+  living = next(item for item in categories if item["name"] == "Monthly Living Budget")
+  rule = configure_rule(auth_client, living["id"])
+  assert rule["categoryName"] == "Monthly Living Budget"
+
+  event = payload(
+    transaction_id=92709,
+    direction="out",
+  )
+  event["content"] = "MONTHLY ALLOWANCE OCTOBER"
+  first = client.post(
+    "/api/integrations/sepay/webhook", json=event, headers=webhook_headers()
+  )
+  duplicate = client.post(
+    "/api/integrations/sepay/webhook", json=event, headers=webhook_headers()
+  )
+
+  assert first.status_code == duplicate.status_code == 200
+  activity = db_session.query(SePayBankActivity).one()
+  transaction = db_session.query(Transaction).one()
+  assert activity.processing_status == "processed"
+  assert activity.classification == "expense"
+  assert activity.matched_kind == "auto_rule"
+  assert activity.linked_transaction_id == transaction.id
+  assert transaction.source == "sepay"
+  assert transaction.external_id == "sepay:sepay:92709"
+  assert transaction.category_id == living["id"]
+  assert db_session.query(SePayBankActivity).count() == 1
+  assert db_session.query(Transaction).filter(Transaction.source == "sepay").count() == 1
+
+
+def test_rule_rejects_amount_only_and_missing_category(
+  auth_client: TestClient,
+  db_session: Session,
+  user,
+):
+  add_account(db_session, user.id)
+  assert auth_client.put(
+    "/api/bank-activities/categorization-rule",
+    json={"enabled": True, "categoryId": "missing", "descriptionContains": None},
+  ).status_code == 404
+  food = next(
+    item for item in auth_client.get("/api/categories?type=expense").json()
+    if item["name"] == "Food"
+  )
+  amount_only = auth_client.put(
+    "/api/bank-activities/categorization-rule",
+    json={"enabled": True, "categoryId": food["id"]},
+  )
+  assert amount_only.status_code == 422
+  assert "amount alone" in amount_only.json()["detail"]
+
+
+def test_matching_sepay_expense_reconciles_recurring_occurrence_once(
+  auth_client: TestClient,
+  client: TestClient,
+  db_session: Session,
+  user,
+  monkeypatch,
+):
+  monkeypatch.setenv("SEPAY_WEBHOOK_API_KEY", "webhook-test-key")
+  add_account(db_session, user.id)
+  living = next(
+    item for item in auth_client.get("/api/categories?type=expense").json()
+    if item["name"] == "Monthly Living Budget"
+  )
+  configure_rule(auth_client, living["id"])
+  recurring = auth_client.post(
+    "/api/recurring-expenses",
+    json={
+      "name": "Monthly allowance schedule",
+      "categoryId": living["id"],
+      "amount": 150000,
+      "currency": "VND",
+      "dueDay": 22,
+      "startMonth": "2026-01",
+    },
+  )
+  assert recurring.status_code == 201, recurring.text
+
+  event = payload(transaction_id=92710, direction="out")
+  event["content"] = "MONTHLY ALLOWANCE OCTOBER"
+  accepted = client.post(
+    "/api/integrations/sepay/webhook", json=event, headers=webhook_headers()
+  )
+  assert accepted.status_code == 200
+
+  summary = auth_client.get(
+    "/api/cashflow/summary?year=2026&month=10&currency=VND"
+  )
+  assert summary.status_code == 200, summary.text
+  body = summary.json()
+  assert body["expenses"] == 150000
+  assert body["variableExpenseTotal"] == 150000
+  assert body["fixedExpenseTotal"] == 0
+  assert body["recurringExpenses"] == []
+
+  budget = auth_client.put(
+    "/api/monthly-budget?year=2026&month=10",
+    json={
+      "currency": "VND",
+      "plannedSavings": 0,
+      "allocations": [{"categoryId": living["id"], "amount": 200000}],
+    },
+  )
+  assert budget.status_code == 200, budget.text
+  allocation = budget.json()["allocations"][0]
+  assert allocation["actualSpent"] == 150000
 
 
 def test_webhook_retains_unmatched_account(client: TestClient, db_session: Session, monkeypatch):

@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.orm import Session
 
 from .cashflow_report import period_entries
-from .models import FinancialAccount, SePayBankActivity, Transaction
+from .models import Category, FinancialAccount, SePayBankActivity, Transaction
 from .net_worth import sync_if_due
 from .sepay import (
   SePayClient,
@@ -263,7 +263,84 @@ def _scheduled_match(db: Session, activity: SePayBankActivity) -> tuple[str, str
   return "loan", entry.loan.id if entry.loan is not None else "", "loan_repayment"
 
 
+def _auto_category_for_activity(
+  db: Session, activity: SePayBankActivity
+) -> Category | None:
+  """Return the configured category only for a high-confidence outgoing match.
+
+  The rule is deliberately limited to literal description/reference matching.
+  An amount, date, or running balance by itself can never classify an activity.
+  """
+  if activity.direction != "out" or activity.financial_account_id is None:
+    return None
+  account = db.get(FinancialAccount, activity.financial_account_id)
+  if account is None or not account.auto_rule_enabled or not account.auto_category_id:
+    return None
+
+  description_matcher = (account.auto_description_contains or "").strip().casefold()
+  reference_matcher = (account.auto_reference_contains or "").strip().casefold()
+  if not description_matcher and not reference_matcher:
+    return None
+  if description_matcher and (
+    not activity.description or description_matcher not in activity.description.casefold()
+  ):
+    return None
+  if reference_matcher and (
+    not activity.bank_reference or reference_matcher not in activity.bank_reference.casefold()
+  ):
+    return None
+
+  category = (
+    db.query(Category)
+    .filter(
+      Category.id == account.auto_category_id,
+      Category.user_id == activity.user_id,
+      Category.category_type == "expense",
+      Category.is_active.is_(True),
+    )
+    .first()
+  )
+  return category
+
+
+def _get_or_create_sepay_transaction(
+  db: Session, activity: SePayBankActivity, category: Category
+) -> Transaction:
+  external_id = f"sepay:{activity.provider}:{activity.provider_transaction_id}"
+  existing = (
+    db.query(Transaction)
+    .filter(
+      Transaction.user_id == activity.user_id,
+      Transaction.source == "sepay",
+      Transaction.external_id == external_id,
+    )
+    .first()
+  )
+  if existing is not None:
+    return existing
+
+  transaction = Transaction(
+    user_id=activity.user_id,
+    transaction_type="expense",
+    category_id=category.id,
+    amount=activity.amount,
+    currency=activity.currency,
+    occurred_at=activity.occurred_at,
+    description=activity.description or f"SePay {activity.provider_transaction_id}",
+    source="sepay",
+    external_id=external_id,
+  )
+  db.add(transaction)
+  db.flush()
+  return transaction
+
+
 def process_activity(db: Session, activity: SePayBankActivity) -> None:
+  if activity.linked_transaction_id is not None:
+    activity.processing_status = "processed"
+    activity.processed_at = activity.processed_at or datetime.now(timezone.utc)
+    return
+
   manual = _manual_match(db, activity)
   if manual is not None:
     activity.linked_transaction_id = manual.id
@@ -272,6 +349,23 @@ def process_activity(db: Session, activity: SePayBankActivity) -> None:
     activity.classification = activity.direction == "in" and "income" or "expense"
     activity.processing_status = "processed"
     activity.processed_at = datetime.now(timezone.utc)
+    return
+
+  category = _auto_category_for_activity(db, activity)
+  if category is not None:
+    scheduled = _scheduled_match(db, activity)
+    transaction = _get_or_create_sepay_transaction(db, activity, category)
+    activity.linked_transaction_id = transaction.id
+    if scheduled is not None and scheduled[0] == "recurring_expense":
+      activity.matched_kind = scheduled[0]
+      activity.matched_id = scheduled[1]
+    else:
+      activity.matched_kind = "auto_rule"
+      activity.matched_id = category.id
+    activity.classification = "expense"
+    activity.processing_status = "processed"
+    activity.processed_at = datetime.now(timezone.utc)
+    activity.processing_error = None
     return
 
   scheduled = _scheduled_match(db, activity)

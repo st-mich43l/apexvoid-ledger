@@ -6,6 +6,8 @@ import type {
   BankActivity,
   BankActivityClassification,
   BankActivityDirection,
+  SePayCategorizationRule,
+  SePayCategorizationRuleInput,
   CategoryInput,
   LedgerTransaction,
   Loan,
@@ -235,6 +237,19 @@ export function classifyBankActivity(
   return authedRequest<BankActivity>(`/api/bank-activities/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ classification, categoryId }),
+  })
+}
+
+export function fetchSePayCategorizationRule(): Promise<SePayCategorizationRule> {
+  return authedRequest<SePayCategorizationRule>('/api/bank-activities/categorization-rule')
+}
+
+export function updateSePayCategorizationRule(
+  input: SePayCategorizationRuleInput,
+): Promise<SePayCategorizationRule> {
+  return authedRequest<SePayCategorizationRule>('/api/bank-activities/categorization-rule', {
+    method: 'PUT',
+    body: JSON.stringify(input),
   })
 }
 

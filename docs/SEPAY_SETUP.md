@@ -348,10 +348,10 @@ The user-specific SePay token is still entered by each user after deployment.
 8. Open the deployed Ledger URL, sign in, and connect each user's SePay
    account from **Net Worth**.
 
-The first deployment with migrations `0020` and `0021` adds encrypted
-credential storage, account fingerprints, and the webhook activity inbox. It
-does not need a global SePay token and does not automatically attach an account
-to a user.
+The first deployment with migrations `0020`, `0021`, and `0022` adds encrypted
+credential storage, account fingerprints, the webhook activity inbox, and the
+optional outgoing categorization rule. It does not need a global SePay token
+and does not automatically attach an account to a user.
 
 The deployment template injects the following backend values from the
 `apexvoid_ledger_secrets` Ansible vault mapping:
@@ -418,6 +418,7 @@ The application endpoints are:
 | `DELETE` | `/api/net-worth/accounts/{id}` | Disconnect an owned account and remove its encrypted token. |
 | `POST` | `/api/integrations/sepay/webhook` | Receive authenticated incoming/outgoing SePay bank activity. |
 | `GET` | `/api/bank-activities?year=2026&month=10` | List the current user's imported bank activity. |
+| `GET/PUT` | `/api/bank-activities/categorization-rule` | Read or configure the primary account's outgoing description/reference rule. |
 | `PATCH` | `/api/bank-activities/{id}` | Classify a review item without changing its raw bank payload. |
 
 Automatic synchronization is limited to once every five minutes per account.

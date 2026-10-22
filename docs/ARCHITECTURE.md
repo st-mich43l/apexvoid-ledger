@@ -250,7 +250,7 @@ sequenceDiagram
     API->>Inbox: Insert provider + transaction ID
     Inbox-->>API: Duplicate or newly stored activity
     API->>Match: Match exact account and known activity
-    Match->>Cash: Link only a safe unique match
+    Match->>Cash: Create one ordinary expense for a configured text/reference match
     Match-->>Cash: Otherwise pending review
     API->>Net: Trigger throttled balance sync when due
     API-->>SePay: 200 acknowledgement
@@ -263,6 +263,10 @@ ambiguous events remain reviewable rather than being assigned to another user.
 Only income and expense classifications create ordinary Cash Flow
 transactions; transfers, loan repayments, and savings transfers remain
 separate classifications so they cannot inflate income or expense totals.
+The Monthly Living Budget rule is stored on the existing connected account and
+requires a description or bank-reference matcher; amount alone is never used.
+When a matching SePay expense exists, its recurring schedule occurrence is
+suppressed in reports so the expense is counted once.
 
 ## Balance synchronization lifecycle
 
@@ -378,6 +382,8 @@ container workflows. The relevant Net Worth migrations are:
   storage and changes uniqueness to user + provider + external account.
 - `0021_add_sepay_webhook_activity.py` adds the durable SePay activity inbox,
   idempotency constraint, and keyed account-number fingerprint.
+- `0022_add_sepay_categorization_rule.py` adds the optional outgoing
+  description/reference categorization rule to `FinancialAccount`.
 
 Do not edit an already-applied migration. Add a new migration for a schema
 change, and verify it against a copy of the production database before

@@ -16,7 +16,7 @@ from .exchange_rates import (
   FrankfurterExchangeRateProvider,
   quote_for_date,
 )
-from .models import Category, Loan, Transaction
+from .models import Category, Loan, SePayBankActivity, Transaction
 from .monthly_recurrence import (
   due_at_for_month,
   months_touching,
@@ -114,6 +114,15 @@ def period_entries(
     )
 
   revisions = load_applicable_revisions(db, user_id, start, end)
+  reconciled_sepay_activities = (
+    db.query(SePayBankActivity)
+    .filter(
+      SePayBankActivity.user_id == user_id,
+      SePayBankActivity.direction == "out",
+      SePayBankActivity.matched_kind == "recurring_expense",
+    )
+    .all()
+  )
   seen_series_months: set[tuple[str, date]] = set()
   for month_start in months_touching(start, end):
     for revision in revisions:
@@ -125,6 +134,19 @@ def period_entries(
       seen_series_months.add(series_key)
       due_at = due_at_for_month(month_start.year, month_start.month, revision.due_day)
       if not (start <= due_at < end):
+        continue
+      # A durable SePay expense is the authoritative occurrence when it
+      # matches this scheduled expense. Keep the ordinary transaction in the
+      # report and omit the generated recurring entry so the amount is counted
+      # exactly once.
+      if any(
+        activity.matched_id == revision.recurring_expense_id
+        and activity.amount == revision.amount
+        and activity.currency == revision.currency
+        and abs((as_utc(activity.occurred_at) - due_at).total_seconds())
+        <= 3 * 24 * 60 * 60
+        for activity in reconciled_sepay_activities
+      ):
         continue
       category = revision.category
       entries.append(

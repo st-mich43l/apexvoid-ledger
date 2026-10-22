@@ -8,6 +8,7 @@ import {
 } from '../api'
 import { CashFlowSummaryCards } from '../components/cashflow/CashFlowSummaryCards'
 import { BankActivityList } from '../components/cashflow/BankActivityList'
+import { SePayCategorizationRuleCard } from '../components/cashflow/SePayCategorizationRuleCard'
 import { CategoryManagerDialog } from '../components/cashflow/CategoryManagerDialog'
 import { CurrencyConversionNotice } from '../components/cashflow/CurrencyConversionNotice'
 import { DeleteTransactionDialog } from '../components/cashflow/DeleteTransactionDialog'
@@ -131,6 +132,8 @@ export function CashFlowPage() {
           <SpendingByCategory summary={summaryState.summary} monthLabel={label} />
         </div>
       )}
+
+      <SePayCategorizationRuleCard categories={categoriesState.categories} />
 
       <div className="mt-5">
         <TransactionList

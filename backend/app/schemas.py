@@ -306,6 +306,27 @@ class BankActivityClassify(CamelModel):
   category_id: str | None = None
 
 
+AutoRuleText = Annotated[
+  str, StringConstraints(strip_whitespace=True, min_length=1, max_length=160)
+]
+
+
+class SePayCategorizationRuleRead(CamelModel):
+  financial_account_id: str
+  enabled: bool
+  category_id: str | None
+  category_name: str | None
+  description_contains: str | None
+  reference_contains: str | None
+
+
+class SePayCategorizationRuleUpdate(CamelModel):
+  enabled: bool = True
+  category_id: str | None = None
+  description_contains: AutoRuleText | None = None
+  reference_contains: AutoRuleText | None = None
+
+
 class CategorySpendingSummary(CamelModel):
   category_id: str
   name: str

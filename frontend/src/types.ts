@@ -85,6 +85,22 @@ export interface BankActivity {
   receivedAt: string
 }
 
+export interface SePayCategorizationRule {
+  financialAccountId: string
+  enabled: boolean
+  categoryId: string | null
+  categoryName: string | null
+  descriptionContains: string | null
+  referenceContains: string | null
+}
+
+export interface SePayCategorizationRuleInput {
+  enabled: boolean
+  categoryId: string | null
+  descriptionContains: string | null
+  referenceContains: string | null
+}
+
 export interface SePayConnectionInput {
   apiToken: string
   accountNumber: string
