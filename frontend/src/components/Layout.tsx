@@ -84,10 +84,16 @@ export function Layout() {
               <CurrencySelector />
               <ThemeToggle theme={theme} onToggle={toggleTheme} />
               {user && (
-                <div className="ml-1 flex items-center gap-2 border-l border-neutral-200 pl-3 dark:border-neutral-800">
+                <div className="ml-1 flex items-center gap-3 border-l border-neutral-200 pl-3 dark:border-neutral-800">
                   <span className="hidden max-w-[10rem] truncate text-sm text-neutral-500 sm:inline dark:text-neutral-400">
                     {user.username}
                   </span>
+                  <Link
+                    to="/change-password"
+                    className="text-sm font-medium text-neutral-500 transition-colors hover:text-violet-600 dark:text-neutral-400 dark:hover:text-violet-400"
+                  >
+                    Change password
+                  </Link>
                   <button
                     onClick={handleLogout}
                     className="text-sm font-medium text-neutral-500 transition-colors hover:text-violet-600 dark:text-neutral-400 dark:hover:text-violet-400"

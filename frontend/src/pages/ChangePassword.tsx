@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ApiError } from '../api'
 import { BrandLockup } from '../components/BrandMark'
 import { useAuth } from '../context/AuthContext'
 
 export function ChangePasswordPage() {
-  const { changePassword } = useAuth()
+  const { changePassword, user } = useAuth()
   const navigate = useNavigate()
 
   const [currentPassword, setCurrentPassword] = useState('')
@@ -30,8 +31,8 @@ export function ChangePasswordPage() {
     try {
       const updated = await changePassword(currentPassword, newPassword)
       navigate(updated.isAdmin ? '/home' : '/dashboard', { replace: true })
-    } catch {
-      setError('Current password is incorrect.')
+    } catch (err) {
+      setError(err instanceof ApiError && err.status === 401 ? 'Current password is incorrect.' : 'Could not change your password. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -46,7 +47,9 @@ export function ChangePasswordPage() {
           </p>
           <BrandLockup className="mt-3 justify-center" markClassName="h-11 w-11" />
           <p className="mt-4 text-sm text-neutral-500 dark:text-neutral-400">
-            You're signed in with a temporary password. Set a new one to continue.
+            {user?.mustChangePassword
+              ? "You're signed in with a temporary password. Set a new one to continue."
+              : 'Update your password securely. You will stay signed in after saving.'}
           </p>
         </div>
 
