@@ -8,6 +8,7 @@ import { useMonthlyRoutine } from '../hooks/useMonthlyRoutine'
 import { useMonthlyBudget } from '../hooks/useMonthlyBudget'
 import { useSavingPot } from '../hooks/useSavingPot'
 import { useMonthlyClose } from '../hooks/useMonthlyClose'
+import { useNetWorth } from '../hooks/useNetWorth'
 import { DashboardFinancialTrends } from '../components/dashboard/DashboardFinancialTrends'
 import type { MonthlyBudgetSummary, MonthlyCloseSummary } from '../types'
 
@@ -23,6 +24,7 @@ export function Dashboard() {
   const budget = useMonthlyBudget(year, month)
   const savingPot = useSavingPot()
   const monthlyClose = useMonthlyClose(previous.year, previous.month)
+  const netWorth = useNetWorth()
 
   const loanBalances = [...loans.reduce((groups, loan) => {
     if (loan.currentBalance <= 0) return groups
@@ -39,13 +41,34 @@ export function Dashboard() {
         <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">Overview</h2>
       </div>
 
-      {(error || cashFlow.error || savingPot.error || routine.error || budget.error || monthlyClose.error) && (
+      {(error || cashFlow.error || savingPot.error || routine.error || budget.error || monthlyClose.error || netWorth.error) && (
         <p className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">
-          {error || cashFlow.error || savingPot.error || routine.error || budget.error || monthlyClose.error}
+          {error || cashFlow.error || savingPot.error || routine.error || budget.error || monthlyClose.error || netWorth.error}
         </p>
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <PremiumCard
+          title="Net Worth"
+          accent="cyan"
+          value={
+            netWorth.loading
+              ? '…'
+              : netWorth.summary?.netWorth === null || netWorth.summary?.netWorth === undefined
+                ? 'Incomplete'
+                : formatCurrency(netWorth.summary.netWorth, netWorth.summary.reportingCurrency)
+          }
+          subtitle={
+            netWorth.loading
+              ? 'Loading valuation…'
+              : netWorth.summary?.valuationComplete
+                ? String(netWorth.summary.assetBreakdown.filter((line) => line.included).length) + ' assets · ' + String(netWorth.summary.liabilityBreakdown.length) + ' liabilities'
+                : 'Review connected accounts'
+          }
+          to="/net-worth"
+          icon={<NetWorthIcon />}
+        />
+
         <PremiumCard
           title="Saving pot"
           accent="amber"
@@ -245,6 +268,15 @@ function BankIcon() {
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 10 12 4l9 6" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 10v9M9 10v9M15 10v9M19 10v9" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18" />
+    </svg>
+  )
+}
+
+function NetWorthIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="h-5 w-5">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 18V6m0 0 4 4m-4-4L0 10M20 6v12m0 0-4-4m4 4 4-4" />
+      <path strokeLinecap="round" d="M7 18h10M7 6h10" />
     </svg>
   )
 }

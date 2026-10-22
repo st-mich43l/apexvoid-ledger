@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react'
 import { fetchUsers } from '../api'
 import { PremiumCard } from '../components/PremiumCard'
-import { useCurrency } from '../context/CurrencyContext'
-import { useLoans } from '../hooks/useLoans'
-import { formatCurrency } from '../lib/currency'
+import { useNetWorth } from '../hooks/useNetWorth'
 import { FinanceCalculators } from './Tools'
+import { formatCurrency } from '../lib/currency'
 
 export function HomePage() {
-  const { loans, loading: loansLoading } = useLoans()
-  const { currency } = useCurrency()
+  const netWorth = useNetWorth()
   const [userCount, setUserCount] = useState<number | null>(null)
 
   useEffect(() => {
@@ -16,8 +14,6 @@ export function HomePage() {
       .then((users) => setUserCount(users.length))
       .catch(() => setUserCount(null))
   }, [])
-
-  const totalCurrentBalance = loans.reduce((sum, loan) => sum + loan.currentBalance, 0)
 
   return (
     <section>
@@ -38,8 +34,20 @@ export function HomePage() {
         <PremiumCard
           title="Dashboard"
           accent="violet"
-          value={loansLoading ? '…' : formatCurrency(totalCurrentBalance, currency)}
-          subtitle={loansLoading ? 'Loading…' : `${loans.length} ${loans.length === 1 ? 'loan' : 'loans'} · finance overview`}
+          value={
+            netWorth.loading
+              ? '…'
+              : netWorth.summary?.netWorth === null || netWorth.summary?.netWorth === undefined
+                ? 'Incomplete'
+                : formatCurrency(netWorth.summary.netWorth, netWorth.summary.reportingCurrency)
+          }
+          subtitle={
+            netWorth.loading
+              ? 'Loading net worth…'
+              : netWorth.summary?.valuationComplete
+                ? `${netWorth.summary.assetBreakdown.filter((line) => line.included).length} assets · ${netWorth.summary.liabilityBreakdown.length} liabilities`
+                : 'Review connected accounts'
+          }
           to="/dashboard"
           icon={<GridIcon />}
         />

@@ -42,6 +42,72 @@ class User(Base):
   )
 
 
+class FinancialAccount(Base):
+  """A user-owned external account balance, without transaction ingestion."""
+
+  __tablename__ = "FinancialAccount"
+  __table_args__ = (
+    UniqueConstraint(
+      "userId",
+      "provider",
+      "externalAccountId",
+      name="uq_financial_account_user_provider_external",
+    ),
+    CheckConstraint(
+      "currency IN ('USD', 'EUR', 'GBP', 'AUD', 'JPY', 'CNY', 'VND')",
+      name="ck_financial_account_currency",
+    ),
+    CheckConstraint(
+      '"balanceStatus" IN (\'verified\', \'stale\', \'unavailable\', \'inactive\')',
+      name="ck_financial_account_balance_status",
+    ),
+    Index("ix_financial_account_user_id", "userId"),
+  )
+
+  id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+  user_id: Mapped[str] = mapped_column(
+    "userId", ForeignKey("User.id", ondelete="CASCADE"), nullable=False
+  )
+  provider: Mapped[str] = mapped_column(String(32), nullable=False)
+  external_account_id: Mapped[str] = mapped_column("externalAccountId", String(128), nullable=False)
+  # Fernet-encrypted SePay API token. Never expose this through a response schema.
+  credential_ciphertext: Mapped[str | None] = mapped_column(
+    "credentialCiphertext", String(2048), nullable=True
+  )
+  bank_name: Mapped[str] = mapped_column("bankName", String(100), nullable=False)
+  account_number_masked: Mapped[str] = mapped_column(
+    "accountNumberMasked", String(32), nullable=False
+  )
+  account_name: Mapped[str | None] = mapped_column("accountName", String(160), nullable=True)
+  currency: Mapped[str] = mapped_column(String(3), nullable=False)
+  balance: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
+  balance_status: Mapped[str] = mapped_column(
+    "balanceStatus", String(16), nullable=False, default="unavailable"
+  )
+  last_synced_at: Mapped[datetime | None] = mapped_column(
+    "lastSyncedAt", DateTime(timezone=True), nullable=True
+  )
+  last_transaction_at: Mapped[datetime | None] = mapped_column(
+    "lastTransactionAt", DateTime(timezone=True), nullable=True
+  )
+  last_sync_attempt_at: Mapped[datetime | None] = mapped_column(
+    "lastSyncAttemptAt", DateTime(timezone=True), nullable=True
+  )
+  last_sync_error: Mapped[str | None] = mapped_column(
+    "lastSyncError", String(160), nullable=True
+  )
+  created_at: Mapped[datetime] = mapped_column(
+    "createdAt", DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+  )
+  updated_at: Mapped[datetime] = mapped_column(
+    "updatedAt",
+    DateTime(timezone=True),
+    nullable=False,
+    default=lambda: datetime.now(timezone.utc),
+    onupdate=lambda: datetime.now(timezone.utc),
+  )
+
+
 class Loan(Base):
   __tablename__ = "Loan"
   __table_args__ = (

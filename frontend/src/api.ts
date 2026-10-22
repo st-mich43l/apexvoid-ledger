@@ -26,6 +26,9 @@ import type {
   TransactionType,
   WeeklyExpenseBatchInput,
   MonthlyCloseSummary,
+  FinancialAccount,
+  NetWorthSummary,
+  SePayConnectionInput,
 } from './types'
 import type { CurrencyCode } from './lib/currency'
 
@@ -82,6 +85,29 @@ const LOANS_URL = '/api/loans'
 
 export function fetchLoans(): Promise<Loan[]> {
   return authedRequest<Loan[]>(LOANS_URL)
+}
+
+export function fetchNetWorthSummary(): Promise<NetWorthSummary> {
+  return authedRequest<NetWorthSummary>('/api/net-worth/summary')
+}
+
+export function fetchNetWorthAccounts(): Promise<FinancialAccount[]> {
+  return authedRequest<FinancialAccount[]>('/api/net-worth/accounts')
+}
+
+export function connectNetWorthAccount(input: SePayConnectionInput): Promise<FinancialAccount> {
+  return authedRequest<FinancialAccount>('/api/net-worth/accounts', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export function refreshNetWorthAccount(id: string): Promise<FinancialAccount> {
+  return authedRequest<FinancialAccount>('/api/net-worth/accounts/' + id + '/refresh', { method: 'POST' })
+}
+
+export function disconnectNetWorthAccount(id: string): Promise<void> {
+  return authedRequest<void>('/api/net-worth/accounts/' + id, { method: 'DELETE' })
 }
 
 export function createLoan(input: LoanInput): Promise<Loan> {

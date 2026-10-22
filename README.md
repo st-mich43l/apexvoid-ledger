@@ -10,6 +10,13 @@ multiple banks. Session-based accounts gate access — see
 - ⚙️ `backend/` — FastAPI + SQLAlchemy + Alembic, backed by PostgreSQL, session
   auth via Starlette `SessionMiddleware` + `bcrypt`
 
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md) — services, data ownership, request
+  flows, Mermaid diagrams, deployment, and security boundaries.
+- [SePay setup](docs/SEPAY_SETUP.md) — local setup, environment variables,
+  per-user account connection, Ansible, and troubleshooting.
+
 ## 🏦 Loan fields
 
 Each loan tracks:
@@ -112,6 +119,8 @@ activity ledger:
   ledger data. Admins only; other users skip straight to `/dashboard`.
 - `/dashboard` — account overview with saving pot, current-month cash flow, and
   loan summary (trading remains planned)
+- `/net-worth` — verified SePay bank assets minus outstanding loan liabilities,
+  with stale/unavailable balance states and manual synchronization
 - `/cashflow` — monthly cash-flow summary, visualizations, transaction CRUD,
   category management, and **Monthly Fixed Costs** (recurring expenses)
 - `/monthly-routine` — expected monthly income plan composed with fixed costs,
@@ -140,7 +149,43 @@ migration `0014` adds the Saving Pot activity ledger with a non-destructive
 backfill, migration `0015` adds recurring expenses with effective-dated
 revisions, migration `0016` adds recurring expected income for Monthly
 Routine planning, and migration `0017` adds monthly budgets and category
-allocations.
+allocations. Migration 0018 adds monthly-close snapshots, and migration
+0019 adds user-owned financial accounts for Net Worth, and 0020 adds encrypted
+per-user SePay credentials.
+
+### Net Worth and SePay
+
+For complete local, production, Ansible, environment-variable, API, and
+troubleshooting instructions, see [docs/SEPAY_SETUP.md](docs/SEPAY_SETUP.md).
+
+Net Worth is intentionally limited to:
+
+- verified balances from explicitly linked SePay bank accounts;
+- outstanding balances from the existing Loan calculation.
+
+Cash-flow income/expenses, expected income, Saving Pots, and scheduled loan
+payments are not added as separate assets or liabilities. Saving Pots are
+excluded because they may already be part of a synchronized bank balance.
+
+To enable per-user SePay connections, configure this backend-only environment
+variable:
+
+- SEPAY_CREDENTIAL_ENCRYPTION_KEY — a stable Fernet key used to encrypt each
+  user's SePay API token at rest. Generate it once with
+  `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
+- SEPAY_API_BASE_URL — optional test/deployment override; defaults to
+  https://my.sepay.vn/userapi.
+
+Each user connects from `/net-worth` with their own SePay API token and bank
+account number. The backend resolves SePay's internal account ID, validates
+the connection, stores only a Fernet-encrypted token, and never returns the
+token to the browser. Accounts are isolated by the authenticated Ledger user.
+Balances synchronize on demand while the Net Worth/Dashboard UI is active, no
+more often than every five minutes, and manual refreshes are server-rate-limited.
+The integration is read-only: it does not import transactions, initiate
+transfers, or request bank credentials/OTPs. A failed synchronization preserves
+the last valid balance and marks it stale; an unavailable balance is shown as
+unavailable rather than as 0.
 
 ### Monthly Routine (expected income)
 
@@ -308,12 +353,10 @@ network, and `routing`'s `nginx/includes/apexvoid-ledger-routes.conf` proxies
 - 🔐 In `ansible-library`, `inventory/group_vars/all/vault.yml` needs a
   `vault_apexvoid_ledger_env` entry with `POSTGRES_USER`, `POSTGRES_PASSWORD`,
   `POSTGRES_DB`, `DATABASE_URL` (host must be `postgres`, the compose service
-  name), and **`SECRET_KEY`** (session cookie signing key — generate with
-  `python -c "import secrets; print(secrets.token_urlsafe(32))"`). Missing
-  `SECRET_KEY` isn't cosmetic: `main.py` hard-requires it at startup and the
-  backend container crash-loops without it — `ansible-library`'s
-  `required_secret_keys` for this project now asserts it's present before
-  deploying, so this fails loudly instead of shipping a broken container.
+  name), **`SECRET_KEY`**, and `SEPAY_CREDENTIAL_ENCRYPTION_KEY`. The stable
+  encryption key is injected into the backend; individual SePay tokens are
+  entered by users and stored encrypted in Postgres. `ansible-library`
+  validates all required keys before deploying.
 
 ## 📜 Changelog
 

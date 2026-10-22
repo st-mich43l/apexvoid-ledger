@@ -16,6 +16,7 @@ function getBackTarget(pathname: string, isAdmin: boolean): { path: string; labe
   if (pathname === '/monthly-close') return { path: '/dashboard', label: 'Dashboard' }
   if (pathname === '/saving-pot') return { path: '/dashboard', label: 'Dashboard' }
   if (pathname === '/monthly-routine') return { path: '/dashboard', label: 'Dashboard' }
+  if (pathname === '/net-worth') return { path: '/dashboard', label: 'Dashboard' }
   if (pathname === '/settings/users') return { path: '/home', label: 'Home' }
   if (pathname === '/dashboard') return isAdmin ? { path: '/home', label: 'Home' } : null
   return null
@@ -54,7 +55,14 @@ export function Layout() {
                 Finance Management
               </p>
               <div className="mt-1 flex items-center gap-2.5">
-                <BrandMark className="h-9 w-9" />
+                <Link
+                  to={user?.isAdmin ? '/home' : '/dashboard'}
+                  aria-label="Go to home"
+                  title="Go to home"
+                  className="rounded-xl transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                >
+                  <BrandMark className="h-9 w-9" />
+                </Link>
                 <h1 className="text-3xl font-semibold tracking-tight text-neutral-900 sm:text-4xl dark:text-neutral-50">
                   ApexVoid Ledger
                 </h1>
