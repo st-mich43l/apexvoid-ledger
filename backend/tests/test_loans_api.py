@@ -23,7 +23,14 @@ def create_loan(client: TestClient, **overrides) -> dict:
 class TestLoanDetailOwnership:
   def test_owner_can_view_their_loan_detail(self, auth_client: TestClient):
     loan = create_loan(auth_client)
-    res = auth_client.get(f"/api/loans/{loan['id']}")
+    class _ReferenceInstant(datetime):
+      @classmethod
+      def now(cls, tz=None):
+        return datetime(2026, 8, 11, 12, 0, tzinfo=tz)
+
+    with patch("app.calculations.datetime", _ReferenceInstant):
+      res = auth_client.get(f"/api/loans/{loan['id']}")
+
     assert res.status_code == 200
     body = res.json()
     assert body["termsElapsed"] == 3
