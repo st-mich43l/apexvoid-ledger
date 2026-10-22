@@ -8,6 +8,7 @@ from sqlalchemy import (
   DateTime,
   ForeignKey,
   Index,
+  JSON,
   Integer,
   Numeric,
   String,
@@ -96,6 +97,9 @@ class FinancialAccount(Base):
   last_sync_error: Mapped[str | None] = mapped_column(
     "lastSyncError", String(160), nullable=True
   )
+  account_number_fingerprint: Mapped[str | None] = mapped_column(
+    "accountNumberFingerprint", String(64), nullable=True
+  )
   created_at: Mapped[datetime] = mapped_column(
     "createdAt", DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
   )
@@ -106,6 +110,85 @@ class FinancialAccount(Base):
     default=lambda: datetime.now(timezone.utc),
     onupdate=lambda: datetime.now(timezone.utc),
   )
+
+
+class SePayBankActivity(Base):
+  """Durable SePay webhook inbox and bank-activity record.
+
+  The original payload is retained for audit, while account matching uses a
+  keyed fingerprint and never depends on the visible account number's suffix.
+  """
+
+  __tablename__ = "SePayBankActivity"
+  __table_args__ = (
+    UniqueConstraint(
+      "provider", "providerTransactionId", name="uq_sepay_activity_provider_transaction"
+    ),
+    CheckConstraint('"direction" IN (\'in\', \'out\')', name="ck_sepay_activity_direction"),
+    CheckConstraint(
+      '"processingStatus" IN (\'pending_review\', \'processed\', \'unmatched\', \'failed\')',
+      name="ck_sepay_activity_processing_status",
+    ),
+    CheckConstraint(
+      '"classification" IN (\'unreviewed\', \'income\', \'expense\', \'internal_transfer\', \'loan_repayment\', \'loan_interest\', \'savings_transfer\')',
+      name="ck_sepay_activity_classification",
+    ),
+    CheckConstraint("amount > 0", name="ck_sepay_activity_amount_positive"),
+    CheckConstraint(
+      '"currency" IN (\'USD\', \'EUR\', \'GBP\', \'AUD\', \'JPY\', \'CNY\', \'VND\')',
+      name="ck_sepay_activity_currency",
+    ),
+    Index("ix_sepay_activity_user_occurred", "userId", "occurredAt"),
+    Index("ix_sepay_activity_account_occurred", "financialAccountId", "occurredAt"),
+  )
+
+  id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+  provider: Mapped[str] = mapped_column(String(32), nullable=False, default="sepay")
+  provider_transaction_id: Mapped[str] = mapped_column(
+    "providerTransactionId", String(128), nullable=False
+  )
+  user_id: Mapped[str | None] = mapped_column(
+    "userId", ForeignKey("User.id", ondelete="SET NULL"), nullable=True
+  )
+  financial_account_id: Mapped[str | None] = mapped_column(
+    "financialAccountId", ForeignKey("FinancialAccount.id", ondelete="SET NULL"), nullable=True
+  )
+  account_number_fingerprint: Mapped[str] = mapped_column(
+    "accountNumberFingerprint", String(64), nullable=False
+  )
+  account_number_masked: Mapped[str] = mapped_column(
+    "accountNumberMasked", String(32), nullable=False
+  )
+  occurred_at: Mapped[datetime] = mapped_column("occurredAt", DateTime(timezone=True), nullable=False)
+  direction: Mapped[str] = mapped_column(String(8), nullable=False)
+  amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+  currency: Mapped[str] = mapped_column(String(3), nullable=False, default="VND")
+  description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+  bank_reference: Mapped[str | None] = mapped_column("bankReference", String(255), nullable=True)
+  running_balance: Mapped[Decimal | None] = mapped_column(
+    "runningBalance", Numeric(18, 2), nullable=True
+  )
+  processing_status: Mapped[str] = mapped_column(
+    "processingStatus", String(20), nullable=False, default="pending_review"
+  )
+  classification: Mapped[str] = mapped_column(
+    String(32), nullable=False, default="unreviewed"
+  )
+  linked_transaction_id: Mapped[str | None] = mapped_column(
+    "linkedTransactionId", ForeignKey("Transaction.id", ondelete="SET NULL"), nullable=True
+  )
+  matched_kind: Mapped[str | None] = mapped_column("matchedKind", String(32), nullable=True)
+  matched_id: Mapped[str | None] = mapped_column("matchedId", String(128), nullable=True)
+  received_at: Mapped[datetime] = mapped_column(
+    "receivedAt", DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+  )
+  processed_at: Mapped[datetime | None] = mapped_column(
+    "processedAt", DateTime(timezone=True), nullable=True
+  )
+  processing_error: Mapped[str | None] = mapped_column(
+    "processingError", String(240), nullable=True
+  )
+  original_payload: Mapped[dict] = mapped_column("originalPayload", JSON, nullable=False)
 
 
 class Loan(Base):

@@ -65,9 +65,17 @@ From these, the dashboard calculates:
   category, update immediately when a loan changes, and are removed when the
   loan is deleted. They are projections, not confirmation that a payment was
   completed, and are converted using the same historical-rate path.
+- SePay bank activity received through the production webhook. Incoming and
+  outgoing events are stored durably and idempotently, matched to the exact
+  connected account, and shown in Cash Flow for review and classification.
+- Conservative reconciliation for matching manual entries, recurring income,
+  fixed costs, and scheduled loan activity. Unmatched events remain pending
+  review instead of being silently assigned or double-counted.
 
-Ordinary variable expenses remain manual; bank synchronization, imports,
-payment reconciliation, and automatic categorization are not included.
+Ordinary variable expenses remain manual. SePay webhook activity is not treated
+as confirmed income or expense until it is matched automatically or classified
+by the user. Net Worth still uses verified bank balances and outstanding loan
+liabilities, not Cash Flow activity.
 
 Default categories are created lazily and idempotently the first time each
 account accesses cash flow. All categories and transactions are scoped to the
@@ -122,7 +130,8 @@ activity ledger:
 - `/net-worth` — verified SePay bank assets minus outstanding loan liabilities,
   with stale/unavailable balance states and manual synchronization
 - `/cashflow` — monthly cash-flow summary, visualizations, transaction CRUD,
-  category management, and **Monthly Fixed Costs** (recurring expenses)
+  category management, **Monthly Fixed Costs** (recurring expenses), and
+  SePay bank-activity review/classification
 - `/monthly-routine` — expected monthly income plan composed with fixed costs,
   loan obligations, and actual variable spending (baseline available +
   projected remainder)
@@ -150,8 +159,9 @@ backfill, migration `0015` adds recurring expenses with effective-dated
 revisions, migration `0016` adds recurring expected income for Monthly
 Routine planning, and migration `0017` adds monthly budgets and category
 allocations. Migration 0018 adds monthly-close snapshots, and migration
-0019 adds user-owned financial accounts for Net Worth, and 0020 adds encrypted
-per-user SePay credentials.
+0019 adds user-owned financial accounts for Net Worth, migration 0020 adds
+encrypted per-user SePay credentials, and migration 0021 adds the durable
+SePay webhook activity inbox and account-number fingerprint.
 
 ### Net Worth and SePay
 
@@ -180,6 +190,8 @@ Each user connects from `/net-worth` with their own SePay API token and bank
 account number. The backend resolves SePay's internal account ID, validates
 the connection, stores only a Fernet-encrypted token, and never returns the
 token to the browser. Accounts are isolated by the authenticated Ledger user.
+Configure `SEPAY_WEBHOOK_API_KEY` separately when enabling SePay's inbound
+webhook; see the setup guide for the endpoint, header, and review workflow.
 Balances synchronize on demand while the Net Worth/Dashboard UI is active, no
 more often than every five minutes, and manual refreshes are server-rate-limited.
 The integration is read-only: it does not import transactions, initiate

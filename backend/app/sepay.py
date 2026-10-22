@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import hashlib
+import hmac
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
@@ -89,6 +91,18 @@ def normalize_account_number(value: str) -> str:
   if not normalized or not normalized.isdigit():
     raise SePayError("Bank account number is invalid", kind="validation", status_code=422)
   return normalized
+
+
+def account_number_fingerprint(value: str) -> str:
+  """Return a keyed, non-reversible identity for a normalized bank number."""
+  key = os.getenv("SEPAY_ACCOUNT_FINGERPRINT_KEY", "").strip() or os.getenv("SECRET_KEY", "").strip()
+  if not key:
+    raise SePayConfigurationError("SePay account fingerprinting is not configured")
+  return hmac.new(
+    key.encode("utf-8"),
+    normalize_account_number(value).encode("utf-8"),
+    hashlib.sha256,
+  ).hexdigest()
 
 
 def _mask_account_number(value: str) -> str:

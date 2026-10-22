@@ -33,6 +33,7 @@ services:
       DATABASE_URL: {{ apexvoid_ledger_secrets.DATABASE_URL | to_json }}
       SECRET_KEY: {{ apexvoid_ledger_secrets.SECRET_KEY | to_json }}
       SEPAY_CREDENTIAL_ENCRYPTION_KEY: {{ apexvoid_ledger_secrets.SEPAY_CREDENTIAL_ENCRYPTION_KEY | to_json }}
+      SEPAY_WEBHOOK_API_KEY: {{ apexvoid_ledger_secrets.SEPAY_WEBHOOK_API_KEY | to_json }}
       PORT: "4000"
     networks:
       - default

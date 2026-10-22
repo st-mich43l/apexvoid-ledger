@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
 
 from .routers.auth import router as auth_router
+from .routers.bank_activities import router as bank_activities_router
 from .routers.cashflow import router as cashflow_router
 from .routers.categories import router as categories_router
 from .routers.loans import router as loans_router
@@ -14,6 +15,7 @@ from .routers.net_worth import router as net_worth_router
 from .routers.recurring_expenses import router as recurring_expenses_router
 from .routers.recurring_incomes import router as recurring_incomes_router
 from .routers.saving_pot import router as saving_pot_router
+from .routers.sepay_webhook import router as sepay_webhook_router
 from .routers.transactions import router as transactions_router
 
 app = FastAPI(title="apexvoid-ledger backend")
@@ -31,6 +33,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(bank_activities_router)
 app.include_router(loans_router)
 app.include_router(categories_router)
 app.include_router(transactions_router)
@@ -42,6 +45,7 @@ app.include_router(monthly_budget_router)
 app.include_router(monthly_close_router)
 app.include_router(net_worth_router)
 app.include_router(saving_pot_router)
+app.include_router(sepay_webhook_router)
 
 
 @app.get("/api/health")
