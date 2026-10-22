@@ -24,6 +24,7 @@ DEFAULT_CATEGORIES = {
     ("Loan", "🏦"),
     ("Credit Card", "💳"),
     ("Support", "🛟"),
+    ("Monthly Living Budget", "💸"),
     ("Other", "📦"),
   ],
   "income": [

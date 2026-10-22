@@ -68,14 +68,19 @@ From these, the dashboard calculates:
 - SePay bank activity received through the production webhook. Incoming and
   outgoing events are stored durably and idempotently, matched to the exact
   connected account, and shown in Cash Flow for review and classification.
+- A default **Monthly Living Budget** expense category can be renamed and
+  selected like any other category. The connected primary TPBank account can
+  use a description/reference rule to classify matching outgoing SePay events
+  as ordinary expenses; amount alone never triggers classification.
 - Conservative reconciliation for matching manual entries, recurring income,
   fixed costs, and scheduled loan activity. Unmatched events remain pending
   review instead of being silently assigned or double-counted.
 
 Ordinary variable expenses remain manual. SePay webhook activity is not treated
 as confirmed income or expense until it is matched automatically or classified
-by the user. Net Worth still uses verified bank balances and outstanding loan
-liabilities, not Cash Flow activity.
+by the user. Configured Monthly Living Budget matches become normal Cash Flow
+expenses and are counted once. Net Worth still uses verified bank balances and
+outstanding loan liabilities, not Cash Flow activity.
 
 Default categories are created lazily and idempotently the first time each
 account accesses cash flow. All categories and transactions are scoped to the
@@ -159,9 +164,11 @@ backfill, migration `0015` adds recurring expenses with effective-dated
 revisions, migration `0016` adds recurring expected income for Monthly
 Routine planning, and migration `0017` adds monthly budgets and category
 allocations. Migration 0018 adds monthly-close snapshots, and migration
-0019 adds user-owned financial accounts for Net Worth, migration 0020 adds
-encrypted per-user SePay credentials, and migration 0021 adds the durable
-SePay webhook activity inbox and account-number fingerprint.
+  0019 adds user-owned financial accounts for Net Worth, migration 0020 adds
+  encrypted per-user SePay credentials, and migration 0021 adds the durable
+  SePay webhook activity inbox and account-number fingerprint. Migration 0022
+  adds the optional outgoing categorization rule to the existing connected
+  account.
 
 ### Net Worth and SePay
 

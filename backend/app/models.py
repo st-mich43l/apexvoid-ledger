@@ -100,6 +100,21 @@ class FinancialAccount(Base):
   account_number_fingerprint: Mapped[str | None] = mapped_column(
     "accountNumberFingerprint", String(64), nullable=True
   )
+  # Optional outgoing-transaction categorization rule for this connected
+  # account. A rule must include at least one textual matcher; amount alone is
+  # intentionally never sufficient for automatic classification.
+  auto_category_id: Mapped[str | None] = mapped_column(
+    "autoCategoryId", ForeignKey("Category.id", ondelete="SET NULL"), nullable=True
+  )
+  auto_description_contains: Mapped[str | None] = mapped_column(
+    "autoDescriptionContains", String(160), nullable=True
+  )
+  auto_reference_contains: Mapped[str | None] = mapped_column(
+    "autoReferenceContains", String(160), nullable=True
+  )
+  auto_rule_enabled: Mapped[bool] = mapped_column(
+    "autoRuleEnabled", Boolean, nullable=False, default=False
+  )
   created_at: Mapped[datetime] = mapped_column(
     "createdAt", DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
   )

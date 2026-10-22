@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from ..auth import require_password_changed
+from ..bank_activity import process_activity
 from ..cashflow import as_utc, month_range
 from ..database import get_db
 from ..models import Category, FinancialAccount, SePayBankActivity, Transaction, User
@@ -13,6 +14,8 @@ from ..schemas import (
   BankActivityClassification,
   BankActivityDirection,
   BankActivityRead,
+  SePayCategorizationRuleRead,
+  SePayCategorizationRuleUpdate,
 )
 
 router = APIRouter(prefix="/api/bank-activities", tags=["bank-activities"])
@@ -57,6 +60,96 @@ def _serialize(db: Session, activity: SePayBankActivity) -> BankActivityRead:
     processed_at=activity.processed_at,
     received_at=activity.received_at,
   )
+
+
+def _primary_sepay_account(db: Session, user_id: str) -> FinancialAccount:
+  account = (
+    db.query(FinancialAccount)
+    .filter(FinancialAccount.user_id == user_id, FinancialAccount.provider == "sepay")
+    .order_by(FinancialAccount.created_at.asc())
+    .first()
+  )
+  if account is None:
+    raise HTTPException(status_code=404, detail="Connect the primary TPBank SePay account first")
+  return account
+
+
+def _serialize_rule(db: Session, account: FinancialAccount) -> SePayCategorizationRuleRead:
+  category = db.get(Category, account.auto_category_id) if account.auto_category_id else None
+  return SePayCategorizationRuleRead(
+    financial_account_id=account.id,
+    enabled=bool(
+      account.auto_rule_enabled
+      and category is not None
+      and category.category_type == "expense"
+      and category.is_active
+    ),
+    category_id=category.id if category is not None else None,
+    category_name=category.name if category is not None else None,
+    description_contains=account.auto_description_contains,
+    reference_contains=account.auto_reference_contains,
+  )
+
+
+@router.get("/categorization-rule", response_model=SePayCategorizationRuleRead)
+def get_categorization_rule(
+  db: Session = Depends(get_db),
+  current_user: User = Depends(require_password_changed),
+):
+  return _serialize_rule(db, _primary_sepay_account(db, current_user.id))
+
+
+@router.put("/categorization-rule", response_model=SePayCategorizationRuleRead)
+def update_categorization_rule(
+  payload: SePayCategorizationRuleUpdate,
+  db: Session = Depends(get_db),
+  current_user: User = Depends(require_password_changed),
+):
+  account = _primary_sepay_account(db, current_user.id)
+  description = payload.description_contains.strip() if payload.description_contains else None
+  reference = payload.reference_contains.strip() if payload.reference_contains else None
+
+  category = None
+  if payload.category_id is not None:
+    category = (
+      db.query(Category)
+      .filter(Category.id == payload.category_id, Category.user_id == current_user.id)
+      .first()
+    )
+    if category is None:
+      raise HTTPException(status_code=404, detail="Category not found")
+    if category.category_type != "expense" or (payload.enabled and not category.is_active):
+      raise HTTPException(status_code=422, detail="Select an active expense category")
+
+  if payload.enabled and category is None:
+    raise HTTPException(status_code=422, detail="An expense category is required for an active rule")
+  if payload.enabled and not description and not reference:
+    raise HTTPException(
+      status_code=422,
+      detail="Add a description or bank-reference matcher; amount alone cannot classify transactions",
+    )
+
+  account.auto_category_id = category.id if category is not None else None
+  account.auto_description_contains = description
+  account.auto_reference_contains = reference
+  account.auto_rule_enabled = payload.enabled
+
+  # Applying a rule also gives already-received, still-unreviewed events a
+  # deterministic chance to be classified. Existing transactions remain
+  # protected by the activity/provider identity checks.
+  pending = (
+    db.query(SePayBankActivity)
+    .filter(
+      SePayBankActivity.financial_account_id == account.id,
+      SePayBankActivity.processing_status == "pending_review",
+    )
+    .all()
+  )
+  for activity in pending:
+    process_activity(db, activity)
+  db.commit()
+  db.refresh(account)
+  return _serialize_rule(db, account)
 
 
 @router.get("", response_model=list[BankActivityRead])
