@@ -41,7 +41,7 @@ export function PremiumCard({ title, icon, accent, value, subtitle, to, comingSo
 
   const card = (
     <div
-      className={`group relative h-full min-w-0 overflow-hidden rounded-3xl border border-neutral-200/80 bg-white p-6 shadow-[0_2px_8px_-2px_rgba(24,16,54,0.08),0_16px_32px_-12px_rgba(24,16,54,0.10)] ring-1 ring-transparent transition-all duration-300 dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none ${
+      className={`group relative h-full min-w-0 overflow-hidden rounded-3xl border border-neutral-200/80 bg-white p-6 shadow-[0_2px_8px_-2px_rgba(24,16,54,0.08),0_16px_32px_-12px_rgba(24,16,54,0.10)] ring-1 ring-transparent transition-all duration-300 2xl:p-4 dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none ${
         comingSoon ? 'opacity-80' : `hover:-translate-y-0.5 hover:shadow-[0_4px_12px_-2px_rgba(24,16,54,0.10),0_24px_40px_-12px_rgba(24,16,54,0.14)] ${styles.ring}`
       }`}
     >
@@ -50,10 +50,10 @@ export function PremiumCard({ title, icon, accent, value, subtitle, to, comingSo
       />
 
       <div className="relative flex items-start justify-between">
-        <div className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl ${styles.badge}`}>{icon}</div>
+        <div className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl 2xl:h-10 2xl:w-10 2xl:rounded-xl ${styles.badge}`}>{icon}</div>
 
         {comingSoon ? (
-          <span className="rounded-full border border-dashed border-neutral-300 px-2.5 py-1 text-[11px] font-medium tracking-wide text-neutral-400 uppercase dark:border-neutral-700 dark:text-neutral-500">
+          <span className="rounded-full border border-dashed border-neutral-300 px-2.5 py-1 text-[11px] font-medium tracking-wide text-neutral-400 uppercase 2xl:px-2 2xl:py-0.5 2xl:text-[10px] dark:border-neutral-700 dark:text-neutral-500">
             Coming soon
           </span>
         ) : (
@@ -71,13 +71,13 @@ export function PremiumCard({ title, icon, accent, value, subtitle, to, comingSo
         )}
       </div>
 
-      <p className="relative mt-5 text-xs font-medium tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
+      <p className="relative mt-5 text-xs font-medium tracking-wide text-neutral-500 uppercase 2xl:mt-4 2xl:text-[11px] dark:text-neutral-400">
         {title}
       </p>
-      <p className="relative mt-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-2xl font-semibold tracking-tight text-neutral-900 tabular-nums xl:text-[clamp(1.25rem,1.8vw,1.875rem)] dark:text-neutral-50">
+      <p className="relative mt-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-2xl font-semibold tracking-tight text-neutral-900 tabular-nums xl:text-[clamp(1.25rem,1.8vw,1.875rem)] 2xl:text-[clamp(1.1rem,1.25vw,1.5rem)] dark:text-neutral-50">
         {value}
       </p>
-      <p className="relative mt-1 text-sm text-neutral-500 dark:text-neutral-400">{subtitle}</p>
+      <p className="relative mt-1 text-sm text-neutral-500 2xl:text-xs dark:text-neutral-400">{subtitle}</p>
     </div>
   )
 
