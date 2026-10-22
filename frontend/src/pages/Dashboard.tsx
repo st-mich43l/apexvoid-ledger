@@ -47,7 +47,7 @@ export function Dashboard() {
         </p>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6">
         <PremiumCard
           title="Net Worth"
           accent="cyan"
@@ -62,7 +62,7 @@ export function Dashboard() {
             netWorth.loading
               ? 'Loading valuation…'
               : netWorth.summary?.valuationComplete
-                ? String(netWorth.summary.assetBreakdown.filter((line) => line.included).length) + ' assets · ' + String(netWorth.summary.liabilityBreakdown.length) + ' liabilities'
+                ? `${netWorth.summary.assetBreakdown.filter((line) => line.included).length} ${netWorth.summary.assetBreakdown.filter((line) => line.included).length === 1 ? 'asset' : 'assets'} · ${netWorth.summary.liabilityBreakdown.length} ${netWorth.summary.liabilityBreakdown.length === 1 ? 'liability' : 'liabilities'}`
                 : 'Review connected accounts'
           }
           to="/net-worth"

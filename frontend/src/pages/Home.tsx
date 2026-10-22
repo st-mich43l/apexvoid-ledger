@@ -45,7 +45,7 @@ export function HomePage() {
             netWorth.loading
               ? 'Loading net worth…'
               : netWorth.summary?.valuationComplete
-                ? `${netWorth.summary.assetBreakdown.filter((line) => line.included).length} assets · ${netWorth.summary.liabilityBreakdown.length} liabilities`
+                ? `${netWorth.summary.assetBreakdown.filter((line) => line.included).length} ${netWorth.summary.assetBreakdown.filter((line) => line.included).length === 1 ? 'asset' : 'assets'} · ${netWorth.summary.liabilityBreakdown.length} ${netWorth.summary.liabilityBreakdown.length === 1 ? 'liability' : 'liabilities'}`
                 : 'Review connected accounts'
           }
           to="/dashboard"
