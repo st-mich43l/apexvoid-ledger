@@ -74,7 +74,7 @@ export function PremiumCard({ title, icon, accent, value, subtitle, to, comingSo
       <p className="relative mt-5 text-xs font-medium tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
         {title}
       </p>
-      <p className="relative mt-1 min-w-0 text-2xl font-semibold tracking-tight text-neutral-900 tabular-nums xl:text-[clamp(1.35rem,1.8vw,1.875rem)] dark:text-neutral-50">
+      <p className="relative mt-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-2xl font-semibold tracking-tight text-neutral-900 tabular-nums xl:text-[clamp(1.25rem,1.8vw,1.875rem)] dark:text-neutral-50">
         {value}
       </p>
       <p className="relative mt-1 text-sm text-neutral-500 dark:text-neutral-400">{subtitle}</p>
