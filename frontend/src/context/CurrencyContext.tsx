@@ -15,7 +15,7 @@ const CurrencyContext = createContext<CurrencyContextValue | null>(null)
 
 // Sourced from the account (user.preferredCurrency), not localStorage — picked
 // once on first login (RequireAuth forces /select-currency while it's null,
-// the same way it forces /change-password) and changeable anytime afterward
+// the same way it forces the User Accounts password update) and changeable anytime afterward
 // from the header's CurrencySelector. Both paths go through
 // AuthContext.setPreferredCurrency, so the choice stays in sync across
 // devices instead of being stuck to one browser.

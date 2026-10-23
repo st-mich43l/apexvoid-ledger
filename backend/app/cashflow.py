@@ -20,6 +20,7 @@ DEFAULT_CATEGORIES = {
     ("Health", "❤️"),
     ("Spa & Beauty", "💆"),
     ("Travel", "✈️"),
+    ("Hotel", "🏨"),
     ("Gifts", "🎁"),
     ("Loan", "🏦"),
     ("Credit Card", "💳"),

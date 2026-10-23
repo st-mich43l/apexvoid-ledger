@@ -4,7 +4,6 @@ import { RequireAdmin } from './components/RequireAdmin'
 import { RequireAuth } from './components/RequireAuth'
 import { useAuth } from './context/AuthContext'
 import { AdminUsersPage } from './pages/admin/Users'
-import { ChangePasswordPage } from './pages/ChangePassword'
 import { CashFlowPage } from './pages/CashFlow'
 import { BudgetPage } from './pages/Budget'
 import { Dashboard } from './pages/Dashboard'
@@ -31,10 +30,9 @@ function App() {
       <Route path="login" element={<LoginPage />} />
 
       <Route element={<RequireAuth />}>
-        {/* Standalone, like /login — these are gates between login and the app
-            (only reachable via RequireAuth's forced redirects), not pages
-            within it, so they skip Layout's header/chrome entirely. */}
-        <Route path="change-password" element={<ChangePasswordPage />} />
+        {/* Kept as a compatibility redirect for bookmarked links. Password
+            management now lives in the in-app User Accounts section. */}
+        <Route path="change-password" element={<Navigate to="/settings/users" replace />} />
         <Route path="select-currency" element={<SelectCurrencyPage />} />
 
         <Route element={<Layout />}>
@@ -50,9 +48,10 @@ function App() {
           <Route path="loan/:loanId" element={<LoanDetailPage />} />
           <Route path="tools" element={<Navigate to="/home" replace />} />
 
+          <Route path="settings/users" element={<AdminUsersPage />} />
+
           <Route element={<RequireAdmin />}>
             <Route path="home" element={<HomePage />} />
-            <Route path="settings/users" element={<AdminUsersPage />} />
           </Route>
 
           <Route path="*" element={<DefaultRoute />} />
