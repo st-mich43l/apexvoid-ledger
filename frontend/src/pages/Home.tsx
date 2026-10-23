@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { fetchUsers } from '../api'
 import { PremiumCard } from '../components/PremiumCard'
 import { useNetWorth } from '../hooks/useNetWorth'
+import { FinanceCalculators } from './Tools'
 import { formatCurrency } from '../lib/currency'
 
 export function HomePage() {
@@ -50,6 +51,10 @@ export function HomePage() {
           to="/dashboard"
           icon={<GridIcon />}
         />
+      </div>
+
+      <div className="mt-8">
+        <FinanceCalculators />
       </div>
     </section>
   )
