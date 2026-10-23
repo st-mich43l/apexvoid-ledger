@@ -126,34 +126,32 @@ export function CashFlowPage() {
 
       <CashFlowSummaryCards summary={summaryState.summary} loading={summaryState.loading} currency={currency} />
 
-      {summaryState.summary && (
-        <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <IncomeExpenseChart summary={summaryState.summary} />
-          <SpendingByCategory summary={summaryState.summary} monthLabel={label} />
-        </div>
-      )}
-
-      <SePayCategorizationRuleCard categories={categoriesState.categories} />
-
       <div className="mt-5 grid items-start gap-5 xl:grid-cols-[minmax(22rem,0.9fr)_minmax(0,1.6fr)]">
-        <BankActivityList
-          activities={bankActivitiesState.activities}
-          categories={categoriesState.categories}
-          loading={bankActivitiesState.loading}
-          monthLabel={label}
-          onChanged={refreshFinancials}
-        />
-        <TransactionList
-          transactions={transactionsState.transactions}
-          recurringIncomes={summaryState.summary?.recurringIncomes ?? []}
-          loanPayments={summaryState.summary?.loanPayments ?? []}
-          recurringExpenses={summaryState.summary?.recurringExpenses ?? []}
-          loading={transactionsState.loading || summaryState.loading}
-          monthLabel={label}
-          onAdd={() => setShowCreate(true)}
-          onEdit={setEditing}
-          onDelete={setPendingDelete}
-        />
+        <aside aria-label="Cash flow insights" className="space-y-5">
+          {summaryState.summary && <IncomeExpenseChart summary={summaryState.summary} />}
+          {summaryState.summary && <SpendingByCategory summary={summaryState.summary} monthLabel={label} />}
+          <BankActivityList
+            activities={bankActivitiesState.activities}
+            categories={categoriesState.categories}
+            loading={bankActivitiesState.loading}
+            monthLabel={label}
+            onChanged={refreshFinancials}
+          />
+        </aside>
+        <div className="min-w-0 space-y-5">
+          <SePayCategorizationRuleCard categories={categoriesState.categories} />
+          <TransactionList
+            transactions={transactionsState.transactions}
+            recurringIncomes={summaryState.summary?.recurringIncomes ?? []}
+            loanPayments={summaryState.summary?.loanPayments ?? []}
+            recurringExpenses={summaryState.summary?.recurringExpenses ?? []}
+            loading={transactionsState.loading || summaryState.loading}
+            monthLabel={label}
+            onAdd={() => setShowCreate(true)}
+            onEdit={setEditing}
+            onDelete={setPendingDelete}
+          />
+        </div>
       </div>
 
       {showCreate && (

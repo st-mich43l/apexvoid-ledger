@@ -43,7 +43,7 @@ export function SePayCategorizationRuleCard({ categories }: { categories: Catego
   }
 
   return (
-    <article className="mt-5 rounded-3xl border border-violet-200 bg-violet-50/60 p-5 dark:border-violet-900/60 dark:bg-violet-950/20">
+    <article className="rounded-3xl border border-violet-200 bg-violet-50/60 p-5 dark:border-violet-900/60 dark:bg-violet-950/20">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-violet-600 dark:text-violet-400">SePay automation</p>
         <h3 className="mt-1 font-semibold text-neutral-900 dark:text-neutral-50">Monthly living budget rule</h3>
