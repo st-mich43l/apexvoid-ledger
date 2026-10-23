@@ -53,6 +53,7 @@ export function CashFlowPage() {
   const [pendingDelete, setPendingDelete] = useState<LedgerTransaction | null>(null)
   const [showCategories, setShowCategories] = useState(false)
   const [showWeeklyExpenses, setShowWeeklyExpenses] = useState(false)
+  const [showInsights, setShowInsights] = useState(false)
   const label = monthName(year, month)
 
   function navigateMonth(offset: number) {
@@ -102,6 +103,7 @@ export function CashFlowPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => setShowInsights((current) => !current)} aria-controls="cash-flow-insights" aria-expanded={showInsights} className="rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 min-[1440px]:hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800">{showInsights ? 'Hide insights' : 'Show insights'}</button>
           <button type="button" onClick={() => setShowCategories(true)} className="rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800">Manage categories</button>
           <button type="button" onClick={() => setShowWeeklyExpenses(true)} className="rounded-full border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-medium text-violet-700 hover:bg-violet-100 dark:border-violet-900/70 dark:bg-violet-950/30 dark:text-violet-300 dark:hover:bg-violet-950/60">Weekly expenses</button>
           <Link to="/monthly-routine" className="rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800">Monthly Routine</Link>
@@ -111,25 +113,11 @@ export function CashFlowPage() {
         </div>
       </div>
 
-      {error && <p role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">{error}</p>}
-      {summaryState.summary && <CurrencyConversionNotice summary={summaryState.summary} />}
-      {summaryState.summary && summaryState.summary.loanPaymentCount > 0 && (
-        <p className="mb-5 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-800 dark:border-violet-900/70 dark:bg-violet-950/30 dark:text-violet-200">
-          Includes {summaryState.summary.loanPaymentCount} contractual loan {summaryState.summary.loanPaymentCount === 1 ? 'payment' : 'payments'} from your loan schedule. These entries update automatically when a loan changes and do not record whether payment was completed.
-        </p>
-      )}
-      {summaryState.summary && summaryState.summary.recurringIncomeCount > 0 && (
-        <p className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-200">
-          Includes {summaryState.summary.recurringIncomeCount} scheduled income {summaryState.summary.recurringIncomeCount === 1 ? 'entry' : 'entries'} from Monthly Routine. These entries map automatically to every covered month without creating manual transactions.
-        </p>
-      )}
-
-      <CashFlowSummaryCards summary={summaryState.summary} loading={summaryState.loading} currency={currency} />
-
-      <div className="mt-5 grid items-start gap-8 xl:grid-cols-[20rem_minmax(0,1fr)] xl:gap-10 min-[1440px]:grid-cols-[0_minmax(0,1fr)] min-[1440px]:gap-0">
+      <div className="min-[1440px]:grid min-[1440px]:grid-cols-[minmax(18rem,20rem)_minmax(0,1fr)] min-[1440px]:items-start min-[1440px]:gap-8">
         <aside
+          id="cash-flow-insights"
           aria-label="Cash flow insights"
-          className="space-y-5 xl:sticky xl:top-6 xl:z-10 xl:-ml-8 xl:max-h-[calc(100vh-3rem)] xl:self-start xl:overflow-y-auto xl:pr-3 min-[1440px]:ml-0 min-[1440px]:w-72 min-[1440px]:-translate-x-28"
+          className={`${showInsights ? 'block' : 'hidden'} mb-5 space-y-5 min-[1440px]:sticky min-[1440px]:top-6 min-[1440px]:mb-0 min-[1440px]:block min-[1440px]:max-h-[calc(100vh-3rem)] min-[1440px]:self-start min-[1440px]:overflow-y-auto min-[1440px]:pr-3`}
         >
           {summaryState.summary && <IncomeExpenseChart summary={summaryState.summary} />}
           {summaryState.summary && <SpendingByCategory summary={summaryState.summary} monthLabel={label} />}
@@ -141,20 +129,37 @@ export function CashFlowPage() {
             onChanged={refreshFinancials}
           />
         </aside>
-        <div className="min-w-0 space-y-5 min-[1440px]:mx-auto min-[1440px]:w-full min-[1440px]:max-w-4xl">
-          <SePayCategorizationRuleCard categories={categoriesState.categories} />
-          <TransactionList
-            transactions={transactionsState.transactions}
-            recurringIncomes={summaryState.summary?.recurringIncomes ?? []}
-            loanPayments={summaryState.summary?.loanPayments ?? []}
-            recurringExpenses={summaryState.summary?.recurringExpenses ?? []}
-            loading={transactionsState.loading || summaryState.loading}
-            monthLabel={label}
-            onAdd={() => setShowCreate(true)}
-            onEdit={setEditing}
-            onDelete={setPendingDelete}
-          />
-        </div>
+        <main className="min-w-0">
+          {error && <p role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">{error}</p>}
+          {summaryState.summary && <CurrencyConversionNotice summary={summaryState.summary} />}
+          {summaryState.summary && summaryState.summary.loanPaymentCount > 0 && (
+            <p className="mb-5 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-800 dark:border-violet-900/70 dark:bg-violet-950/30 dark:text-violet-200">
+              Includes {summaryState.summary.loanPaymentCount} contractual loan {summaryState.summary.loanPaymentCount === 1 ? 'payment' : 'payments'} from your loan schedule. These entries update automatically when a loan changes and do not record whether payment was completed.
+            </p>
+          )}
+          {summaryState.summary && summaryState.summary.recurringIncomeCount > 0 && (
+            <p className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-200">
+              Includes {summaryState.summary.recurringIncomeCount} scheduled income {summaryState.summary.recurringIncomeCount === 1 ? 'entry' : 'entries'} from Monthly Routine. These entries map automatically to every covered month without creating manual transactions.
+            </p>
+          )}
+
+          <CashFlowSummaryCards summary={summaryState.summary} loading={summaryState.loading} currency={currency} />
+
+          <div className="mt-5 space-y-5">
+            <SePayCategorizationRuleCard categories={categoriesState.categories} />
+            <TransactionList
+              transactions={transactionsState.transactions}
+              recurringIncomes={summaryState.summary?.recurringIncomes ?? []}
+              loanPayments={summaryState.summary?.loanPayments ?? []}
+              recurringExpenses={summaryState.summary?.recurringExpenses ?? []}
+              loading={transactionsState.loading || summaryState.loading}
+              monthLabel={label}
+              onAdd={() => setShowCreate(true)}
+              onEdit={setEditing}
+              onDelete={setPendingDelete}
+            />
+          </div>
+        </main>
       </div>
 
       {showCreate && (
