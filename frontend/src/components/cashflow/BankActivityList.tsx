@@ -44,11 +44,11 @@ export function BankActivityList({ activities, categories, loading, monthLabel, 
 
   return (
     <article className="h-fit overflow-hidden rounded-3xl border border-neutral-200/80 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none">
-      <div className="border-b border-neutral-200/80 px-5 py-5 dark:border-neutral-800 sm:px-6">
-        <div className="flex flex-col gap-4">
+      <div className="border-b border-neutral-200/80 px-5 py-4 dark:border-neutral-800">
+        <div className="flex flex-col gap-3">
           <div>
             <h3 className="font-semibold text-neutral-900 dark:text-neutral-50">Bank activity</h3>
-            <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+            <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
               {activities.length} SePay {activities.length === 1 ? 'event' : 'events'} received in {monthLabel}
             </p>
           </div>
@@ -74,9 +74,9 @@ export function BankActivityList({ activities, categories, loading, monthLabel, 
       </div>
 
       {loading ? (
-        <p className="p-6 text-sm text-neutral-500 dark:text-neutral-400">Loading bank activity…</p>
+        <p className="p-5 text-sm text-neutral-500 dark:text-neutral-400">Loading bank activity…</p>
       ) : filtered.length === 0 ? (
-        <p className="p-8 text-center text-sm text-neutral-500 dark:text-neutral-400">No bank activity matches these filters.</p>
+        <p className="px-5 py-5 text-center text-xs text-neutral-500 dark:text-neutral-400">{activities.length === 0 ? `No SePay activity received in ${monthLabel}.` : 'No bank activity matches these filters.'}</p>
       ) : (
         <ul className="divide-y divide-neutral-100 dark:divide-neutral-800">
           {filtered.map((activity) => (

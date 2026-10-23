@@ -156,33 +156,45 @@ export function CashFlowPage() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-violet-600 dark:text-violet-400">Cash Flow</p>
             <h2 className="mt-1 text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">Monthly overview</h2>
-            <div className="mt-3 inline-flex items-center rounded-full border border-neutral-200 bg-white p-1 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-              <button type="button" onClick={() => navigateMonth(-1)} aria-label="Previous month" className="rounded-full px-3 py-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white">←</button>
+            <div className="mt-3 inline-flex items-center rounded-full border border-neutral-200 bg-white p-1 shadow-sm dark:border-neutral-800 dark:bg-neutral-900" aria-label="Month navigation">
+              <button type="button" onClick={() => navigateMonth(-1)} aria-label="Previous month" className="inline-flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white">←</button>
               <span className="min-w-36 px-2 text-center text-sm font-medium text-neutral-800 dark:text-neutral-200">{label}</span>
-              <button type="button" onClick={() => navigateMonth(1)} aria-label="Next month" className="rounded-full px-3 py-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white">→</button>
+              <button type="button" onClick={() => navigateMonth(1)} aria-label="Next month" className="inline-flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white">→</button>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => setShowInsights(true)} aria-controls="cash-flow-insights" aria-expanded={showInsights} className="rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 min-[1816px]:hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800">Show insights</button>
-            <button type="button" onClick={() => setShowCategories(true)} className="rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800">Manage categories</button>
-            <button type="button" onClick={() => setShowWeeklyExpenses(true)} className="rounded-full border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-medium text-violet-700 hover:bg-violet-100 dark:border-violet-900/70 dark:bg-violet-950/30 dark:text-violet-300 dark:hover:bg-violet-950/60">Weekly expenses</button>
-            <Link to="/monthly-routine" className="rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800">Monthly Routine</Link>
-            <Link to={`/budget?year=${year}&month=${month}`} className="self-center px-2 text-sm font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400">View monthly budget</Link>
-            <Link to={`/monthly-close?year=${year}&month=${month}`} className="self-center px-2 text-sm font-medium text-neutral-600 hover:text-violet-600 dark:text-neutral-300 dark:hover:text-violet-400">Monthly Close</Link>
-            <button type="button" onClick={() => setShowCreate(true)} className="rounded-full bg-violet-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-violet-500 dark:bg-violet-500 dark:hover:bg-violet-400">+ Add transaction</button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => setShowInsights(true)} aria-controls="cash-flow-insights" aria-expanded={showInsights} className="h-10 rounded-full border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-700 hover:bg-neutral-50 min-[1816px]:hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800">Insights</button>
+            <div className="hidden items-center gap-2 lg:flex">
+              <button type="button" onClick={() => setShowCategories(true)} className="h-10 rounded-full border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800">Categories</button>
+              <button type="button" onClick={() => setShowWeeklyExpenses(true)} className="h-10 rounded-full border border-violet-200 bg-violet-50 px-4 text-sm font-medium text-violet-700 hover:bg-violet-100 dark:border-violet-900/70 dark:bg-violet-950/30 dark:text-violet-300 dark:hover:bg-violet-950/60">Weekly expenses</button>
+              <Link to="/monthly-routine" className="inline-flex h-10 items-center rounded-full border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800">Routine</Link>
+              <Link to={`/budget?year=${year}&month=${month}`} className="inline-flex h-10 items-center rounded-full border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800">Budget</Link>
+              <Link to={`/monthly-close?year=${year}&month=${month}`} className="inline-flex h-10 items-center rounded-full border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800">Close</Link>
+            </div>
+            <details className="relative lg:hidden">
+              <summary className="flex h-10 cursor-pointer list-none items-center rounded-full border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-700 hover:bg-neutral-50 [&::-webkit-details-marker]:hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800">More actions</summary>
+              <div className="absolute right-0 z-30 mt-2 w-56 space-y-1 rounded-2xl border border-neutral-200 bg-white p-2 shadow-xl dark:border-neutral-800 dark:bg-neutral-900">
+                <button type="button" onClick={() => setShowCategories(true)} className="flex w-full rounded-xl px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-800">Manage categories</button>
+                <button type="button" onClick={() => setShowWeeklyExpenses(true)} className="flex w-full rounded-xl px-3 py-2 text-left text-sm text-violet-700 hover:bg-violet-50 dark:text-violet-300 dark:hover:bg-violet-950/40">Weekly expenses</button>
+                <Link to="/monthly-routine" className="flex rounded-xl px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-800">Monthly Routine</Link>
+                <Link to={`/budget?year=${year}&month=${month}`} className="flex rounded-xl px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-800">Monthly Budget</Link>
+                <Link to={`/monthly-close?year=${year}&month=${month}`} className="flex rounded-xl px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-800">Monthly Close</Link>
+              </div>
+            </details>
+            <button type="button" onClick={() => setShowCreate(true)} className="h-10 rounded-full bg-violet-600 px-5 text-sm font-medium text-white shadow-sm hover:bg-violet-500 dark:bg-violet-500 dark:hover:bg-violet-400">+ Add transaction</button>
           </div>
         </div>
 
         <div className="min-w-0">
-          {error && <p role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">{error}</p>}
+          {error && <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">{error}</p>}
           {summaryState.summary && <CurrencyConversionNotice summary={summaryState.summary} />}
           {summaryState.summary && summaryState.summary.loanPaymentCount > 0 && (
-            <p className="mb-5 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-800 dark:border-violet-900/70 dark:bg-violet-950/30 dark:text-violet-200">
+            <p className="mb-4 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm text-violet-800 dark:border-violet-900/70 dark:bg-violet-950/30 dark:text-violet-200">
               Includes {summaryState.summary.loanPaymentCount} contractual loan {summaryState.summary.loanPaymentCount === 1 ? 'payment' : 'payments'} from your loan schedule. These entries update automatically when a loan changes and do not record whether payment was completed.
             </p>
           )}
           {summaryState.summary && summaryState.summary.recurringIncomeCount > 0 && (
-            <p className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-200">
+            <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-200">
               Includes {summaryState.summary.recurringIncomeCount} scheduled income {summaryState.summary.recurringIncomeCount === 1 ? 'entry' : 'entries'} from Monthly Routine. These entries map automatically to every covered month without creating manual transactions.
             </p>
           )}

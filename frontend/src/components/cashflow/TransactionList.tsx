@@ -171,7 +171,7 @@ export function TransactionList({
                   if (activity.kind === 'recurring-income') {
                     const { income } = activity
                     return (
-                      <tr key={income.id} className="bg-emerald-50/40 dark:bg-emerald-500/[0.03]">
+                      <tr key={income.id} className="bg-emerald-50/40 transition-colors hover:bg-emerald-50/70 dark:bg-emerald-500/[0.03] dark:hover:bg-emerald-500/[0.07]">
                         <td className="whitespace-nowrap px-5 py-4 text-neutral-500 dark:text-neutral-400">{formatDate(income.expectedAt)}</td>
                         <td className="max-w-48 px-5 py-4 font-medium text-neutral-900 dark:text-neutral-100">
                           {income.name}
@@ -194,7 +194,7 @@ export function TransactionList({
                   if (activity.kind === 'loan') {
                     const { payment } = activity
                     return (
-                      <tr key={payment.id} className="bg-violet-50/30 dark:bg-violet-500/[0.03]">
+                      <tr key={payment.id} className="bg-violet-50/30 transition-colors hover:bg-violet-50/70 dark:bg-violet-500/[0.03] dark:hover:bg-violet-500/[0.07]">
                         <td className="whitespace-nowrap px-5 py-4 text-neutral-500 dark:text-neutral-400">{formatDate(payment.dueAt)}</td>
                         <td className="max-w-48 px-5 py-4 font-medium text-neutral-900 dark:text-neutral-100">
                           <Link to={`/loan/${payment.loanId}`} className="hover:text-violet-600 hover:underline dark:hover:text-violet-400">{payment.bankName} installment</Link>
@@ -215,7 +215,7 @@ export function TransactionList({
                   if (activity.kind === 'recurring') {
                     const { expense } = activity
                     return (
-                      <tr key={expense.id} className="bg-amber-50/40 dark:bg-amber-500/[0.03]">
+                      <tr key={expense.id} className="bg-amber-50/40 transition-colors hover:bg-amber-50/70 dark:bg-amber-500/[0.03] dark:hover:bg-amber-500/[0.07]">
                         <td className="whitespace-nowrap px-5 py-4 text-neutral-500 dark:text-neutral-400">{formatDate(expense.dueAt)}</td>
                         <td className="max-w-48 px-5 py-4 font-medium text-neutral-900 dark:text-neutral-100">
                           {expense.name}
@@ -235,12 +235,12 @@ export function TransactionList({
                   }
                   const { transaction } = activity
                   return (
-                    <tr key={transaction.id}>
+                    <tr key={transaction.id} className="transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-950/60">
                       <td className="whitespace-nowrap px-5 py-4 text-neutral-500 dark:text-neutral-400">{formatDate(transaction.occurredAt)}</td>
                       <td className="max-w-48 truncate px-5 py-4 font-medium text-neutral-900 dark:text-neutral-100">{transaction.description || '—'}</td>
                       <td className="whitespace-nowrap px-5 py-4 text-neutral-600 dark:text-neutral-300">{transaction.categoryIcon} {transaction.categoryName}</td>
                       <td className="px-5 py-4 capitalize text-neutral-500 dark:text-neutral-400">{transaction.type}</td>
-                      <td className={`whitespace-nowrap px-5 py-4 text-right font-medium tabular-nums ${transaction.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-neutral-900 dark:text-neutral-100'}`}>{signedAmount(transaction)}</td>
+                      <td className={`whitespace-nowrap px-5 py-4 text-right font-medium tabular-nums ${transaction.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{signedAmount(transaction)}</td>
                       <td className="px-3 py-4"><ActionButtons transaction={transaction} onEdit={onEdit} onDelete={onDelete} /></td>
                     </tr>
                   )
@@ -253,7 +253,7 @@ export function TransactionList({
               if (activity.kind === 'recurring-income') {
                 const { income } = activity
                 return (
-                  <li key={income.id} className="bg-emerald-50/40 p-5 dark:bg-emerald-500/[0.03]">
+                  <li key={income.id} className="bg-emerald-50/40 p-5 transition-colors hover:bg-emerald-50/70 dark:bg-emerald-500/[0.03] dark:hover:bg-emerald-500/[0.07]">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <p className="truncate font-medium text-neutral-900 dark:text-neutral-100">{income.name}</p>
@@ -274,7 +274,7 @@ export function TransactionList({
               if (activity.kind === 'loan') {
                 const { payment } = activity
                 return (
-                  <li key={payment.id} className="bg-violet-50/30 p-5 dark:bg-violet-500/[0.03]">
+                  <li key={payment.id} className="bg-violet-50/30 p-5 transition-colors hover:bg-violet-50/70 dark:bg-violet-500/[0.03] dark:hover:bg-violet-500/[0.07]">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <Link to={`/loan/${payment.loanId}`} className="block truncate font-medium text-neutral-900 hover:text-violet-600 dark:text-neutral-100 dark:hover:text-violet-400">{payment.bankName} installment</Link>
@@ -293,7 +293,7 @@ export function TransactionList({
               if (activity.kind === 'recurring') {
                 const { expense } = activity
                 return (
-                  <li key={expense.id} className="bg-amber-50/40 p-5 dark:bg-amber-500/[0.03]">
+                  <li key={expense.id} className="bg-amber-50/40 p-5 transition-colors hover:bg-amber-50/70 dark:bg-amber-500/[0.03] dark:hover:bg-amber-500/[0.07]">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <p className="truncate font-medium text-neutral-900 dark:text-neutral-100">{expense.name}</p>
@@ -312,13 +312,13 @@ export function TransactionList({
               }
               const { transaction } = activity
               return (
-                <li key={transaction.id} className="p-5">
+                <li key={transaction.id} className="p-5 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-950/60">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                       <p className="truncate font-medium text-neutral-900 dark:text-neutral-100">{transaction.description || transaction.categoryName}</p>
                       <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">{transaction.categoryIcon} {transaction.categoryName} · {formatDate(transaction.occurredAt)}</p>
                     </div>
-                    <p className={`shrink-0 text-sm font-semibold tabular-nums ${transaction.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-neutral-900 dark:text-neutral-100'}`}>{signedAmount(transaction)}</p>
+                    <p className={`shrink-0 text-sm font-semibold tabular-nums ${transaction.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{signedAmount(transaction)}</p>
                   </div>
                   <div className="mt-3"><ActionButtons transaction={transaction} onEdit={onEdit} onDelete={onDelete} /></div>
                 </li>
