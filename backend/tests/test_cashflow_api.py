@@ -129,7 +129,7 @@ class TestCategories:
     first = categories(auth_client)
     second = categories(auth_client)
 
-    assert len(first) == len(second) == 21
+    assert len(first) == len(second) == 22
     assert {item["name"] for item in first if item["type"] == "expense"} == {
       "Food",
       "Housing",
@@ -141,6 +141,7 @@ class TestCategories:
       "Health",
       "Spa & Beauty",
       "Travel",
+      "Hotel",
       "Gifts",
       "Loan",
       "Credit Card",
@@ -148,7 +149,7 @@ class TestCategories:
       "Monthly Living Budget",
       "Other",
     }
-    assert len({item["id"] for item in first}) == 21
+    assert len({item["id"] for item in first}) == 22
 
   def test_defaults_are_independent_per_user(
     self, auth_client: TestClient, other_auth_client: TestClient
