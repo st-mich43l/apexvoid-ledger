@@ -82,9 +82,9 @@ sequenceDiagram
 ```
 
 Password and currency onboarding are separate gates after login. A user with
-`mustChangePassword=true` can still reach `/me`, `/change-password`, and the
-currency endpoint, but protected financial routes remain blocked until the
-onboarding requirements are complete.
+`mustChangePassword=true` is sent to User Accounts (`/settings/users`) and
+can still reach `/me` and `/api/auth/change-password`, but protected financial
+routes and admin actions remain blocked until the password update is complete.
 
 ## Frontend structure
 
@@ -96,7 +96,8 @@ flowchart TD
     App[App router]
     App --> Login[/login]
     App --> AuthGuard[RequireAuth]
-    AuthGuard --> Onboarding[/change-password and /select-currency]
+    AuthGuard --> Password[/settings/users for password update]
+    AuthGuard --> Currency[/select-currency]
     AuthGuard --> Layout[Authenticated layout]
     Layout --> Dashboard[/dashboard]
     Layout --> CashFlow[/cashflow]
@@ -104,6 +105,7 @@ flowchart TD
     Layout --> SavingPot[/saving-pot]
     Layout --> Loans[/loan and /loan/:id]
     Layout --> Planning[/monthly-routine, /budget, /monthly-close]
+    Layout --> Accounts[/settings/users]
     Layout --> AdminGuard[RequireAdmin]
     AdminGuard --> Home[/home]
     AdminGuard --> Users[/settings/users]

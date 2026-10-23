@@ -508,6 +508,13 @@ export function createUser(username: string, password: string, isAdmin: boolean)
   })
 }
 
+export function resetUserPassword(id: string, newPassword: string): Promise<AuthUser> {
+  return authedRequest<AuthUser>(`${AUTH_URL}/users/${id}/reset-password`, {
+    method: 'POST',
+    body: JSON.stringify({ newPassword }),
+  })
+}
+
 export function deleteUser(id: string): Promise<void> {
   return authedRequest<void>(`${AUTH_URL}/users/${id}`, { method: 'DELETE' })
 }

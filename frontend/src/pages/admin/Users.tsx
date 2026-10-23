@@ -1,5 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { createUser, deleteUser, fetchUsers } from '../../api'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { ApiError, createUser, deleteUser, fetchUsers, resetUserPassword } from '../../api'
 import { useAuth } from '../../context/AuthContext'
 import type { AuthUser } from '../../types'
 
@@ -10,8 +10,11 @@ export function AdminUsersPage() {
   const [users, setUsers] = useState<AuthUser[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const isAdmin = currentUser?.isAdmin ?? false
+  const canManageUsers = isAdmin && !currentUser?.mustChangePassword
 
-  async function load() {
+  const load = useCallback(async () => {
+    if (!canManageUsers) return
     setLoading(true)
     try {
       setUsers(await fetchUsers())
@@ -21,38 +24,110 @@ export function AdminUsersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [canManageUsers])
 
   useEffect(() => {
-    load()
-  }, [])
+    if (canManageUsers) void load()
+  }, [canManageUsers, load])
 
   return (
     <section>
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">User accounts</h2>
         <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-          Only admins can see this page. New accounts start with a temporary password that must be changed
-          on first login.
+          {currentUser?.mustChangePassword
+            ? 'Update your temporary password to continue to your account.'
+            : isAdmin
+            ? 'Manage your own password and help non-admin users reset theirs when needed.'
+            : 'Manage your password and account access.'}
         </p>
       </div>
 
-      {error && (
+      <div className="mb-6">
+        <PasswordChangeForm />
+      </div>
+
+      {canManageUsers && error && (
         <p className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">
           {error}
         </p>
       )}
 
-      <div className="mb-6">
-        <CreateUserForm onCreated={load} />
-      </div>
+      {canManageUsers && currentUser && (
+        <>
+          <div className="mb-6">
+            <CreateUserForm onCreated={load} />
+          </div>
 
-      {loading ? (
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">Loading…</p>
-      ) : (
-        <UsersTable users={users} currentUserId={currentUser?.id} onChange={load} />
+          {loading ? (
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">Loading…</p>
+          ) : (
+            <UsersTable users={users} currentUserId={currentUser.id} onChange={load} />
+          )}
+        </>
       )}
     </section>
+  )
+}
+
+function PasswordChangeForm() {
+  const { user, changePassword } = useAuth()
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault()
+    setError(null)
+    setMessage(null)
+    if (newPassword !== confirmPassword) {
+      setError('New passwords do not match.')
+      return
+    }
+    if (newPassword.length < 8) {
+      setError('New password must be at least 8 characters.')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      await changePassword(currentPassword, newPassword)
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setMessage('Your password has been updated.')
+    } catch (caught) {
+      setError(caught instanceof ApiError && caught.status === 401 ? 'Current password is incorrect.' : 'Could not change your password. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="rounded-3xl border border-neutral-200/80 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 className="font-semibold text-neutral-900 dark:text-neutral-50">Your password</h3>
+          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+            {user?.mustChangePassword ? 'Your temporary password must be replaced before you can continue.' : 'Use a unique password with at least 8 characters.'}
+          </p>
+        </div>
+        {user?.mustChangePassword && <span className="self-start rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">Password update required</span>}
+      </div>
+      {error && <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">{error}</p>}
+      {message && <p role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300">{message}</p>}
+      <div className="mt-4 grid gap-3 md:grid-cols-3 md:items-end">
+        <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">Current password<input required autoFocus={user?.mustChangePassword} type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} className={inputClass} /></label>
+        <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">New password<input required type="password" minLength={8} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className={inputClass} /></label>
+        <div className="flex gap-3">
+          <label className="min-w-0 flex-1 text-sm font-medium text-neutral-700 dark:text-neutral-200">Confirm password<input required type="password" minLength={8} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className={inputClass} /></label>
+          <button type="submit" disabled={submitting} className="mt-[1.75rem] shrink-0 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-500 disabled:opacity-50">{submitting ? 'Saving…' : 'Update password'}</button>
+        </div>
+      </div>
+    </form>
   )
 }
 
@@ -177,7 +252,12 @@ function UsersTable({
 
 function UserRow({ user, isSelf, onChange }: { user: AuthUser; isSelf: boolean; onChange: () => void }) {
   const [confirming, setConfirming] = useState(false)
+  const [showReset, setShowReset] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [resetting, setResetting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
 
   async function handleDelete() {
     if (!confirming) {
@@ -190,6 +270,34 @@ function UserRow({ user, isSelf, onChange }: { user: AuthUser; isSelf: boolean; 
     } catch {
       setError('Could not delete this user.')
       setConfirming(false)
+    }
+  }
+
+  async function handleReset(event: FormEvent) {
+    event.preventDefault()
+    setError(null)
+    setMessage(null)
+    if (newPassword !== confirmPassword) {
+      setError('Reset passwords do not match.')
+      return
+    }
+    if (newPassword.length < 8) {
+      setError('Temporary password must be at least 8 characters.')
+      return
+    }
+
+    setResetting(true)
+    try {
+      await resetUserPassword(user.id, newPassword)
+      setNewPassword('')
+      setConfirmPassword('')
+      setShowReset(false)
+      setMessage('Temporary password set. The user must replace it at next login.')
+      onChange()
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : 'Could not reset this password.')
+    } finally {
+      setResetting(false)
     }
   }
 
@@ -222,21 +330,37 @@ function UserRow({ user, isSelf, onChange }: { user: AuthUser; isSelf: boolean; 
         )}
       </Td>
       <Td>{dateFormatter.format(new Date(user.createdAt))}</Td>
-      <Td align="right">
-        {error && <span className="mr-3 text-xs text-red-500">{error}</span>}
-        {!isSelf && (
-          <button
-            onClick={handleDelete}
-            onBlur={() => setConfirming(false)}
-            className={
-              confirming
-                ? 'text-sm font-medium text-red-500 transition-colors'
-                : 'text-sm text-neutral-400 transition-colors hover:text-red-500 dark:text-neutral-500 dark:hover:text-red-400'
-            }
-          >
-            {confirming ? 'Click again to confirm' : 'Delete'}
-          </button>
+      <Td align="right" className="whitespace-normal">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {!isSelf && !user.isAdmin && (
+            <button type="button" onClick={() => setShowReset((current) => !current)} className="text-sm font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400">
+              {showReset ? 'Cancel reset' : 'Reset password'}
+            </button>
+          )}
+          {!isSelf && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              onBlur={() => setConfirming(false)}
+              className={
+                confirming
+                  ? 'text-sm font-medium text-red-500 transition-colors'
+                  : 'text-sm text-neutral-400 transition-colors hover:text-red-500 dark:text-neutral-500 dark:hover:text-red-400'
+              }
+            >
+              {confirming ? 'Click again to confirm' : 'Delete'}
+            </button>
+          )}
+        </div>
+        {showReset && (
+          <form onSubmit={handleReset} className="mt-3 grid gap-2 rounded-xl bg-neutral-50 p-3 text-left dark:bg-neutral-950/60">
+            <label className="text-xs font-medium text-neutral-600 dark:text-neutral-300">Temporary password<input required autoFocus type="password" minLength={8} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className={`${inputClass} mt-1 w-full`} /></label>
+            <label className="text-xs font-medium text-neutral-600 dark:text-neutral-300">Confirm password<input required type="password" minLength={8} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className={`${inputClass} mt-1 w-full`} /></label>
+            <button type="submit" disabled={resetting} className="justify-self-start rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-500 disabled:opacity-50">{resetting ? 'Resetting…' : 'Set temporary password'}</button>
+          </form>
         )}
+        {error && <p role="alert" className="mt-2 text-xs text-red-500">{error}</p>}
+        {message && <p role="status" className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">{message}</p>}
       </Td>
     </tr>
   )

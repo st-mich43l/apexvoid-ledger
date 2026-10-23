@@ -147,9 +147,10 @@ activity ledger:
 - `/saving-pot` — savings balance, add/subtract/correct, and activity history;
   closed months sync and reconcile from cash flow
 - `/loan` — the loan table + form (reached from `/dashboard`'s Loan card)
-- `/settings/users` — admin-only user management
-- `/change-password`, `/select-currency` — one-time onboarding gates,
-  forced on first login before the app is reachable
+- `/settings/users` — password management for every user, plus account
+  management and non-admin password resets for admins
+- `/select-currency` — one-time onboarding gate, forced after a password
+  update when no preferred currency is set
 
 Financial resources are scoped to their owning account. Loan, category,
 transaction, recurring-expense, monthly-budget, monthly-close, and saving-pot routers require authentication

@@ -766,6 +766,10 @@ class ChangePasswordRequest(CamelModel):
   new_password: str = Field(min_length=8, max_length=72)
 
 
+class AdminPasswordResetRequest(CamelModel):
+  new_password: str = Field(min_length=8, max_length=72)
+
+
 class SetCurrencyRequest(CamelModel):
   currency: CurrencyCode
 

@@ -17,7 +17,7 @@ function getBackTarget(pathname: string, isAdmin: boolean): { path: string; labe
   if (pathname === '/saving-pot') return { path: '/dashboard', label: 'Dashboard' }
   if (pathname === '/monthly-routine') return { path: '/dashboard', label: 'Dashboard' }
   if (pathname === '/net-worth') return { path: '/dashboard', label: 'Dashboard' }
-  if (pathname === '/settings/users') return { path: '/home', label: 'Home' }
+  if (pathname === '/settings/users') return isAdmin ? { path: '/home', label: 'Home' } : { path: '/dashboard', label: 'Dashboard' }
   if (pathname === '/dashboard') return isAdmin ? { path: '/home', label: 'Home' } : null
   return null
 }
@@ -89,10 +89,10 @@ export function Layout() {
                     {user.username}
                   </span>
                   <Link
-                    to="/change-password"
+                    to="/settings/users"
                     className="text-sm font-medium text-neutral-500 transition-colors hover:text-violet-600 dark:text-neutral-400 dark:hover:text-violet-400"
                   >
-                    Change password
+                    User account
                   </Link>
                   <button
                     onClick={handleLogout}

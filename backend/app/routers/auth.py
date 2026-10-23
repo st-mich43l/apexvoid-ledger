@@ -11,7 +11,7 @@ from ..models import (
   Transaction,
   User,
 )
-from ..schemas import ChangePasswordRequest, LoginRequest, SetCurrencyRequest, UserCreate, UserRead
+from ..schemas import AdminPasswordResetRequest, ChangePasswordRequest, LoginRequest, SetCurrencyRequest, UserCreate, UserRead
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -91,6 +91,28 @@ def create_user(
     must_change_password=True,
   )
   db.add(user)
+  db.commit()
+  db.refresh(user)
+  return user
+
+
+@router.post("/users/{user_id}/reset-password", response_model=UserRead)
+def reset_user_password(
+  user_id: str,
+  payload: AdminPasswordResetRequest,
+  db: Session = Depends(get_db),
+  _admin: User = Depends(require_admin),
+):
+  user = db.get(User, user_id)
+  if user is None:
+    raise HTTPException(status_code=404, detail="User not found")
+  if user.is_admin:
+    raise HTTPException(status_code=403, detail="Admin passwords can only be changed by their owner")
+
+  user.hashed_password = hash_password(payload.new_password)
+  # An admin-set password is temporary. The account owner must set a private
+  # replacement before returning to the rest of the application.
+  user.must_change_password = True
   db.commit()
   db.refresh(user)
   return user
