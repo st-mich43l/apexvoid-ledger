@@ -135,7 +135,14 @@ export function CashFlowPage() {
 
       <SePayCategorizationRuleCard categories={categoriesState.categories} />
 
-      <div className="mt-5">
+      <div className="mt-5 grid items-start gap-5 xl:grid-cols-[minmax(22rem,0.9fr)_minmax(0,1.6fr)]">
+        <BankActivityList
+          activities={bankActivitiesState.activities}
+          categories={categoriesState.categories}
+          loading={bankActivitiesState.loading}
+          monthLabel={label}
+          onChanged={refreshFinancials}
+        />
         <TransactionList
           transactions={transactionsState.transactions}
           recurringIncomes={summaryState.summary?.recurringIncomes ?? []}
@@ -148,14 +155,6 @@ export function CashFlowPage() {
           onDelete={setPendingDelete}
         />
       </div>
-
-      <BankActivityList
-        activities={bankActivitiesState.activities}
-        categories={categoriesState.categories}
-        loading={bankActivitiesState.loading}
-        monthLabel={label}
-        onChanged={refreshFinancials}
-      />
 
       {showCreate && (
         <TransactionFormDialog currency={currency} categories={categoriesState.categories} onClose={() => setShowCreate(false)} onSubmit={handleCreate} />
