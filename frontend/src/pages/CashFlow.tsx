@@ -126,10 +126,10 @@ export function CashFlowPage() {
 
       <CashFlowSummaryCards summary={summaryState.summary} loading={summaryState.loading} currency={currency} />
 
-      <div className="mt-5 grid items-start gap-8 xl:grid-cols-[20rem_minmax(0,1fr)] xl:gap-10">
+      <div className="mt-5 grid items-start gap-8 xl:grid-cols-[20rem_minmax(0,1fr)] xl:gap-10 min-[1440px]:grid-cols-[0_minmax(0,1fr)] min-[1440px]:gap-0">
         <aside
           aria-label="Cash flow insights"
-          className="space-y-5 xl:sticky xl:top-6 xl:z-10 xl:-ml-8 xl:max-h-[calc(100vh-3rem)] xl:self-start xl:overflow-y-auto xl:pr-3"
+          className="space-y-5 xl:sticky xl:top-6 xl:z-10 xl:-ml-8 xl:max-h-[calc(100vh-3rem)] xl:self-start xl:overflow-y-auto xl:pr-3 min-[1440px]:ml-0 min-[1440px]:w-72 min-[1440px]:-translate-x-28"
         >
           {summaryState.summary && <IncomeExpenseChart summary={summaryState.summary} />}
           {summaryState.summary && <SpendingByCategory summary={summaryState.summary} monthLabel={label} />}
@@ -141,7 +141,7 @@ export function CashFlowPage() {
             onChanged={refreshFinancials}
           />
         </aside>
-        <div className="min-w-0 space-y-5">
+        <div className="min-w-0 space-y-5 min-[1440px]:mx-auto min-[1440px]:w-full min-[1440px]:max-w-4xl">
           <SePayCategorizationRuleCard categories={categoriesState.categories} />
           <TransactionList
             transactions={transactionsState.transactions}
