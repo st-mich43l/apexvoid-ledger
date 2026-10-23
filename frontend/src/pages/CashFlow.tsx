@@ -127,7 +127,10 @@ export function CashFlowPage() {
       <CashFlowSummaryCards summary={summaryState.summary} loading={summaryState.loading} currency={currency} />
 
       <div className="mt-5 grid items-start gap-5 xl:grid-cols-[minmax(22rem,0.9fr)_minmax(0,1.6fr)]">
-        <aside aria-label="Cash flow insights" className="space-y-5">
+        <aside
+          aria-label="Cash flow insights"
+          className="space-y-5 xl:sticky xl:top-6 xl:z-10 xl:-ml-5 xl:max-h-[calc(100vh-3rem)] xl:self-start xl:overflow-y-auto xl:rounded-[2rem] xl:bg-white/60 xl:p-3 xl:shadow-[0_20px_50px_-36px_rgba(15,23,42,0.55)] xl:ring-1 xl:ring-neutral-200/70 xl:backdrop-blur dark:xl:bg-neutral-950/55 dark:xl:shadow-none dark:xl:ring-neutral-800/80"
+        >
           {summaryState.summary && <IncomeExpenseChart summary={summaryState.summary} />}
           {summaryState.summary && <SpendingByCategory summary={summaryState.summary} monthLabel={label} />}
           <BankActivityList
