@@ -26,26 +26,22 @@ DATABASE_URL=postgresql://ledger:ledger@postgres:5432/apexvoid_ledger?schema=pub
 PORT=4000
 SECRET_KEY=paste-a-random-session-secret-here
 SESSION_COOKIE_SECURE=false
-SEPAY_CREDENTIAL_ENCRYPTION_KEY=paste-a-fernet-key-here
-SEPAY_WEBHOOK_API_KEY=paste-the-key-configured-in-sepay-here
 ```
 
-Generate the two secret values with:
+Generate the server secret with:
 
 ```bash
 python -c 'import secrets; print(secrets.token_urlsafe(32))'
-python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'
 ```
 
-Paste the first output into `SECRET_KEY` and the second output into
-`SEPAY_CREDENTIAL_ENCRYPTION_KEY`. Then protect the file:
+Paste the output into `SECRET_KEY`, then protect the file:
 
 ```bash
 chmod 600 .env
 ```
 
-The Fernet key is a deployment key, not a user password. Generate it once and
-keep it unchanged for the lifetime of the database.
+Ledger creates its separate credential-encryption key on first use in the
+backend's persistent Docker volume. Users never provide an encryption key.
 
 ### 2. Start the local application
 
@@ -86,8 +82,10 @@ After signing in:
 1. Open **Net Worth** or go directly to `/net-worth`.
 2. Paste the SePay API token into the API-token field.
 3. Enter the bank account number. Spaces and hyphens are accepted.
-4. Select **Connect account**.
-5. Confirm that the account appears with a masked number and verified balance.
+4. Optionally select **Authenticate SePay webhooks** and enter the API key you
+   will configure in SePay.
+5. Select **Connect account**.
+6. Confirm that the account appears with a masked number and verified balance.
 
 The browser sends the token only during connection. The backend validates it,
 encrypts it, and stores it against the signed-in Ledger user. The token is not
@@ -102,16 +100,19 @@ POST https://ledger.apexvoid.net/api/integrations/sepay/webhook
 ```
 
 Configure SePay for JSON, both incoming and outgoing transaction events, and
-API-key authentication:
+API-key authentication. If you enabled **Authenticate SePay webhooks** while
+connecting the account, use the exact key entered in Ledger:
 
 ```http
-Authorization: Apikey <the-same-value-as-SEPAY_WEBHOOK_API_KEY>
+Authorization: Apikey <the-same-value-entered-in-Ledger>
 ```
 
-`SEPAY_WEBHOOK_API_KEY` authenticates inbound webhook requests. It is separate
-from each user's encrypted outbound SePay API token. Never enter this webhook
-key in the Net Worth form or commit it to Git. The endpoint does not require a
-Ledger login session.
+The webhook key is separate from each user's SePay API token. Ledger encrypts
+the user-entered webhook key and uses it only for that matched account; it is
+not returned to the UI or API. The endpoint does not require a Ledger login
+session. A server-wide `SEPAY_WEBHOOK_API_KEY` remains available only as a
+compatibility fallback for existing installations that have not configured an
+account-specific key.
 
 ### 6. Refresh or disconnect later
 
@@ -154,11 +155,12 @@ Webhook flow:
    in the durable inbox with its account number redacted in the audit payload.
 4. Provider transaction ID uniqueness makes retries safe. A duplicate returns
    a successful acknowledgement without creating another transaction.
-5. Matching scheduled income, fixed expenses, loan payments, and manual
-   records is conservative. Unknown activity remains **Needs review**.
+5. Matching scheduled income, fixed expenses, loan-schedule references, and
+   manual records is conservative. Unknown activity remains **Needs review**.
 6. Cash Flow lets users classify review items as income, expense, internal
    transfer, loan repayment, loan interest, or savings transfer. Only income
-   and expense classifications create actual Cash Flow transactions.
+   and expense classifications create actual Cash Flow transactions. Loan
+   repayments remain bank activities and do not create synthetic expenses.
 
 If an event cannot be matched to exactly one connected account, it is retained
 as unmatched and never assigned to another user.
@@ -213,12 +215,13 @@ There are three different places for configuration:
 
 | Configuration | Where it belongs | Example |
 | --- | --- | --- |
-| Application runtime secrets | Root `.env` locally or Ansible vault in production | `SECRET_KEY`, `SEPAY_CREDENTIAL_ENCRYPTION_KEY` |
+| Application runtime secrets | Root `.env` locally or Ansible vault in production | `SECRET_KEY` |
 | PostgreSQL connection settings | Root `.env` locally or Ansible vault in production | `DATABASE_URL`, `POSTGRES_DB` |
 | A user's SePay credential | Net Worth connection form | API token and bank account number |
 
-Never put a user's SePay token in the shared deployment vault. The shared
-Fernet key protects each user's token after the user connects their own account.
+Never put a user's SePay token or bank account number in the shared deployment
+vault. Each user enters both in the Net Worth connection form; the backend
+encrypts the API token before storing it.
 
 ### Required for every deployment
 
@@ -226,8 +229,6 @@ Fernet key protects each user's token after the user connects their own account.
 | --- | --- | --- |
 | `DATABASE_URL` | PostgreSQL connection string | Use the internal Compose service name in Docker, such as `postgres`. |
 | `SECRET_KEY` | Signs session cookies | Generate a strong random value and keep it stable across restarts. |
-| `SEPAY_CREDENTIAL_ENCRYPTION_KEY` | Encrypts per-user SePay tokens at rest | Required. Must be a valid Fernet key and must remain unchanged while stored connections exist. |
-| `SEPAY_WEBHOOK_API_KEY` | Authenticates inbound SePay webhook events | Required in production. Must exactly match the API key configured in SePay. |
 
 The production deployment also requires these PostgreSQL values in the
 Ansible secret bundle:
@@ -238,8 +239,7 @@ Ansible secret bundle:
 | `POSTGRES_PASSWORD` | PostgreSQL password |
 | `POSTGRES_DB` | PostgreSQL database name |
 
-`DATABASE_URL`, `SECRET_KEY`, `SEPAY_CREDENTIAL_ENCRYPTION_KEY`, and
-`SEPAY_WEBHOOK_API_KEY` are passed to the backend. PostgreSQL variables are
+`DATABASE_URL` and `SECRET_KEY` are passed to the backend. PostgreSQL variables are
 passed to the PostgreSQL container.
 
 ### Local Docker variables
@@ -252,28 +252,25 @@ DATABASE_URL=postgresql://ledger:ledger@postgres:5432/apexvoid_ledger?schema=pub
 PORT=4000
 SECRET_KEY=replace-with-a-local-random-secret
 SESSION_COOKIE_SECURE=false
-SEPAY_CREDENTIAL_ENCRYPTION_KEY=replace-with-a-generated-fernet-key
-SEPAY_WEBHOOK_API_KEY=replace-with-a-local-webhook-test-key
 ```
 
-Generate the two key values instead of copying this example:
+Generate `SECRET_KEY` instead of copying this example:
 
 ```bash
 python -c 'import secrets; print(secrets.token_urlsafe(32))'
-python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'
 ```
 
-The repository's `.env` is ignored by Git and should remain private. The
-Compose requires `SEPAY_CREDENTIAL_ENCRYPTION_KEY` for the existing balance
-integration. `SEPAY_WEBHOOK_API_KEY` is optional locally but webhook
-authentication fails closed when it is absent. Compose does not require a
-global SePay API token or global bank-account ID.
+The repository's `.env` is ignored by Git and should remain private. Compose
+does not require a global SePay API token, webhook key, bank-account ID, or
+credential-encryption variable. Configure the optional webhook key in the
+signed-in Net Worth form; inbound webhooks fail closed for accounts that do
+not have an account-specific key (unless a legacy global key is configured).
 
 To check the local setup without revealing secret values:
 
 ```bash
 test -s .env
-test -s .env && grep -E '^(DATABASE_URL|PORT|SECRET_KEY|SESSION_COOKIE_SECURE|SEPAY_CREDENTIAL_ENCRYPTION_KEY|SEPAY_WEBHOOK_API_KEY)=' .env | cut -d= -f1
+test -s .env && grep -E '^(DATABASE_URL|PORT|SECRET_KEY|SESSION_COOKIE_SECURE)=' .env | cut -d= -f1
 docker compose config --quiet
 ```
 
@@ -332,26 +329,26 @@ docker compose down
 ## Production and Ansible setup
 
 For production, prepare the shared values before deploying the application.
-The user-specific SePay token is still entered by each user after deployment.
+Each user enters their SePay API token and, if wanted, their own webhook API
+key after deployment.
 
 ### Production checklist
 
 1. Generate a strong `SECRET_KEY`.
-2. Generate one `SEPAY_CREDENTIAL_ENCRYPTION_KEY`.
-3. Generate a separate `SEPAY_WEBHOOK_API_KEY` and configure the same value
-   in SePay's webhook settings.
-4. Save these values in the encrypted Ansible vault.
-5. Set the PostgreSQL values and a matching `DATABASE_URL`.
-6. Run the Ansible syntax check.
-7. Deploy the image and wait for the PostgreSQL health check and Alembic
+2. Save the server values in the encrypted Ansible vault.
+3. Set the PostgreSQL values and a matching `DATABASE_URL`.
+4. Run the Ansible syntax check.
+5. Deploy the image and wait for the PostgreSQL health check and Alembic
    migrations to complete.
-8. Open the deployed Ledger URL, sign in, and connect each user's SePay
-   account from **Net Worth**.
+6. Open the deployed Ledger URL, sign in, and connect each user's SePay
+   account from **Net Worth**. Select webhook authentication there when you
+   configure the corresponding key in SePay.
 
-The first deployment with migrations `0020`, `0021`, and `0022` adds encrypted
-credential storage, account fingerprints, the webhook activity inbox, and the
-optional outgoing categorization rule. It does not need a global SePay token
-and does not automatically attach an account to a user.
+The first deployment with migrations `0020` through `0023` adds encrypted
+credential storage, account fingerprints, the webhook activity inbox, the
+optional outgoing categorization rule, and optional per-account webhook
+authentication. It does not need global SePay credentials and does not
+automatically attach an account to a user.
 
 The deployment template injects the following backend values from the
 `apexvoid_ledger_secrets` Ansible vault mapping:
@@ -359,8 +356,6 @@ The deployment template injects the following backend values from the
 ```text
 DATABASE_URL
 SECRET_KEY
-SEPAY_CREDENTIAL_ENCRYPTION_KEY
-SEPAY_WEBHOOK_API_KEY
 ```
 
 The same vault mapping supplies:
@@ -387,14 +382,13 @@ ansible-playbook -i localhost, --syntax-check \
   playbooks/deploy.yml
 ```
 
-Keep `SEPAY_CREDENTIAL_ENCRYPTION_KEY` stable. If it is changed or lost,
-existing encrypted SePay tokens cannot be decrypted and each user must
-reconnect their account. A database backup and this key should be protected as
-a pair.
+Keep the `backend_secrets` Docker volume. If it is deleted while the database
+is retained, existing encrypted SePay tokens cannot be decrypted and users
+must reconnect their accounts.
 
-Keep `SEPAY_WEBHOOK_API_KEY` private and make it exactly match the key in
-SePay. Rotating it requires updating both the Ansible vault and SePay's
-webhook configuration.
+Each user rotates a webhook key by reconnecting the relevant account with the
+new value, then making the same change in SePay. The backend stores that value
+encrypted and does not return it through the UI or API.
 
 Do not add these values to the production vault; they are intentionally not
 used by the current integration:
@@ -444,21 +438,15 @@ number must otherwise contain digits and must belong to the SePay token.
 The account returned by SePay is inactive and cannot be connected until it is
 active there.
 
-### `SePay credential encryption is not configured` or `invalid`
+### `Server credential encryption is unavailable`
 
-Check that `SEPAY_CREDENTIAL_ENCRYPTION_KEY` is present in the backend
-environment and is a valid Fernet key. Confirm the container received the
-variable without printing its value:
-
-```bash
-docker compose exec backend sh -c 'test -n "$SEPAY_CREDENTIAL_ENCRYPTION_KEY" && echo configured'
-```
+Check that the backend can write to `/var/lib/apexvoid-ledger`, which is backed
+by the `backend_secrets` Docker volume in the provided Compose files.
 
 ### Existing connections fail after deployment
 
-Confirm that the same stable Fernet key is present on the new deployment. If
-the key was rotated or lost, users must reconnect their SePay accounts after
-the key is restored or replaced.
+Confirm that the `backend_secrets` Docker volume remains attached to the new
+deployment. If it was removed, users must reconnect their SePay accounts.
 
 ## Security checklist
 
@@ -466,6 +454,6 @@ the key is restored or replaced.
   screenshots.
 - Never commit `.env`, plaintext vault files, or API tokens.
 - Use HTTPS and `SESSION_COOKIE_SECURE=true` in production.
-- Keep the Fernet key and database backups under separate access controls.
+- Keep the backend secrets volume and database backups under separate access controls.
 - Grant SePay tokens only the read access required for this integration.
 - Remove disconnected accounts and revoke unused SePay tokens.

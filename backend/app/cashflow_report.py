@@ -71,6 +71,8 @@ def period_entries(
   user_id: str,
   start: datetime,
   end: datetime,
+  *,
+  include_scheduled_loans: bool = False,
 ) -> tuple[list[ReportEntry], int]:
   start = as_utc(start)
   end = as_utc(end)
@@ -164,44 +166,48 @@ def period_entries(
         )
       )
 
-  ensure_default_categories(db, user_id)
-  loan_category = (
-    db.query(Category)
-    .filter(
-      Category.user_id == user_id,
-      Category.category_type == "expense",
-      Category.normalized_name == normalize_category_name("Loan"),
+  # Loan schedules are reference data, not completed expenses. They remain
+  # available to bank-activity reconciliation without creating synthetic
+  # Cash Flow, budget, or monthly-close entries.
+  if include_scheduled_loans:
+    ensure_default_categories(db, user_id)
+    loan_category = (
+      db.query(Category)
+      .filter(
+        Category.user_id == user_id,
+        Category.category_type == "expense",
+        Category.normalized_name == normalize_category_name("Loan"),
+      )
+      .first()
     )
-    .first()
-  )
-  loans = db.query(Loan).filter(Loan.user_id == user_id).all()
-  for loan in loans:
-    schedule = generate_loan_schedule(
-      loan.disbursement_amount,
-      loan.interest_rate_per_year,
-      loan.open_date,
-      loan.duration_months,
-      loan.loan_type,
-      as_of=end,
-      currency=loan.currency,
-    )
-    for item in schedule.items:
-      due_at = as_utc(item.due_date)
-      if start <= due_at < end:
-        entries.append(
-          ReportEntry(
-            entry_type="expense",
-            category_id=loan_category.id if loan_category else "linked-loans",
-            category_name=loan_category.name if loan_category else "Loan",
-            category_icon=loan_category.icon if loan_category else "🏦",
-            amount=item.payment,
-            currency=loan.currency,
-            occurred_at=due_at,
-            source_kind="loan",
-            loan=loan,
-            loan_term=item.term,
+    loans = db.query(Loan).filter(Loan.user_id == user_id).all()
+    for loan in loans:
+      schedule = generate_loan_schedule(
+        loan.disbursement_amount,
+        loan.interest_rate_per_year,
+        loan.open_date,
+        loan.duration_months,
+        loan.loan_type,
+        as_of=end,
+        currency=loan.currency,
+      )
+      for item in schedule.items:
+        due_at = as_utc(item.due_date)
+        if start <= due_at < end:
+          entries.append(
+            ReportEntry(
+              entry_type="expense",
+              category_id=loan_category.id if loan_category else "linked-loans",
+              category_name=loan_category.name if loan_category else "Loan",
+              category_icon=loan_category.icon if loan_category else "🏦",
+              amount=item.payment,
+              currency=loan.currency,
+              occurred_at=due_at,
+              source_kind="loan",
+              loan=loan,
+              loan_term=item.term,
+            )
           )
-        )
 
   return entries, len(transactions)
 

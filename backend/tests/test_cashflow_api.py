@@ -816,143 +816,41 @@ class TestCashFlowTrend:
     assert all(point["expenses"] == 0 for point in other.json()["points"])
 
 
-class TestLinkedLoanPayments:
-  def test_contractual_installment_is_included_without_creating_a_transaction(
-    self, auth_client: TestClient
-  ):
-    loan = create_loan(auth_client)
+class TestLoanSchedulesAreReferenceOnly:
+  def test_loan_schedule_does_not_create_cash_flow_entries(self, auth_client: TestClient):
+    create_loan(auth_client)
 
-    first = auth_client.get(
-      "/api/cashflow/summary",
-      params={"year": 2026, "month": 8, "currency": "USD"},
-    ).json()
-    second = auth_client.get(
-      "/api/cashflow/summary",
-      params={"year": 2026, "month": 8, "currency": "USD"},
-    ).json()
-
-    assert first["expenses"] == 100
-    assert first["transactionCount"] == 0
-    assert first["loanPaymentCount"] == 1
-    assert first["loanPayments"] == [
-      {
-        "id": f"loan:{loan['id']}:1",
-        "loanId": loan["id"],
-        "bankName": "Example Bank",
-        "term": 1,
-        "dueAt": "2026-08-07T00:00:00.000Z",
-        "amount": 100,
-        "currency": "USD",
-        "reportingAmount": 100,
-        "reportingCurrency": "USD",
-      }
-    ]
-    assert first["categoryBreakdown"] == [
-      {
-        "categoryId": category(auth_client, "Loan", "expense")["id"],
-        "name": "Loan",
-        "icon": "🏦",
-        "amount": 100,
-        "percent": 100,
-      }
-    ]
-    assert second == first
-    assert auth_client.get("/api/transactions").json() == []
-
-  def test_only_schedule_months_and_the_owner_receive_linked_payments(
-    self, auth_client: TestClient, other_auth_client: TestClient
-  ):
-    create_loan(auth_client, durationMonths=1)
-
-    before_first_due = auth_client.get(
-      "/api/cashflow/summary",
-      params={"year": 2026, "month": 7, "currency": "USD"},
-    ).json()
-    final_installment = auth_client.get(
-      "/api/cashflow/summary",
-      params={"year": 2026, "month": 8, "currency": "USD"},
-    ).json()
-    after_maturity = auth_client.get(
-      "/api/cashflow/summary",
-      params={"year": 2026, "month": 9, "currency": "USD"},
-    ).json()
-    other_user = other_auth_client.get(
-      "/api/cashflow/summary",
-      params={"year": 2026, "month": 8, "currency": "USD"},
-    ).json()
-
-    assert before_first_due["loanPaymentCount"] == 0
-    assert final_installment["loanPaymentCount"] == 1
-    assert final_installment["expenses"] == 1200
-    assert after_maturity["loanPaymentCount"] == 0
-    assert other_user["loanPaymentCount"] == 0
-    assert other_user["expenses"] == 0
-
-  def test_loan_updates_and_deletion_flow_through_to_cash_flow(
-    self, auth_client: TestClient
-  ):
-    loan = create_loan(auth_client)
-
-    updated = auth_client.put(
-      f"/api/loans/{loan['id']}", json={"disbursementAmount": 2400}
-    )
-    assert updated.status_code == 200, updated.text
-    after_update = auth_client.get(
-      "/api/cashflow/summary",
-      params={"year": 2026, "month": 8, "currency": "USD"},
-    ).json()
-    assert after_update["expenses"] == 200
-
-    assert auth_client.delete(f"/api/loans/{loan['id']}").status_code == 204
-    after_delete = auth_client.get(
-      "/api/cashflow/summary",
-      params={"year": 2026, "month": 8, "currency": "USD"},
-    ).json()
-    assert after_delete["expenses"] == 0
-    assert after_delete["loanPayments"] == []
-
-  def test_linked_payment_uses_historical_fx_and_reports_provider_failure(
-    self, auth_client: TestClient, monkeypatch: pytest.MonkeyPatch
-  ):
-    loan = create_loan(auth_client)
-    converted = auth_client.get(
-      "/api/cashflow/summary",
-      params={"year": 2026, "month": 8, "currency": "VND"},
-    ).json()
-
-    assert converted["expenses"] == 2500000
-    assert converted["loanPayments"][0]["amount"] == 100
-    assert converted["loanPayments"][0]["currency"] == "USD"
-    assert converted["loanPayments"][0]["reportingAmount"] == 2500000
-    assert converted["convertedCurrencies"] == ["USD"]
-
-    def unavailable(*_args, **_kwargs):
-      raise ExchangeRateProviderError("offline")
-
-    monkeypatch.setattr(FrankfurterExchangeRateProvider, "get_rates", unavailable)
-    unavailable_summary = auth_client.get(
-      "/api/cashflow/summary",
-      params={"year": 2026, "month": 8, "currency": "VND"},
-    ).json()
-    assert unavailable_summary["expenses"] == 0
-    assert unavailable_summary["loanPaymentCount"] == 1
-    assert unavailable_summary["loanPayments"][0]["reportingAmount"] is None
-    assert unavailable_summary["unconvertedCurrencies"] == ["USD"]
-
-    assert auth_client.get(f"/api/loans/{loan['id']}").json()["currency"] == "USD"
-
-  def test_secured_loan_links_interest_only_payment(self, auth_client: TestClient):
-    create_loan(
-      auth_client,
-      disbursementAmount=120000,
-      interestRatePerYear=12,
-      loanType="secured",
-    )
     summary = auth_client.get(
       "/api/cashflow/summary",
       params={"year": 2026, "month": 8, "currency": "USD"},
     ).json()
 
-    # July 7 to August 7 is 31 days under the schedule's actual/365 rule.
-    assert summary["expenses"] == 1223.01
-    assert summary["loanPayments"][0]["amount"] == 1223.01
+    assert summary["expenses"] == 0
+    assert summary["transactionCount"] == 0
+    assert summary["loanPaymentCount"] == 0
+    assert summary["loanPayments"] == []
+    assert summary["categoryBreakdown"] == []
+    assert auth_client.get("/api/transactions").json() == []
+
+  def test_schedule_changes_do_not_change_cash_flow(self, auth_client: TestClient):
+    loan = create_loan(auth_client)
+    assert auth_client.put(
+      f"/api/loans/{loan['id']}", json={"disbursementAmount": 2400}
+    ).status_code == 200
+
+    summary = auth_client.get(
+      "/api/cashflow/summary",
+      params={"year": 2026, "month": 8, "currency": "USD"},
+    ).json()
+    assert summary["expenses"] == 0
+    assert summary["loanPayments"] == []
+
+  def test_loan_schedule_does_not_require_fx_conversion(self, auth_client: TestClient):
+    create_loan(auth_client)
+
+    summary = auth_client.get(
+      "/api/cashflow/summary",
+      params={"year": 2026, "month": 8, "currency": "VND"},
+    ).json()
+    assert summary["expenses"] == 0
+    assert summary["unconvertedCurrencies"] == []

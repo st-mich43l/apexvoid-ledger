@@ -3,7 +3,6 @@ import { formatCurrency } from '../../lib/currency'
 import { formatDate } from '../../lib/date'
 import type {
   LedgerTransaction,
-  LoanPaymentActivity,
   RecurringExpenseActivity,
   RecurringIncomeActivity,
 } from '../../types'
@@ -11,7 +10,6 @@ import type {
 interface TransactionListProps {
   transactions: LedgerTransaction[]
   recurringIncomes: RecurringIncomeActivity[]
-  loanPayments: LoanPaymentActivity[]
   recurringExpenses: RecurringExpenseActivity[]
   loading: boolean
   monthLabel: string
@@ -23,7 +21,6 @@ interface TransactionListProps {
 type MonthlyActivity =
   | { kind: 'transaction'; occurredAt: string; transaction: LedgerTransaction }
   | { kind: 'recurring-income'; occurredAt: string; income: RecurringIncomeActivity }
-  | { kind: 'loan'; occurredAt: string; payment: LoanPaymentActivity }
   | { kind: 'recurring'; occurredAt: string; expense: RecurringExpenseActivity }
 
 function signedAmount(transaction: LedgerTransaction): string {
@@ -44,25 +41,12 @@ function ActionButtons({
   )
 }
 
-function linkedLoanAmount(payment: LoanPaymentActivity): string {
-  return `-${formatCurrency(payment.amount, payment.currency)}`
-}
-
 function fixedCostAmount(expense: RecurringExpenseActivity): string {
   return `-${formatCurrency(expense.amount, expense.currency)}`
 }
 
 function recurringIncomeAmount(income: RecurringIncomeActivity): string {
   return `+${formatCurrency(income.amount, income.currency)}`
-}
-
-function LoanReportingAmount({ payment }: { payment: LoanPaymentActivity }) {
-  if (payment.currency === payment.reportingCurrency || payment.reportingAmount === null) return null
-  return (
-    <span className="block text-[11px] font-normal text-neutral-400 dark:text-neutral-500">
-      ≈ {formatCurrency(payment.reportingAmount, payment.reportingCurrency)}
-    </span>
-  )
 }
 
 function FixedReportingAmount({ expense }: { expense: RecurringExpenseActivity }) {
@@ -79,14 +63,6 @@ function IncomeReportingAmount({ income }: { income: RecurringIncomeActivity }) 
   return (
     <span className="block text-[11px] font-normal text-neutral-400 dark:text-neutral-500">
       ≈ {formatCurrency(income.reportingAmount, income.reportingCurrency)}
-    </span>
-  )
-}
-
-function LinkedBadge() {
-  return (
-    <span className="inline-flex rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
-      Auto-linked
     </span>
   )
 }
@@ -110,7 +86,6 @@ function ScheduledIncomeBadge() {
 export function TransactionList({
   transactions,
   recurringIncomes,
-  loanPayments,
   recurringExpenses,
   loading,
   monthLabel,
@@ -128,11 +103,6 @@ export function TransactionList({
       kind: 'recurring-income',
       occurredAt: income.expectedAt,
       income,
-    })),
-    ...loanPayments.map((payment): MonthlyActivity => ({
-      kind: 'loan',
-      occurredAt: payment.dueAt,
-      payment,
     })),
     ...recurringExpenses.map((expense): MonthlyActivity => ({
       kind: 'recurring',
@@ -187,27 +157,6 @@ export function TransactionList({
                         </td>
                         <td className="px-3 py-4 text-right">
                           <Link to="/monthly-routine" className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10">Manage income</Link>
-                        </td>
-                      </tr>
-                    )
-                  }
-                  if (activity.kind === 'loan') {
-                    const { payment } = activity
-                    return (
-                      <tr key={payment.id} className="bg-violet-50/30 transition-colors hover:bg-violet-50/70 dark:bg-violet-500/[0.03] dark:hover:bg-violet-500/[0.07]">
-                        <td className="whitespace-nowrap px-5 py-4 text-neutral-500 dark:text-neutral-400">{formatDate(payment.dueAt)}</td>
-                        <td className="max-w-48 px-5 py-4 font-medium text-neutral-900 dark:text-neutral-100">
-                          <Link to={`/loan/${payment.loanId}`} className="hover:text-violet-600 hover:underline dark:hover:text-violet-400">{payment.bankName} installment</Link>
-                          <span className="mt-0.5 block text-xs font-normal text-neutral-400">Term {payment.term}</span>
-                        </td>
-                        <td className="whitespace-nowrap px-5 py-4 text-neutral-600 dark:text-neutral-300">🏦 Loan</td>
-                        <td className="px-5 py-4"><LinkedBadge /></td>
-                        <td className="whitespace-nowrap px-5 py-4 text-right font-medium tabular-nums text-neutral-900 dark:text-neutral-100">
-                          {linkedLoanAmount(payment)}
-                          <LoanReportingAmount payment={payment} />
-                        </td>
-                        <td className="px-3 py-4 text-right">
-                          <Link to={`/loan/${payment.loanId}`} className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-violet-600 hover:bg-violet-50 dark:text-violet-400 dark:hover:bg-violet-500/10">View loan</Link>
                         </td>
                       </tr>
                     )
@@ -268,25 +217,6 @@ export function TransactionList({
                       </p>
                     </div>
                     <div className="mt-3 text-right"><Link to="/monthly-routine" className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10">Manage income</Link></div>
-                  </li>
-                )
-              }
-              if (activity.kind === 'loan') {
-                const { payment } = activity
-                return (
-                  <li key={payment.id} className="bg-violet-50/30 p-5 transition-colors hover:bg-violet-50/70 dark:bg-violet-500/[0.03] dark:hover:bg-violet-500/[0.07]">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <Link to={`/loan/${payment.loanId}`} className="block truncate font-medium text-neutral-900 hover:text-violet-600 dark:text-neutral-100 dark:hover:text-violet-400">{payment.bankName} installment</Link>
-                        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">🏦 Loan · Term {payment.term} · {formatDate(payment.dueAt)}</p>
-                        <span className="mt-2 inline-flex"><LinkedBadge /></span>
-                      </div>
-                      <p className="shrink-0 text-right text-sm font-semibold tabular-nums text-neutral-900 dark:text-neutral-100">
-                        {linkedLoanAmount(payment)}
-                        <LoanReportingAmount payment={payment} />
-                      </p>
-                    </div>
-                    <div className="mt-3 text-right"><Link to={`/loan/${payment.loanId}`} className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-violet-600 hover:bg-violet-50 dark:text-violet-400 dark:hover:bg-violet-500/10">View loan</Link></div>
                   </li>
                 )
               }

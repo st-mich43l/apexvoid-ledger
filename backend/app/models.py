@@ -75,6 +75,11 @@ class FinancialAccount(Base):
   credential_ciphertext: Mapped[str | None] = mapped_column(
     "credentialCiphertext", String(2048), nullable=True
   )
+  # Optional Fernet-encrypted API key configured for this account's SePay
+  # webhook. It is intentionally distinct from the SePay API token.
+  webhook_auth_ciphertext: Mapped[str | None] = mapped_column(
+    "webhookAuthCiphertext", String(2048), nullable=True
+  )
   bank_name: Mapped[str] = mapped_column("bankName", String(100), nullable=False)
   account_number_masked: Mapped[str] = mapped_column(
     "accountNumberMasked", String(32), nullable=False
@@ -125,6 +130,11 @@ class FinancialAccount(Base):
     default=lambda: datetime.now(timezone.utc),
     onupdate=lambda: datetime.now(timezone.utc),
   )
+
+  @property
+  def webhook_auth_enabled(self) -> bool:
+    """Expose only whether account-scoped webhook authentication is configured."""
+    return bool(self.webhook_auth_ciphertext)
 
 
 class SePayBankActivity(Base):

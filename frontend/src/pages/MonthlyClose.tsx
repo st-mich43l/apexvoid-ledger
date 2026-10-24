@@ -297,11 +297,10 @@ function CloseBody({
       <ReviewCard title="Expenses">
         <Line label="Fixed commitments" amount={current.fixedExpenseTotal} currency={reporting} />
         <Line label="Variable spending" amount={current.variableExpenseTotal} currency={reporting} />
-        <Line label="Loan obligations" amount={current.loanPaymentTotal} currency={reporting} />
         <div className="mt-2 border-t border-neutral-200 pt-2 dark:border-neutral-800">
           <Line label="Total" amount={current.expenseTotal} currency={reporting} />
         </div>
-        <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">Loan installments are contractual schedule projections, not payment-completion records.</p>
+        <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">Completed loan repayments are tracked in Bank activity, not generated from the loan schedule.</p>
       </ReviewCard>
 
       <ReviewCard title="Budget">

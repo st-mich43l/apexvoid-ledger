@@ -287,7 +287,7 @@ export function MonthlyRoutinePage() {
             <div>
               <h3 className="font-semibold text-neutral-900 dark:text-neutral-50">Committed costs</h3>
               <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                Fixed bills and loan obligations already included in Cash Flow.
+                Fixed bills included in Cash Flow. Track completed loan repayments in Bank activity.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -306,13 +306,12 @@ export function MonthlyRoutinePage() {
               {summary ? formatCurrency(summary.committedExpenseTotal, currency) : '—'}
             </p>
             <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-              Fixed {summary ? formatCurrency(summary.fixedExpenseTotal, currency) : '—'} · Loans{' '}
-              {summary ? formatCurrency(summary.loanPaymentTotal, currency) : '—'}
+              Fixed {summary ? formatCurrency(summary.fixedExpenseTotal, currency) : '—'}
             </p>
           </div>
           {!summary || routineState.loading ? (
             <p className="p-6 text-sm text-neutral-500">Loading…</p>
-          ) : summary.fixedExpenses.length + summary.loanPayments.length === 0 ? (
+          ) : summary.fixedExpenses.length === 0 ? (
             <p className="p-8 text-center text-sm text-neutral-500">No committed costs this month.</p>
           ) : (
             <ul className="max-h-64 divide-y divide-neutral-100 overflow-y-auto dark:divide-neutral-800">
@@ -324,19 +323,6 @@ export function MonthlyRoutinePage() {
                     </p>
                     <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
                       Fixed cost · Due {formatDate(item.dueAt)}
-                    </p>
-                  </div>
-                  <p className="shrink-0 text-sm font-semibold tabular-nums text-neutral-900 dark:text-neutral-100">
-                    −{formatCurrency(item.amount, item.currency)}
-                  </p>
-                </li>
-              ))}
-              {summary.loanPayments.map((item) => (
-                <li key={item.id} className="flex items-start justify-between gap-4 px-5 py-2.5">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">🏦 {item.bankName}</p>
-                    <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
-                      Loan · Term {item.term} · Due {formatDate(item.dueAt)}
                     </p>
                   </div>
                   <p className="shrink-0 text-sm font-semibold tabular-nums text-neutral-900 dark:text-neutral-100">

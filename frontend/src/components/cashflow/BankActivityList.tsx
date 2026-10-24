@@ -135,6 +135,9 @@ function BankActivityRow({ activity, categories, onChanged }: { activity: BankAc
         {needsCategory && <select aria-label="Select bank activity category" value={categoryId} onChange={(event) => setCategoryId(event.target.value)} disabled={saving} className={selectClass}><option value="">Select category</option>{categoryOptions.map((category) => <option key={category.id} value={category.id}>{category.icon ? `${category.icon} ` : ''}{category.name}</option>)}</select>}
         {(classification !== activity.classification || categoryId !== (activity.categoryId ?? '')) && <button type="button" onClick={() => void save()} disabled={saving} className="justify-self-start rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-500 disabled:opacity-50">{saving ? 'Saving…' : 'Save'}</button>}
       </div>
+      {activity.classification === 'loan_repayment' && (
+        <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">Tracked as a bank activity; it is not added as a Cash Flow transaction.</p>
+      )}
       {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
     </li>
   )

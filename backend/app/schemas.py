@@ -929,6 +929,7 @@ class FinancialAccountRead(CamelModel):
   last_synced_at: datetime | None
   last_transaction_at: datetime | None
   last_sync_error: str | None
+  webhook_auth_enabled: bool
 
   @field_serializer("last_synced_at", "last_transaction_at")
   def _serialize_optional_dt(self, dt: datetime | None, _info) -> str | None:
@@ -938,6 +939,8 @@ class FinancialAccountRead(CamelModel):
 class SePayConnectionCreate(CamelModel):
   api_token: SecretStr = Field(min_length=16, max_length=512)
   account_number: Annotated[str, StringConstraints(strip_whitespace=True, min_length=4, max_length=64)]
+  webhook_auth_enabled: bool = False
+  webhook_auth_key: SecretStr | None = Field(default=None, max_length=512)
 
 
 class NetWorthLineRead(CamelModel):

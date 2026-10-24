@@ -196,10 +196,13 @@ SePay has two separate trust boundaries:
 - The authenticated Ledger user supplies an individual SePay API token for
   read-only account lookup and balance synchronization. Ledger encrypts that
   token at rest.
-- SePay sends inbound activity to the public webhook using the shared
-  `SEPAY_WEBHOOK_API_KEY`. The webhook does not require a browser session,
-  JWT, or CSRF token, and rejects requests when the key is missing,
-  malformed, wrong, or unconfigured.
+- SePay sends inbound activity to the public webhook using the optional
+  account-specific API key supplied by that Ledger user. The key is encrypted
+  at rest and selected only after the payload identifies the connected
+  account. The webhook does not require a browser session, JWT, or CSRF token,
+  and rejects missing, malformed, or wrong keys. Older deployments may retain
+  a server-wide compatibility fallback, but new deployments do not configure
+  one.
 
 ```mermaid
 sequenceDiagram
@@ -306,8 +309,8 @@ flowchart LR
     FX2 --> Warnings
 ```
 
-Cash-flow transactions, expected income, saving-pot balances, and scheduled
-loan payments are not added again as net-worth assets or liabilities. A saving
+Cash-flow transactions, expected income, saving-pot balances, and loan
+schedule estimates are not added again as net-worth assets or liabilities. A saving
 pot may already be represented by a connected bank balance, so including it
 separately would double-count money.
 
@@ -363,16 +366,15 @@ encrypted after users sign in.
 | Secret or setting | Owner | Storage/use |
 | --- | --- | --- |
 | `SECRET_KEY` | Operator | Backend environment; signs session cookies. |
-| `SEPAY_CREDENTIAL_ENCRYPTION_KEY` | Operator | Backend environment; decrypts stored user SePay credentials. |
-| `SEPAY_WEBHOOK_API_KEY` | Operator + SePay webhook | Backend environment; authenticates inbound webhook requests. |
+| SePay credential key | Backend | Generated on first use and retained in the backend-only persistent Docker volume. |
+| SePay webhook API key | Individual user + SePay webhook | Submitted in the authenticated Net Worth form, then Fernet-encrypted in `FinancialAccount`; validates events for that account. |
 | `DATABASE_URL` | Operator | Backend environment; database connection. |
 | PostgreSQL credentials | Operator | PostgreSQL environment and encrypted deployment vault. |
 | SePay API token | Individual user | Submitted over the authenticated UI, then Fernet-encrypted in `FinancialAccount`. |
 | SePay bank account number | Individual user | Used to resolve the provider account; only a masked value is returned/stored for display. |
 
-Changing or losing the Fernet key makes existing SePay ciphertext unreadable.
-Database backups and the Fernet key therefore need coordinated protection.
-Changing the key requires restoring the old key or making every user reconnect.
+Deleting the backend secrets volume makes existing SePay ciphertext unreadable.
+Database backups and that volume therefore need coordinated protection.
 
 ## Database migrations
 
