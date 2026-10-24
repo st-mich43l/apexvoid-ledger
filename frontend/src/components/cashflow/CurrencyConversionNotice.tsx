@@ -1,6 +1,7 @@
 import { formatCurrency } from '../../lib/currency'
 import { formatDate } from '../../lib/date'
 import type { CashFlowMonthlySummary, CurrencyConversionRate } from '../../types'
+import { Alert } from '../ui/Alert'
 
 function formatRate(rate: CurrencyConversionRate): string {
   if (rate.rate >= 0.01) return formatCurrency(rate.rate, rate.targetCurrency)
@@ -15,7 +16,7 @@ export function CurrencyConversionNotice({ summary }: { summary: CashFlowMonthly
   return (
     <div className="mb-4 space-y-2">
       {hasConverted && (
-        <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-sky-900 dark:border-sky-900/60 dark:bg-sky-950/40 dark:text-sky-200">
+        <Alert tone="info">
           <details>
             <summary className="cursor-pointer font-medium">FX applied: {summary.convertedCurrencies.join(', ')} converted to {summary.currency}</summary>
             <p className="mt-2 text-xs text-sky-800 dark:text-sky-300">Daily reference rates affect monthly totals only; transaction-list amounts remain in their original currencies.</p>
@@ -37,14 +38,14 @@ export function CurrencyConversionNotice({ summary }: { summary: CashFlowMonthly
               </a>
             )}
           </details>
-        </div>
+        </Alert>
       )}
 
       {hasUnconverted && (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+        <Alert tone="warning">
           Could not convert {summary.unconvertedCurrencies.join(', ')} into {summary.currency}.
           Those transactions are temporarily excluded from totals; their original values are unchanged.
-        </p>
+        </Alert>
       )}
     </div>
   )

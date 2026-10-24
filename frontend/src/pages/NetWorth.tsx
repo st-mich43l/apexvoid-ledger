@@ -3,6 +3,12 @@ import type { FinancialAccount, NetWorthLine, SePayConnectionInput, SePayWebhook
 import { useNetWorth } from '../hooks/useNetWorth'
 import { formatCurrency } from '../lib/currency'
 import { useCurrency } from '../context/CurrencyContext'
+import { Alert } from '../components/ui/Alert'
+import { Button } from '../components/ui/Button'
+import { Card } from '../components/ui/Card'
+import { FinancialMetric } from '../components/ui/FinancialMetric'
+import { controlClassName } from '../components/ui/Field'
+import { EmptyState, LoadingState } from '../components/ui/State'
 
 export function NetWorthPage() {
   const { currency } = useCurrency()
@@ -12,28 +18,27 @@ export function NetWorthPage() {
   return (
     <section>
       <div className="mb-6 flex flex-col gap-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-400">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ledger-primary">
           Financial position
         </p>
-        <h2 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">Net Worth</h2>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+        <h2 className="text-2xl font-semibold tracking-tight text-ledger-text">Net Worth</h2>
+        <p className="text-sm text-ledger-text-secondary">
           Verified assets minus outstanding loan balances, shown in {reportingCurrency}.
         </p>
       </div>
 
       {error && (
-        <p className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">
+        <Alert tone="danger" className="mb-5">
           {error}
-        </p>
+        </Alert>
       )}
 
       {summary?.warnings.length ? (
-        <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
-          <p className="font-semibold">Valuation needs attention</p>
+        <Alert tone="warning" title="Valuation needs attention" className="mb-5">
           <ul className="mt-1 space-y-1">
             {summary.warnings.map((warning) => <li key={warning}>{warning}</li>)}
           </ul>
-        </div>
+        </Alert>
       ) : null}
 
       <ConnectSePayCard connecting={connecting} onConnect={connect} />
@@ -58,7 +63,7 @@ export function NetWorthPage() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,.85fr)]">
-        <section className="rounded-3xl border border-neutral-200/80 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        <Card className="p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-600 dark:text-cyan-400">Bank assets</p>
@@ -80,9 +85,9 @@ export function NetWorthPage() {
               />
             ))}
           </div>
-        </section>
+        </Card>
 
-        <section className="rounded-3xl border border-neutral-200/80 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        <Card className="p-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-rose-600 dark:text-rose-400">Loan liabilities</p>
             <h3 className="mt-1 text-lg font-semibold text-neutral-900 dark:text-neutral-50">Outstanding balances</h3>
@@ -92,14 +97,14 @@ export function NetWorthPage() {
               summary.liabilityBreakdown.map((line) => <BreakdownRow key={line.id} line={line} />)
             ) : <EmptyRow text="No loan liabilities recorded." />}
           </div>
-        </section>
+        </Card>
       </div>
 
-      <div className="mt-5 rounded-2xl border border-neutral-200/80 bg-white px-5 py-4 text-sm text-neutral-500 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
+      <Card className="mt-5 text-sm text-ledger-text-secondary">
         <span className="font-medium text-neutral-700 dark:text-neutral-200">Net Worth = Bank assets − Loan liabilities.</span>{' '}
         Saving Pots, cash-flow income/expenses, future income, and scheduled payments are not added separately.
         {!summary?.valuationComplete && <span className="ml-1 text-amber-700 dark:text-amber-300">The current valuation is incomplete.</span>}
-      </div>
+      </Card>
     </section>
   )
 }
@@ -115,19 +120,8 @@ function SummaryCard({
   accent: 'cyan' | 'rose' | 'violet'
   prominent?: boolean
 }) {
-  const color = {
-    cyan: 'text-cyan-600 dark:text-cyan-400',
-    rose: 'text-rose-600 dark:text-rose-400',
-    violet: 'text-violet-600 dark:text-violet-400',
-  }[accent]
-  return (
-    <div className="rounded-3xl border border-neutral-200/80 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-      <p className="text-xs font-medium tracking-wide text-neutral-500 uppercase dark:text-neutral-400">{title}</p>
-      <p className={(prominent ? 'text-3xl ' : 'text-2xl ') + 'mt-2 truncate font-semibold tracking-tight tabular-nums ' + color}>
-        {value}
-      </p>
-    </div>
-  )
+  const tone = accent === 'rose' ? 'negative' : accent === 'violet' ? 'primary' : 'default'
+  return <FinancialMetric label={title} value={value} tone={tone} className={prominent ? 'sm:[&_.financial-amount]:text-3xl' : undefined} />
 }
 
 function BankAccountCard({
@@ -163,7 +157,7 @@ function BankAccountCard({
           : null
 
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-950">
+    <Card variant="subtle" className="p-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -174,22 +168,22 @@ function BankAccountCard({
             {account.accountNumberMasked} · {account.currency}
           </p>
         </div>
-        <button
+        <Button
           type="button"
           onClick={onRefresh}
-          disabled={refreshing}
-          className="rounded-full border border-neutral-200 bg-white px-3.5 py-2 text-sm font-medium text-neutral-700 transition hover:border-violet-300 hover:text-violet-700 disabled:cursor-wait disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:border-violet-700 dark:hover:text-violet-300"
+          loading={refreshing}
+          variant="outline"
         >
           {refreshing ? 'Refreshing…' : 'Refresh'}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onClick={onDisconnect}
           disabled={refreshing}
-          className="rounded-full border border-red-200 px-3.5 py-2 text-sm font-medium text-red-700 transition hover:border-red-400 disabled:cursor-wait disabled:opacity-50 dark:border-red-900/60 dark:text-red-300"
+          variant="destructive"
         >
           Disconnect
-        </button>
+        </Button>
       </div>
       <p className={'mt-5 text-2xl font-semibold tabular-nums ' + (isUnavailable ? 'text-neutral-400 dark:text-neutral-500' : 'text-neutral-900 dark:text-neutral-50')}>
         {isUnavailable ? 'Unavailable' : formatCurrency(account.balance ?? 0, account.currency)}
@@ -204,7 +198,7 @@ function BankAccountCard({
       {account.lastSyncError && (
         <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">{account.lastSyncError}</p>
       )}
-    </div>
+    </Card>
   )
 }
 
@@ -247,8 +241,8 @@ function ConnectSePayCard({
   }
 
   return (
-    <section className="mb-6 overflow-hidden rounded-2xl border border-violet-200/80 bg-white shadow-[0_18px_45px_-35px_rgba(109,40,217,0.8)] dark:border-violet-900/70 dark:bg-neutral-900">
-      <div className="border-b border-violet-100 bg-gradient-to-r from-violet-50 to-fuchsia-50/60 px-5 py-4 dark:border-violet-900/50 dark:from-violet-950/50 dark:to-fuchsia-950/20">
+    <section className="mb-6 overflow-hidden rounded-[var(--ledger-radius-card)] border border-violet-200 bg-ledger-surface shadow-[var(--ledger-shadow-card)] dark:border-violet-900">
+      <div className="border-b border-violet-100 bg-ledger-primary-subtle px-5 py-4 dark:border-violet-900/50">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-400">Personal connection</p>
         <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <h3 className="text-base font-semibold text-neutral-900 dark:text-neutral-50">Connect SePay</h3>
@@ -265,7 +259,7 @@ function ConnectSePayCard({
             onChange={(event) => setApiToken(event.target.value)}
             autoComplete="off"
             required
-            className="mt-1 block w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 font-normal text-neutral-900 outline-none focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50"
+            className={'mt-1 block font-normal ' + controlClassName}
           />
         </label>
         <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
@@ -277,7 +271,7 @@ function ConnectSePayCard({
             onChange={(event) => setAccountNumber(event.target.value)}
             autoComplete="off"
             required
-            className="mt-1 block w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 font-normal text-neutral-900 outline-none focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50"
+            className={'mt-1 block font-normal ' + controlClassName}
           />
         </label>
         </div>
@@ -305,7 +299,7 @@ function ConnectSePayCard({
                 onChange={(event) => setWebhookOauthClientId(event.target.value)}
                 autoComplete="off"
                 required
-                className="mt-1 block w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 font-normal text-neutral-900 outline-none focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-50"
+                className={'mt-1 block font-normal ' + controlClassName}
               />
             </label>
             <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
@@ -316,7 +310,7 @@ function ConnectSePayCard({
                 onChange={(event) => setWebhookAuthSecret(event.target.value)}
                 autoComplete="off"
                 required
-                className="mt-1 block w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 font-normal text-neutral-900 outline-none focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-50"
+                className={'mt-1 block font-normal ' + controlClassName}
               />
             </label>
             <p className="md:col-span-2 rounded-lg bg-white/80 px-3 py-2 text-xs text-neutral-600 dark:bg-neutral-950/70 dark:text-neutral-300">
@@ -332,19 +326,19 @@ function ConnectSePayCard({
               onChange={(event) => setWebhookAuthSecret(event.target.value)}
               autoComplete="off"
               required
-              className="mt-1 block w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 font-normal text-neutral-900 outline-none focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-50"
+              className={'mt-1 block font-normal ' + controlClassName}
             />
           </label>
         ) : (
-          <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">No authentication accepts unauthenticated requests. Use only with SePay test webhooks.</p>
+          <Alert tone="warning" className="text-xs">No authentication accepts unauthenticated requests. Use only with SePay test webhooks.</Alert>
         )}
-        <button
+        <Button
           type="submit"
-          disabled={connecting || !apiToken || !accountNumber || (needsSecret && !webhookAuthSecret) || (isOauth && !webhookOauthClientId)}
-          className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-violet-900/20 transition hover:bg-violet-700 disabled:cursor-wait disabled:opacity-50"
+          loading={connecting}
+          disabled={!apiToken || !accountNumber || (needsSecret && !webhookAuthSecret) || (isOauth && !webhookOauthClientId)}
         >
           {connecting ? 'Connecting…' : submitted ? 'Try again' : 'Connect'}
-        </button>
+        </Button>
       </form>
     </section>
   )
@@ -405,13 +399,9 @@ function formatDate(value: string) {
   }).format(new Date(value))
 }
 
-function LoadingRow() {
-  return <div className="rounded-2xl bg-neutral-100 px-4 py-5 text-sm text-neutral-500 dark:bg-neutral-950 dark:text-neutral-400">Loading…</div>
-}
+function LoadingRow() { return <LoadingState /> }
 
-function EmptyRow({ text }: { text: string }) {
-  return <div className="rounded-2xl border border-dashed border-neutral-300 px-4 py-5 text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">{text}</div>
-}
+function EmptyRow({ text }: { text: string }) { return <EmptyState>{text}</EmptyState> }
 
 function BankIcon() {
   return (

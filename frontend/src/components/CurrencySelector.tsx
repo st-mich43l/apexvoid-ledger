@@ -56,11 +56,11 @@ export function CurrencySelector() {
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label="Display currency"
-        className="flex h-9 items-center gap-2 rounded-full border border-neutral-200 bg-white py-0 pr-3 pl-2.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus:outline-none focus:ring-2 focus:ring-violet-500/20 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-50"
+        className="flex h-9 items-center gap-2 rounded-[var(--ledger-radius-control)] border border-ledger-border bg-ledger-elevated py-0 pr-3 pl-2.5 text-sm font-medium text-ledger-text-secondary transition-colors hover:bg-ledger-subtle hover:text-ledger-text"
       >
         <FlagImg code={currency} />
         {currency}
-        <ChevronDownIcon className="h-3.5 w-3.5 text-neutral-400 dark:text-neutral-500" />
+        <ChevronDownIcon className="h-3.5 w-3.5 text-ledger-muted" />
       </button>
 
       {open &&
@@ -70,22 +70,22 @@ export function CurrencySelector() {
             role="listbox"
             aria-label="Display currency"
             style={{ top: menuPos.top, right: menuPos.right }}
-            className="fixed z-50 w-48 overflow-hidden rounded-2xl border border-neutral-200/80 bg-white py-1.5 shadow-[0_2px_8px_-2px_rgba(24,16,54,0.08),0_16px_32px_-12px_rgba(24,16,54,0.10)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none"
+            className="fixed z-50 w-48 overflow-hidden rounded-[var(--ledger-radius-card)] border border-ledger-border bg-ledger-elevated py-1.5 shadow-[var(--ledger-shadow-card)]"
           >
             {SUPPORTED_CURRENCIES.map((code) => (
               <li key={code} role="option" aria-selected={code === currency}>
                 <button
                   type="button"
                   onClick={() => handleSelect(code)}
-                  className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800 ${
+                  className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors hover:bg-ledger-subtle ${
                     code === currency
-                      ? 'font-medium text-violet-600 dark:text-violet-400'
-                      : 'text-neutral-600 dark:text-neutral-300'
+                      ? 'font-medium text-ledger-primary'
+                      : 'text-ledger-text-secondary'
                   }`}
                 >
                   <FlagImg code={code} />
                   <span className="font-medium">{code}</span>
-                  <span className="truncate text-neutral-400 dark:text-neutral-500">{currencyName(code)}</span>
+                  <span className="truncate text-ledger-muted">{currencyName(code)}</span>
                 </button>
               </li>
             ))}

@@ -11,6 +11,7 @@ import { useMonthlyClose } from '../hooks/useMonthlyClose'
 import { useNetWorth } from '../hooks/useNetWorth'
 import { DashboardFinancialTrends } from '../components/dashboard/DashboardFinancialTrends'
 import type { MonthlyBudgetSummary, MonthlyCloseSummary } from '../types'
+import { Alert } from '../components/ui/Alert'
 
 export function Dashboard() {
   const { loans, loading, error } = useLoans()
@@ -42,9 +43,9 @@ export function Dashboard() {
       </div>
 
       {(error || cashFlow.error || savingPot.error || routine.error || budget.error || monthlyClose.error || netWorth.error) && (
-        <p className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">
+        <Alert tone="danger" className="mb-6">
           {error || cashFlow.error || savingPot.error || routine.error || budget.error || monthlyClose.error || netWorth.error}
-        </p>
+        </Alert>
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

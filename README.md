@@ -16,6 +16,8 @@ bank-activity feed, and loan planning. Session-based accounts gate access — se
   flows, Mermaid diagrams, deployment, and security boundaries.
 - [SePay setup](docs/SEPAY_SETUP.md) — local setup, environment variables,
   per-user account connection, Ansible, and troubleshooting.
+- [UI design system](docs/UI_DESIGN_SYSTEM.md) — Quiet Premium tokens,
+  primitives, migration scope, accessibility, and visual verification.
 
 ## 🏦 Loan fields
 

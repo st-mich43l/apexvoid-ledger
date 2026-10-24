@@ -35,23 +35,21 @@ export function Layout() {
   }
 
   return (
-    <div className="min-h-screen min-h-dvh bg-neutral-50 [background-image:radial-gradient(60%_50%_at_50%_-10%,rgba(139,92,246,0.16),transparent_70%)] dark:bg-neutral-950 dark:[background-image:radial-gradient(60%_50%_at_50%_-10%,rgba(139,92,246,0.10),transparent_70%)]">
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <header className="relative mb-10 overflow-hidden rounded-3xl border border-neutral-200/80 bg-white/80 p-6 shadow-[0_2px_8px_-2px_rgba(24,16,54,0.08),0_16px_32px_-12px_rgba(24,16,54,0.10)] backdrop-blur-sm sm:p-8 dark:border-neutral-800 dark:bg-neutral-900/60 dark:shadow-none">
-          <div className="pointer-events-none absolute -top-20 -left-10 h-56 w-56 rounded-full bg-gradient-to-br from-violet-500/10 to-transparent blur-3xl" />
-
-          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="min-h-screen min-h-dvh bg-ledger-bg">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <header className="mb-8 rounded-[var(--ledger-radius-modal)] border border-ledger-border bg-ledger-surface p-5 shadow-[var(--ledger-shadow-card)] sm:p-7">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               {back && (
                 <Link
                   to={back.path}
-                  className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-neutral-500 transition-colors hover:text-violet-600 dark:text-neutral-400 dark:hover:text-violet-400"
+                  className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-ledger-text-secondary transition-colors hover:text-ledger-primary"
                 >
                   <ArrowLeftIcon className="h-4 w-4" />
                   {back.label}
                 </Link>
               )}
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ledger-primary">
                 Finance Management
               </p>
               <div className="mt-1 flex items-center gap-2.5">
@@ -59,15 +57,15 @@ export function Layout() {
                   to={user?.isAdmin ? '/home' : '/dashboard'}
                   aria-label="Go to home"
                   title="Go to home"
-                  className="rounded-xl transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                  className="rounded-[var(--ledger-radius-control)] transition-opacity hover:opacity-80"
                 >
                   <BrandMark className="h-9 w-9" />
                 </Link>
-                <h1 className="text-3xl font-semibold tracking-tight text-neutral-900 sm:text-4xl dark:text-neutral-50">
+                <h1 className="text-3xl font-semibold tracking-tight text-ledger-text sm:text-4xl">
                   ApexVoid Ledger
                 </h1>
               </div>
-              <p className="mt-2 max-w-xl text-sm text-neutral-500 dark:text-neutral-400">
+              <p className="mt-2 max-w-xl text-sm text-ledger-text-secondary">
                 A single place to see where your money stands across loans and cash flow.
               </p>
             </div>
@@ -76,7 +74,7 @@ export function Layout() {
                 <Link
                   to="/settings/users"
                   aria-label="Manage users"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-50"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-[var(--ledger-radius-control)] border border-ledger-border text-ledger-text-secondary transition-colors hover:bg-ledger-subtle hover:text-ledger-text"
                 >
                   <UsersIcon className="h-[18px] w-[18px]" />
                 </Link>
@@ -84,19 +82,19 @@ export function Layout() {
               <CurrencySelector />
               <ThemeToggle theme={theme} onToggle={toggleTheme} />
               {user && (
-                <div className="ml-1 flex items-center gap-3 border-l border-neutral-200 pl-3 dark:border-neutral-800">
-                  <span className="hidden max-w-[10rem] truncate text-sm text-neutral-500 sm:inline dark:text-neutral-400">
+                <div className="ml-1 flex items-center gap-3 border-l border-ledger-border pl-3">
+                  <span className="hidden max-w-[10rem] truncate text-sm text-ledger-text-secondary sm:inline">
                     {user.username}
                   </span>
                   <Link
                     to="/settings/users"
-                    className="text-sm font-medium text-neutral-500 transition-colors hover:text-violet-600 dark:text-neutral-400 dark:hover:text-violet-400"
+                    className="text-sm font-medium text-ledger-text-secondary transition-colors hover:text-ledger-primary"
                   >
                     User account
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="text-sm font-medium text-neutral-500 transition-colors hover:text-violet-600 dark:text-neutral-400 dark:hover:text-violet-400"
+                    className="text-sm font-medium text-ledger-text-secondary transition-colors hover:text-ledger-primary"
                   >
                     Log out
                   </button>
