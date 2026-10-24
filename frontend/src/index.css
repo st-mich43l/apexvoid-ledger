@@ -2,14 +2,65 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-html {
-  color-scheme: light dark;
-  min-height: 100%;
-  background-color: #fafafa;
+@theme inline {
+  --color-ledger-bg: var(--ledger-bg);
+  --color-ledger-surface: var(--ledger-surface);
+  --color-ledger-elevated: var(--ledger-elevated);
+  --color-ledger-subtle: var(--ledger-subtle);
+  --color-ledger-text: var(--ledger-text);
+  --color-ledger-text-secondary: var(--ledger-text-secondary);
+  --color-ledger-muted: var(--ledger-muted);
+  --color-ledger-border: var(--ledger-border);
+  --color-ledger-primary: var(--ledger-primary);
+  --color-ledger-primary-hover: var(--ledger-primary-hover);
+  --color-ledger-primary-subtle: var(--ledger-primary-subtle);
+  --color-ledger-success: var(--ledger-success);
+  --color-ledger-warning: var(--ledger-warning);
+  --color-ledger-danger: var(--ledger-danger);
+  --color-ledger-info: var(--ledger-info);
+}
+
+:root {
+  color-scheme: light;
+  --ledger-bg: #f7f7f8;
+  --ledger-surface: #ffffff;
+  --ledger-elevated: #ffffff;
+  --ledger-subtle: #f3f2f5;
+  --ledger-text: #1d1b20;
+  --ledger-text-secondary: #5d5966;
+  --ledger-muted: #7b7585;
+  --ledger-border: #e4e1e8;
+  --ledger-primary: #7c3aed;
+  --ledger-primary-hover: #6d28d9;
+  --ledger-primary-subtle: #f4f0ff;
+  --ledger-success: #047857;
+  --ledger-warning: #b45309;
+  --ledger-danger: #be123c;
+  --ledger-info: #0e7490;
+  --ledger-radius-card: 1rem;
+  --ledger-radius-control: 0.75rem;
+  --ledger-radius-modal: 1.25rem;
+  --ledger-shadow-card: 0 1px 2px rgb(24 16 54 / 0.04), 0 10px 24px rgb(24 16 54 / 0.06);
 }
 
 html.dark {
-  background-color: #0a0a0a;
+  color-scheme: dark;
+  --ledger-bg: #111015;
+  --ledger-surface: #19171e;
+  --ledger-elevated: #211f27;
+  --ledger-subtle: #25232c;
+  --ledger-text: #f6f4f8;
+  --ledger-text-secondary: #c8c2d0;
+  --ledger-muted: #968f9f;
+  --ledger-border: #35313d;
+  --ledger-primary: #a78bfa;
+  --ledger-primary-hover: #c4b5fd;
+  --ledger-primary-subtle: #2a213f;
+  --ledger-success: #34d399;
+  --ledger-warning: #fbbf24;
+  --ledger-danger: #fb7185;
+  --ledger-info: #67e8f9;
+  --ledger-shadow-card: 0 1px 2px rgb(0 0 0 / 0.14), 0 10px 28px rgb(0 0 0 / 0.16);
 }
 
 body,
@@ -20,9 +71,31 @@ body,
 body {
   margin: 0;
   min-width: 320px;
-  background-color: #fafafa;
+  background: var(--ledger-bg);
+  color: var(--ledger-text);
+  text-rendering: optimizeLegibility;
 }
 
-html.dark body {
-  background-color: #0a0a0a;
+button,
+input,
+select,
+textarea { font: inherit; }
+
+:focus-visible { outline: 2px solid var(--ledger-primary); outline-offset: 2px; }
+
+.financial-amount { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+.ui-label { display: block; color: var(--ledger-text); font-size: 0.875rem; font-weight: 600; }
+
+.ui-control {
+  width: 100%; border: 1px solid var(--ledger-border); border-radius: var(--ledger-radius-control);
+  background: var(--ledger-surface); color: var(--ledger-text); padding: 0.625rem 0.75rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+.ui-control:hover:not(:disabled) { border-color: color-mix(in srgb, var(--ledger-primary) 35%, var(--ledger-border)); }
+.ui-control:focus { border-color: var(--ledger-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ledger-primary) 16%, transparent); outline: none; }
+.ui-control:disabled { cursor: not-allowed; opacity: 0.58; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
 }

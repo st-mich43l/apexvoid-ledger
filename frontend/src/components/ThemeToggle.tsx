@@ -9,7 +9,7 @@ export function ThemeToggle({ theme, onToggle }: ThemeToggleProps) {
       type="button"
       onClick={onToggle}
       aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-50"
+      className="inline-flex h-9 w-9 items-center justify-center rounded-[var(--ledger-radius-control)] border border-ledger-border text-ledger-text-secondary transition-colors hover:bg-ledger-subtle hover:text-ledger-text"
     >
       {theme === 'dark' ? (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="h-[18px] w-[18px]">

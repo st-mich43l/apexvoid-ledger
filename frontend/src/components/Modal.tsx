@@ -91,7 +91,7 @@ export function Modal({ onClose, label, children, dismissible = true }: ModalPro
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
       <div
-        className="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm dark:bg-black/60"
+        className="fixed inset-0 bg-black/45 backdrop-blur-[1px]"
         onClick={dismissible ? onClose : undefined}
       />
       <div
@@ -100,7 +100,7 @@ export function Modal({ onClose, label, children, dismissible = true }: ModalPro
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
-        className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-neutral-200/80 bg-white p-6 shadow-[0_8px_24px_-4px_rgba(24,16,54,0.2)] sm:p-7 dark:border-neutral-800 dark:bg-neutral-900"
+        className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[var(--ledger-radius-modal)] border border-ledger-border bg-ledger-elevated p-6 shadow-2xl sm:p-7"
       >
         {children}
       </div>
