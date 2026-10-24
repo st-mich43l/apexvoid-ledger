@@ -1,0 +1,10 @@
+import { Link } from 'react-router-dom'
+import type { FinancialAccount } from '../../types'
+import { Badge } from '../ui/Badge'
+import { Card } from '../ui/Card'
+
+export function AccountHealth({ accounts, loading, error }: { accounts: FinancialAccount[]; loading: boolean; error?: boolean }) {
+  const verified = accounts.filter((account) => account.balanceStatus === 'verified').length
+  const attention = accounts.filter((account) => account.balanceStatus === 'stale' || account.balanceStatus === 'unavailable').length
+  return <Card className="h-full"><div className="flex items-start justify-between gap-3"><div><h2 className="text-lg font-semibold text-ledger-text">Financial accounts</h2><p className="mt-1 text-sm text-ledger-text-secondary">Connected balance health, without exposing credentials.</p></div>{!loading && !error && <Badge tone={attention > 0 ? 'warning' : 'success'}>{attention > 0 ? `${attention} need review` : 'Healthy'}</Badge>}</div>{loading ? <p className="mt-5 text-sm text-ledger-text-secondary">Loading connected accounts…</p> : error ? <p className="mt-5 text-sm text-ledger-text-secondary">Account health could not be loaded.</p> : accounts.length === 0 ? <p className="mt-5 text-sm text-ledger-text-secondary">No bank account is connected yet.</p> : <><p className="financial-amount mt-5 text-2xl font-semibold text-ledger-text">{verified} <span className="text-base font-normal text-ledger-text-secondary">of {accounts.length} verified</span></p><ul className="mt-4 space-y-2">{accounts.slice(0, 3).map((account) => <li key={account.id} className="flex items-center justify-between gap-3 text-sm"><span className="min-w-0 truncate font-medium text-ledger-text">{account.bankName} · {account.accountNumberMasked}</span><Badge tone={account.balanceStatus === 'verified' ? 'success' : account.balanceStatus === 'stale' ? 'warning' : 'neutral'}>{account.balanceStatus}</Badge></li>)}</ul></>}<Link to="/net-worth" className="mt-5 inline-flex text-sm font-semibold text-ledger-primary hover:underline">Manage accounts →</Link></Card>
+}

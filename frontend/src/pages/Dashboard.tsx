@@ -1,282 +1,76 @@
-import { Link } from 'react-router-dom'
-import { PremiumCard } from '../components/PremiumCard'
-import { useCurrency } from '../context/CurrencyContext'
-import { formatCurrency } from '../lib/currency'
-import { useLoans } from '../hooks/useLoans'
+import { useMemo } from 'react'
+import { useBankActivities } from '../hooks/useBankActivities'
 import { useCashFlowSummary } from '../hooks/useCashFlowSummary'
-import { useMonthlyRoutine } from '../hooks/useMonthlyRoutine'
 import { useMonthlyBudget } from '../hooks/useMonthlyBudget'
-import { useSavingPot } from '../hooks/useSavingPot'
 import { useMonthlyClose } from '../hooks/useMonthlyClose'
+import { useMonthlyRoutine } from '../hooks/useMonthlyRoutine'
 import { useNetWorth } from '../hooks/useNetWorth'
+import { useCurrency } from '../context/CurrencyContext'
+import { currentReportingPeriod } from '../lib/date'
+import { AccountHealth } from '../components/dashboard/AccountHealth'
+import { BudgetHealth } from '../components/dashboard/BudgetHealth'
 import { DashboardFinancialTrends } from '../components/dashboard/DashboardFinancialTrends'
-import type { MonthlyBudgetSummary, MonthlyCloseSummary } from '../types'
-import { Alert } from '../components/ui/Alert'
+import { DashboardQuickAccess } from '../components/dashboard/DashboardQuickAccess'
+import { FinancialAttention } from '../components/dashboard/FinancialAttention'
+import { deriveFinancialAttention } from '../components/dashboard/financialAttention'
+import { FinancialMetrics } from '../components/dashboard/FinancialMetrics'
+import { FinancialOverview } from '../components/dashboard/FinancialOverview'
+import { MonthlyCommitments } from '../components/dashboard/MonthlyCommitments'
 import { PageHeader } from '../components/layout/PageHeader'
+import { Alert } from '../components/ui/Alert'
+
+function monthLabel(year: number, month: number) {
+  return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(new Date(year, month - 1, 1))
+}
 
 export function Dashboard() {
-  const { loans, loading, error } = useLoans()
   const { currency } = useCurrency()
-  const today = new Date()
-  const year = today.getUTCFullYear()
-  const month = today.getUTCMonth() + 1
+  const { year, month } = currentReportingPeriod()
   const previous = month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 }
   const cashFlow = useCashFlowSummary(year, month, currency)
-  const routine = useMonthlyRoutine(year, month, currency)
   const budget = useMonthlyBudget(year, month)
-  const savingPot = useSavingPot()
+  const routine = useMonthlyRoutine(year, month, currency)
   const monthlyClose = useMonthlyClose(previous.year, previous.month)
   const netWorth = useNetWorth()
-
-  const loanBalances = [...loans.reduce((groups, loan) => {
-    if (loan.currentBalance <= 0) return groups
-    groups.set(loan.currency, (groups.get(loan.currency) ?? 0) + loan.currentBalance)
-    return groups
-  }, new Map<(typeof loans)[number]['currency'], number>())]
-  const loanBalanceValue = loanBalances.length <= 1
-    ? formatCurrency(loanBalances[0]?.[1] ?? 0, loanBalances[0]?.[0] ?? currency)
-    : 'Multiple currencies'
+  const bankActivities = useBankActivities(year, month)
+  const unconvertedCurrencies = useMemo(() => [...new Set([
+    ...(cashFlow.summary?.unconvertedCurrencies ?? []),
+    ...(budget.summary?.unconvertedCurrencies ?? []),
+    ...(routine.summary?.unconvertedCurrencies ?? []),
+  ])], [cashFlow.summary, budget.summary, routine.summary])
+  const attention = useMemo(() => deriveFinancialAttention({
+    budget: budget.summary,
+    netWorth: netWorth.summary,
+    accounts: netWorth.accounts,
+    activities: bankActivities.activities,
+    close: monthlyClose.summary,
+    unconvertedCurrencies,
+  }), [bankActivities.activities, budget.summary, monthlyClose.summary, netWorth.accounts, netWorth.summary, unconvertedCurrencies])
+  const loadingAttention = budget.loading || netWorth.loading || bankActivities.loading || monthlyClose.loading || cashFlow.loading || routine.loading
+  const hasError = cashFlow.error || budget.error || routine.error || monthlyClose.error || netWorth.error || bankActivities.error
 
   return (
     <section>
-      <PageHeader title="Overview" description="Your current financial position at a glance." />
+      <PageHeader eyebrow="Financial command center" title="Overview" description={`Current position plus monthly reporting for ${monthLabel(year, month)}.`} />
+      {hasError && <Alert tone="warning" className="mb-6">Some dashboard information could not be refreshed. Available sections remain current to their last successful response.</Alert>}
 
-      {(error || cashFlow.error || savingPot.error || routine.error || budget.error || monthlyClose.error || netWorth.error) && (
-        <Alert tone="danger" className="mb-6">
-          {error || cashFlow.error || savingPot.error || routine.error || budget.error || monthlyClose.error || netWorth.error}
-        </Alert>
-      )}
+      <FinancialOverview summary={netWorth.summary} accounts={netWorth.accounts} loading={netWorth.loading} />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        <PremiumCard
-          title="Net Worth"
-          accent="cyan"
-          value={
-            netWorth.loading
-              ? '…'
-              : netWorth.summary?.netWorth === null || netWorth.summary?.netWorth === undefined
-                ? 'Incomplete'
-                : formatCurrency(netWorth.summary.netWorth, netWorth.summary.reportingCurrency)
-          }
-          subtitle={
-            netWorth.loading
-              ? 'Loading valuation…'
-              : netWorth.summary?.valuationComplete
-                ? `${netWorth.summary.assetBreakdown.filter((line) => line.included).length} ${netWorth.summary.assetBreakdown.filter((line) => line.included).length === 1 ? 'asset' : 'assets'} · ${netWorth.summary.liabilityBreakdown.length} ${netWorth.summary.liabilityBreakdown.length === 1 ? 'liability' : 'liabilities'}`
-                : 'Review connected accounts'
-          }
-          to="/net-worth"
-          icon={<NetWorthIcon />}
-        />
+      <div className="mt-7"><FinancialMetrics cashFlow={cashFlow.summary} budget={budget.summary} loading={cashFlow.loading || budget.loading} budgetError={Boolean(budget.error)} /></div>
 
-        <PremiumCard
-          title="Saving pot"
-          accent="amber"
-          value={
-            savingPot.loading
-              ? '…'
-              : savingPot.pot
-                ? formatCurrency(savingPot.pot.balance, savingPot.pot.currency)
-                : '—'
-          }
-          subtitle={
-            savingPot.loading
-              ? 'Loading…'
-              : savingPot.pot
-                ? `${savingPot.pot.applications.length} month${savingPot.pot.applications.length === 1 ? '' : 's'} applied`
-                : 'Set up your savings balance'
-          }
-          to="/saving-pot"
-          icon={<PiggyIcon />}
-        />
-
-        <PremiumCard
-          title="Cash Flow"
-          accent="emerald"
-          value={cashFlow.loading ? '…' : formatCurrency(cashFlow.summary?.netCashFlow ?? 0, currency)}
-          subtitle={cashFlow.loading ? 'Loading…' : `${formatCurrency(cashFlow.summary?.income ?? 0, currency)} in · ${formatCurrency(cashFlow.summary?.expenses ?? 0, currency)} out${cashFlow.summary?.convertedCurrencies.length ? ' · FX applied' : ''}`}
-          to="/cashflow"
-          icon={<CashFlowIcon />}
-        />
-
-        <PremiumCard
-          title="Monthly Routine"
-          accent="violet"
-          value={routine.loading ? '…' : formatCurrency(routine.summary?.baselineAvailable ?? 0, currency)}
-          subtitle={
-            routine.loading
-              ? 'Loading…'
-              : `Expected ${formatCurrency(routine.summary?.expectedIncomeTotal ?? 0, currency)} · committed ${formatCurrency(routine.summary?.committedExpenseTotal ?? 0, currency)}`
-          }
-          to="/monthly-routine"
-          icon={<RoutineIcon />}
-        />
-
-        <PremiumCard
-          title="Loan"
-          accent="violet"
-          value={loading ? '…' : loanBalanceValue}
-          subtitle={loading ? 'Loading…' : `${loans.length} ${loans.length === 1 ? 'loan' : 'loans'} · current balance`}
-          to="/loan"
-          icon={<BankIcon />}
-        />
-
-        <PremiumCard
-          title="Trading account"
-          accent="cyan"
-          value="—"
-          subtitle="Not connected yet"
-          comingSoon
-          icon={<TrendingUpIcon />}
-        />
+      <div className="mt-7 grid items-start gap-5 xl:grid-cols-2">
+        <FinancialAttention items={attention} loading={loadingAttention} incomplete={Boolean(hasError)} />
+        <BudgetHealth summary={budget.summary} loading={budget.loading} error={Boolean(budget.error)} year={year} month={month} />
       </div>
-
-      <DashboardCloseIndicator summary={monthlyClose.summary} loading={monthlyClose.loading} />
-
-      <DashboardBudgetIndicator summary={budget.summary} loading={budget.loading} />
 
       <DashboardFinancialTrends year={year} month={month} currency={currency} />
+
+      <div className="mt-7 grid items-start gap-5 xl:grid-cols-2">
+        <MonthlyCommitments summary={routine.summary} loading={routine.loading} year={year} month={month} />
+        <AccountHealth accounts={netWorth.accounts} loading={netWorth.loading} error={Boolean(netWorth.error)} />
+      </div>
+
+      <DashboardQuickAccess />
     </section>
-  )
-}
-
-function DashboardCloseIndicator({ summary, loading }: { summary: MonthlyCloseSummary | null; loading: boolean }) {
-  const label = summary
-    ? new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
-      new Date(Date.UTC(summary.year, summary.month - 1, 1)),
-    )
-    : 'Previous month'
-  const status = summary?.status
-  const statusText =
-    status === 'closed' ? 'Closed'
-      : status === 'needs_review' ? 'Needs review'
-        : status === 'blocked' ? 'Blocked'
-          : status === 'ready_to_close' ? 'Ready to close'
-            : status === 'in_progress' ? 'In progress'
-              : '…'
-  return (
-    <Link
-      to={summary ? `/monthly-close?year=${summary.year}&month=${summary.month}` : '/monthly-close'}
-      className="mt-5 flex flex-col gap-2 rounded-2xl border border-neutral-200/80 bg-white px-5 py-4 shadow-sm transition hover:border-violet-300 hover:shadow-md sm:flex-row sm:items-center sm:justify-between dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none dark:hover:border-violet-800"
-    >
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-violet-600 dark:text-violet-400">Monthly Close</p>
-        <p className="mt-1 font-medium text-neutral-900 dark:text-neutral-100">{loading ? 'Loading month review…' : label}</p>
-        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">{loading ? 'Checking the latest checkpoint.' : statusText}</p>
-      </div>
-      <span className="shrink-0 text-sm font-medium text-violet-600 dark:text-violet-400">{loading ? '…' : 'Review month →'}</span>
-    </Link>
-  )
-}
-
-function DashboardBudgetIndicator({ summary, loading }: { summary: MonthlyBudgetSummary | null; loading: boolean }) {
-  const planned = summary?.plannedVariableBudgetTotal ?? 0
-  const spent = summary?.actualVariableExpenseTotal ?? 0
-  const utilization = planned > 0 ? spent / planned * 100 : spent > 0 ? 100 : 0
-  const progress = summary?.budgetComparisonComplete ? utilization : 0
-  const progressColor = !summary?.budgetComparisonComplete
-    ? 'bg-amber-500'
-    : utilization > 100
-      ? 'bg-rose-500'
-      : utilization >= 80
-        ? 'bg-amber-500'
-        : 'bg-violet-500'
-  const safeTone = (summary?.safeToSpend ?? 0) < 0
-    ? 'text-rose-600 dark:text-rose-400'
-    : 'text-emerald-600 dark:text-emerald-400'
-
-  return (
-    <Link
-      to="/budget"
-      className="mt-5 flex flex-col gap-4 rounded-2xl border border-neutral-200/80 bg-white px-5 py-4 shadow-sm transition hover:border-violet-300 hover:shadow-md sm:flex-row sm:items-center sm:justify-between dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none dark:hover:border-violet-800"
-    >
-      <div className="min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-violet-600 dark:text-violet-400">Monthly Budget</p>
-        <p className="mt-1 font-medium text-neutral-900 dark:text-neutral-100">
-          {loading ? 'Loading spending plan…' : summary?.hasBudget ? 'Your variable spending boundary' : 'No spending plan for this month'}
-        </p>
-        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-          {loading
-            ? 'Checking planned savings and category limits.'
-            : summary?.hasBudget
-              ? `${formatCurrency(spent, summary.currency)} spent of ${formatCurrency(planned, summary.currency)} planned`
-              : 'Set planned savings and category limits.'}
-        </p>
-      </div>
-      {summary?.hasBudget && !loading ? (
-        <div className="w-full shrink-0 sm:w-64">
-          <div className="flex items-center justify-between gap-3 text-xs">
-            <span className="text-neutral-500 dark:text-neutral-400">Safe to spend</span>
-            <span className={`font-semibold tabular-nums ${summary.safeToSpend === null ? 'text-amber-700 dark:text-amber-300' : safeTone}`}>
-              {summary.safeToSpend === null ? 'FX incomplete' : formatCurrency(summary.safeToSpend, summary.currency)}
-            </span>
-          </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
-            <div className={`h-full rounded-full ${progressColor}`} style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }} />
-          </div>
-        </div>
-      ) : (
-        <span className="shrink-0 text-sm font-medium text-violet-600 dark:text-violet-400">{loading ? '…' : 'Create plan →'}</span>
-      )}
-    </Link>
-  )
-}
-
-function CashFlowIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="h-5 w-5">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h14m0 0-3-3m3 3-3 3M20 17H6m0 0 3-3m-3 3 3 3" />
-    </svg>
-  )
-}
-
-function RoutineIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="h-5 w-5">
-      <rect x="3" y="5" width="18" height="16" rx="2" />
-      <path strokeLinecap="round" d="M8 3v4M16 3v4M3 11h18" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8 15h3M13 15h3M8 18h8" />
-    </svg>
-  )
-}
-
-function TrendingUpIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="h-5 w-5">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 17l6-6 4 4 8-8" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 7h6v6" />
-    </svg>
-  )
-}
-
-function PiggyIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="h-5 w-5">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 11c0-2.5 2.5-4.5 6-4.5h2c2.5 0 4.5 1.2 5.5 3" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19 12.5c.8.4 1.5 1.2 1.5 2.3 0 1.5-1.3 2.7-3 2.7h-1.2" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 14.5h-.5A2.5 2.5 0 0 1 2 12c0-1.1.7-2 1.7-2.4" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 19v1.5M16.5 19v1.5" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 14.5c0 2.5 2.7 4.5 7 4.5s7-2 7-4.5-2.7-4.5-7-4.5-7 2-7 4.5Z" />
-      <circle cx="9" cy="14" r="0.8" fill="currentColor" stroke="none" />
-    </svg>
-  )
-}
-
-function BankIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="h-5 w-5">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 10 12 4l9 6" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 10v9M9 10v9M15 10v9M19 10v9" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18" />
-    </svg>
-  )
-}
-
-function NetWorthIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="h-5 w-5">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 18V6m0 0 4 4m-4-4L0 10M20 6v12m0 0-4-4m4 4 4-4" />
-      <path strokeLinecap="round" d="M7 18h10M7 6h10" />
-    </svg>
   )
 }
