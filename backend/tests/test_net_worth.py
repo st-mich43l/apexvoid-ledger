@@ -99,11 +99,12 @@ def test_connect_persists_an_optional_account_webhook_key(db_session, user, monk
     user,
     api_token="token",
     account_number="1234",
-    webhook_auth_enabled=True,
-    webhook_auth_key="webhook-account-key",
+    webhook_auth_type="api_key",
+    webhook_auth_secret="webhook-account-key",
   )
 
   assert account.webhook_auth_enabled is True
+  assert account.webhook_auth_type == "api_key"
   assert account.webhook_auth_ciphertext != "webhook-account-key"
   assert decrypt_api_token(account.webhook_auth_ciphertext or "") == "webhook-account-key"
   assert FinancialAccountRead.model_validate(account).webhook_auth_enabled is True

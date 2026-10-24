@@ -82,8 +82,9 @@ After signing in:
 1. Open **Net Worth** or go directly to `/net-worth`.
 2. Paste the SePay API token into the API-token field.
 3. Enter the bank account number. Spaces and hyphens are accepted.
-4. Optionally select **Authenticate SePay webhooks** and enter the API key you
-   will configure in SePay.
+4. Select the webhook authentication mode you will configure in SePay:
+   **HMAC-SHA256** (recommended), **API Key**, **OAuth 2.0**, or **None**
+   (testing only). Enter the matching secret or OAuth client credentials.
 5. Select **Connect account**.
 6. Confirm that the account appears with a masked number and verified balance.
 
@@ -99,20 +100,24 @@ The production endpoint is:
 POST https://ledger.apexvoid.net/api/integrations/sepay/webhook
 ```
 
-Configure SePay for JSON, both incoming and outgoing transaction events, and
-API-key authentication. If you enabled **Authenticate SePay webhooks** while
-connecting the account, use the exact key entered in Ledger:
+Configure SePay for JSON and both incoming and outgoing transaction events.
+Ledger supports all four SePay security modes:
 
-```http
-Authorization: Apikey <the-same-value-entered-in-Ledger>
-```
+- **HMAC-SHA256** (recommended): enter the same Secret Key in both places.
+  Ledger verifies SePay's raw-body signature and five-minute timestamp window.
+- **API Key**: enter the same key in both places. SePay sends
+  `Authorization: Apikey <key>`.
+- **OAuth 2.0**: enter the client ID and secret in Ledger, then configure the
+  displayed `/api/integrations/sepay/oauth/token` URL in SePay.
+- **None**: testing only; Ledger accepts an unauthenticated webhook after its
+  account number has been matched.
 
-The webhook key is separate from each user's SePay API token. Ledger encrypts
-the user-entered webhook key and uses it only for that matched account; it is
-not returned to the UI or API. The endpoint does not require a Ledger login
-session. A server-wide `SEPAY_WEBHOOK_API_KEY` remains available only as a
-compatibility fallback for existing installations that have not configured an
-account-specific key.
+Webhook credentials are separate from each user's SePay API token. Ledger
+encrypts user-entered secrets and OAuth credentials and uses them only for the
+matched account; they are never returned to the UI or API. The webhook and
+OAuth token endpoints do not require a Ledger login session. A server-wide
+`SEPAY_WEBHOOK_API_KEY` remains only as a compatibility fallback for existing
+installations.
 
 ### 6. Refresh or disconnect later
 

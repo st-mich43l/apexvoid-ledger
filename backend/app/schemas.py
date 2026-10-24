@@ -915,6 +915,7 @@ class UserRead(CamelModel):
 
 
 BalanceStatus = Literal["verified", "stale", "unavailable", "inactive"]
+SePayWebhookAuthType = Literal["none", "api_key", "hmac_sha256", "oauth2"]
 
 
 class FinancialAccountRead(CamelModel):
@@ -930,6 +931,7 @@ class FinancialAccountRead(CamelModel):
   last_transaction_at: datetime | None
   last_sync_error: str | None
   webhook_auth_enabled: bool
+  webhook_auth_type: SePayWebhookAuthType | None
 
   @field_serializer("last_synced_at", "last_transaction_at")
   def _serialize_optional_dt(self, dt: datetime | None, _info) -> str | None:
@@ -939,8 +941,9 @@ class FinancialAccountRead(CamelModel):
 class SePayConnectionCreate(CamelModel):
   api_token: SecretStr = Field(min_length=16, max_length=512)
   account_number: Annotated[str, StringConstraints(strip_whitespace=True, min_length=4, max_length=64)]
-  webhook_auth_enabled: bool = False
-  webhook_auth_key: SecretStr | None = Field(default=None, max_length=512)
+  webhook_auth_type: SePayWebhookAuthType = "hmac_sha256"
+  webhook_auth_secret: SecretStr | None = Field(default=None, max_length=1000)
+  webhook_oauth_client_id: SecretStr | None = Field(default=None, max_length=500)
 
 
 class NetWorthLineRead(CamelModel):

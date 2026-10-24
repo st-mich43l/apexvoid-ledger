@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import type { FinancialAccount, NetWorthLine } from '../types'
+import type { FinancialAccount, NetWorthLine, SePayConnectionInput, SePayWebhookAuthType } from '../types'
 import { useNetWorth } from '../hooks/useNetWorth'
 import { formatCurrency } from '../lib/currency'
 import { useCurrency } from '../context/CurrencyContext'
@@ -152,6 +152,15 @@ function BankAccountCard({
   const statusColor = account.balanceStatus === 'verified'
     ? 'text-emerald-700 dark:text-emerald-300'
     : 'text-amber-700 dark:text-amber-300'
+  const webhookAuthLabel = account.webhookAuthType === 'hmac_sha256'
+    ? 'Webhook protected by HMAC-SHA256'
+    : account.webhookAuthType === 'oauth2'
+      ? 'Webhook protected by OAuth 2.0'
+      : account.webhookAuthType === 'api_key'
+        ? 'Webhook protected by API key'
+        : account.webhookAuthType === 'none'
+          ? 'Webhook authentication disabled — testing only'
+          : null
 
   return (
     <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-950">
@@ -186,8 +195,8 @@ function BankAccountCard({
         {isUnavailable ? 'Unavailable' : formatCurrency(account.balance ?? 0, account.currency)}
       </p>
       <p className={'mt-1 text-sm ' + statusColor}>{statusText}</p>
-      {account.webhookAuthEnabled && (
-        <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">Webhook API-key authentication enabled</p>
+      {webhookAuthLabel && (
+        <p className={'mt-1 text-xs ' + (account.webhookAuthType === 'none' ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300')}>{webhookAuthLabel}</p>
       )}
       <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
         {account.lastSyncedAt ? 'Last synchronized ' + formatDate(account.lastSyncedAt) : 'Not synchronized yet'}
@@ -204,18 +213,17 @@ function ConnectSePayCard({
   onConnect,
 }: {
   connecting: boolean
-  onConnect: (input: {
-    apiToken: string
-    accountNumber: string
-    webhookAuthEnabled: boolean
-    webhookAuthKey?: string
-  }) => Promise<void>
+  onConnect: (input: SePayConnectionInput) => Promise<void>
 }) {
   const [apiToken, setApiToken] = useState('')
   const [accountNumber, setAccountNumber] = useState('')
-  const [webhookAuthEnabled, setWebhookAuthEnabled] = useState(false)
-  const [webhookAuthKey, setWebhookAuthKey] = useState('')
+  const [webhookAuthType, setWebhookAuthType] = useState<SePayWebhookAuthType>('hmac_sha256')
+  const [webhookAuthSecret, setWebhookAuthSecret] = useState('')
+  const [webhookOauthClientId, setWebhookOauthClientId] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const needsSecret = webhookAuthType !== 'none'
+  const isOauth = webhookAuthType === 'oauth2'
+  const oauthTokenUrl = window.location.origin + '/api/integrations/sepay/oauth/token'
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -224,12 +232,14 @@ function ConnectSePayCard({
       await onConnect({
         apiToken,
         accountNumber,
-        webhookAuthEnabled,
-        webhookAuthKey: webhookAuthEnabled ? webhookAuthKey : undefined,
+        webhookAuthType,
+        webhookAuthSecret: needsSecret ? webhookAuthSecret : undefined,
+        webhookOauthClientId: isOauth ? webhookOauthClientId : undefined,
       })
       setApiToken('')
       setAccountNumber('')
-      setWebhookAuthKey('')
+      setWebhookAuthSecret('')
+      setWebhookOauthClientId('')
       setSubmitted(false)
     } catch {
       // The shared page error displays the safe server message.
@@ -237,14 +247,17 @@ function ConnectSePayCard({
   }
 
   return (
-    <section className="mb-6 rounded-3xl border border-violet-200 bg-violet-50/60 p-6 dark:border-violet-900/60 dark:bg-violet-950/20">
-      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-violet-600 dark:text-violet-400">Personal connection</p>
-      <h3 className="mt-1 text-lg font-semibold text-neutral-900 dark:text-neutral-50">Connect a SePay account</h3>
-      <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
-        Your token is encrypted on the server and belongs only to your Ledger account. Use the bank account number, not SePay’s internal ID.
-      </p>
-      <form className="mt-4 grid gap-3 md:grid-cols-2 md:items-end" onSubmit={(event) => void submit(event)}>
-        <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+    <section className="mb-6 overflow-hidden rounded-2xl border border-violet-200/80 bg-white shadow-[0_18px_45px_-35px_rgba(109,40,217,0.8)] dark:border-violet-900/70 dark:bg-neutral-900">
+      <div className="border-b border-violet-100 bg-gradient-to-r from-violet-50 to-fuchsia-50/60 px-5 py-4 dark:border-violet-900/50 dark:from-violet-950/50 dark:to-fuchsia-950/20">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-400">Personal connection</p>
+        <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h3 className="text-base font-semibold text-neutral-900 dark:text-neutral-50">Connect SePay</h3>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">Encrypted locally to your Ledger account</p>
+        </div>
+      </div>
+      <form className="grid gap-4 p-5" onSubmit={(event) => void submit(event)}>
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
           SePay API token
           <input
             type="password"
@@ -267,40 +280,103 @@ function ConnectSePayCard({
             className="mt-1 block w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 font-normal text-neutral-900 outline-none focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50"
           />
         </label>
-        <label className="flex items-start gap-3 rounded-xl border border-violet-200 bg-white/70 px-3 py-2.5 text-sm text-neutral-700 dark:border-violet-900/60 dark:bg-neutral-900/70 dark:text-neutral-200">
-          <input
-            type="checkbox"
-            checked={webhookAuthEnabled}
-            onChange={(event) => setWebhookAuthEnabled(event.target.checked)}
-            className="mt-0.5 h-4 w-4 accent-violet-600"
-          />
-          <span>
-            <span className="block font-medium">Authenticate SePay webhooks</span>
-            <span className="mt-0.5 block text-xs text-neutral-500 dark:text-neutral-400">Use the same API key you configure in SePay.</span>
-          </span>
-        </label>
-        {webhookAuthEnabled && (
+        </div>
+
+        <fieldset>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <legend className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">Webhook authentication</legend>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400">Match this in SePay → Security</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+            <AuthMethodOption type="hmac_sha256" title="HMAC-SHA256" detail="Recommended" selected={webhookAuthType} onSelect={setWebhookAuthType} />
+            <AuthMethodOption type="api_key" title="API key" detail="Simple header" selected={webhookAuthType} onSelect={setWebhookAuthType} />
+            <AuthMethodOption type="oauth2" title="OAuth 2.0" detail="Client credentials" selected={webhookAuthType} onSelect={setWebhookAuthType} />
+            <AuthMethodOption type="none" title="No authentication" detail="Testing only" selected={webhookAuthType} onSelect={setWebhookAuthType} warning />
+          </div>
+        </fieldset>
+
+        {isOauth ? (
+          <div className="grid gap-3 rounded-xl border border-violet-200/80 bg-violet-50/50 p-3 md:grid-cols-2 dark:border-violet-900/60 dark:bg-violet-950/20">
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+              OAuth client ID
+              <input
+                type="text"
+                value={webhookOauthClientId}
+                onChange={(event) => setWebhookOauthClientId(event.target.value)}
+                autoComplete="off"
+                required
+                className="mt-1 block w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 font-normal text-neutral-900 outline-none focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-50"
+              />
+            </label>
+            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+              OAuth client secret
+              <input
+                type="password"
+                value={webhookAuthSecret}
+                onChange={(event) => setWebhookAuthSecret(event.target.value)}
+                autoComplete="off"
+                required
+                className="mt-1 block w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 font-normal text-neutral-900 outline-none focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-50"
+              />
+            </label>
+            <p className="md:col-span-2 rounded-lg bg-white/80 px-3 py-2 text-xs text-neutral-600 dark:bg-neutral-950/70 dark:text-neutral-300">
+              In SePay, set the OAuth token URL to <code className="font-mono text-violet-700 dark:text-violet-300">{oauthTokenUrl}</code>.
+            </p>
+          </div>
+        ) : needsSecret ? (
           <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
-            SePay webhook API key
+            {webhookAuthType === 'hmac_sha256' ? 'HMAC secret key' : 'SePay webhook API key'}
             <input
               type="password"
-              value={webhookAuthKey}
-              onChange={(event) => setWebhookAuthKey(event.target.value)}
+              value={webhookAuthSecret}
+              onChange={(event) => setWebhookAuthSecret(event.target.value)}
               autoComplete="off"
               required
-              className="mt-1 block w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 font-normal text-neutral-900 outline-none focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50"
+              className="mt-1 block w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 font-normal text-neutral-900 outline-none focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-50"
             />
           </label>
+        ) : (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">No authentication accepts unauthenticated requests. Use only with SePay test webhooks.</p>
         )}
         <button
           type="submit"
-          disabled={connecting || !apiToken || !accountNumber || (webhookAuthEnabled && !webhookAuthKey)}
-          className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-wait disabled:opacity-50 md:col-span-2"
+          disabled={connecting || !apiToken || !accountNumber || (needsSecret && !webhookAuthSecret) || (isOauth && !webhookOauthClientId)}
+          className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-violet-900/20 transition hover:bg-violet-700 disabled:cursor-wait disabled:opacity-50"
         >
           {connecting ? 'Connecting…' : submitted ? 'Try again' : 'Connect'}
         </button>
       </form>
     </section>
+  )
+}
+
+function AuthMethodOption({
+  type,
+  title,
+  detail,
+  selected,
+  onSelect,
+  warning = false,
+}: {
+  type: SePayWebhookAuthType
+  title: string
+  detail: string
+  selected: SePayWebhookAuthType
+  onSelect: (type: SePayWebhookAuthType) => void
+  warning?: boolean
+}) {
+  const active = selected === type
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(type)}
+      className={(active
+        ? 'border-violet-500 bg-violet-50 text-violet-950 shadow-sm dark:border-violet-500 dark:bg-violet-950/60 dark:text-violet-50'
+        : 'border-neutral-200 bg-white text-neutral-700 hover:border-violet-300 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200 dark:hover:border-violet-800') + ' rounded-xl border px-3 py-2 text-left transition'}
+    >
+      <span className="flex items-center gap-2 text-sm font-semibold"><span className={(active ? 'bg-violet-600' : warning ? 'bg-amber-500' : 'bg-neutral-300 dark:bg-neutral-700') + ' h-1.5 w-1.5 rounded-full'} />{title}</span>
+      <span className="mt-0.5 block text-[11px] font-normal text-neutral-500 dark:text-neutral-400">{detail}</span>
+    </button>
   )
 }
 

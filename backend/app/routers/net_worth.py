@@ -77,10 +77,15 @@ def connect_account(
       current_user,
       api_token=payload.api_token.get_secret_value(),
       account_number=payload.account_number,
-      webhook_auth_enabled=payload.webhook_auth_enabled,
-      webhook_auth_key=(
-        payload.webhook_auth_key.get_secret_value()
-        if payload.webhook_auth_key is not None
+      webhook_auth_type=payload.webhook_auth_type,
+      webhook_auth_secret=(
+        payload.webhook_auth_secret.get_secret_value()
+        if payload.webhook_auth_secret is not None
+        else None
+      ),
+      webhook_oauth_client_id=(
+        payload.webhook_oauth_client_id.get_secret_value()
+        if payload.webhook_oauth_client_id is not None
         else None
       ),
     )

@@ -1,3 +1,8 @@
+import base64
+import hashlib
+import hmac
+import json
+import time
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -5,6 +10,8 @@ from sqlalchemy.orm import Session
 from fastapi.testclient import TestClient
 
 from app.models import FinancialAccount, Loan, SePayBankActivity, Transaction
+from cryptography.fernet import Fernet
+
 from app.sepay import account_number_fingerprint, encrypt_api_token
 
 
@@ -364,6 +371,86 @@ def test_webhook_uses_the_matching_accounts_configured_key(
   assert accepted.status_code == duplicate.status_code == 200
   assert db_session.query(SePayBankActivity).count() == 1
   assert db_session.query(SePayBankActivity).one().financial_account_id == account.id
+
+
+def test_webhook_verifies_hmac_against_the_raw_request_body(
+  client: TestClient,
+  db_session: Session,
+  user,
+  monkeypatch,
+):
+  monkeypatch.setenv("SEPAY_CREDENTIAL_ENCRYPTION_KEY", Fernet.generate_key().decode())
+  account = add_account(db_session, user.id)
+  account.webhook_auth_type = "hmac_sha256"
+  account.webhook_auth_ciphertext = encrypt_api_token("hmac-secret")
+  db_session.commit()
+  raw_body = json.dumps(payload(transaction_id=92713), separators=(",", ":")).encode()
+  timestamp = str(int(time.time()))
+  signature = "sha256=" + hmac.new(
+    b"hmac-secret", timestamp.encode() + b"." + raw_body, hashlib.sha256
+  ).hexdigest()
+
+  accepted = client.post(
+    "/api/integrations/sepay/webhook",
+    content=raw_body,
+    headers={
+      "Content-Type": "application/json",
+      "X-SePay-Timestamp": timestamp,
+      "X-SePay-Signature": signature,
+    },
+  )
+  rejected = client.post(
+    "/api/integrations/sepay/webhook",
+    content=raw_body,
+    headers={"Content-Type": "application/json", "X-SePay-Timestamp": timestamp},
+  )
+
+  assert accepted.status_code == 200
+  assert rejected.status_code == 401
+
+
+def test_webhook_accepts_no_authentication_only_when_selected(
+  client: TestClient,
+  db_session: Session,
+  user,
+):
+  account = add_account(db_session, user.id)
+  account.webhook_auth_type = "none"
+  db_session.commit()
+
+  accepted = client.post("/api/integrations/sepay/webhook", json=payload(transaction_id=92714))
+  assert accepted.status_code == 200
+
+
+def test_oauth_client_credentials_issue_a_webhook_bearer_token(
+  client: TestClient,
+  db_session: Session,
+  user,
+  monkeypatch,
+):
+  monkeypatch.setenv("SEPAY_CREDENTIAL_ENCRYPTION_KEY", Fernet.generate_key().decode())
+  account = add_account(db_session, user.id)
+  account.webhook_auth_type = "oauth2"
+  account.webhook_auth_client_id_ciphertext = encrypt_api_token("sepay-client")
+  account.webhook_auth_ciphertext = encrypt_api_token("sepay-secret")
+  db_session.commit()
+  basic = base64.b64encode(b"sepay-client:sepay-secret").decode()
+
+  token = client.post(
+    "/api/integrations/sepay/oauth/token",
+    data={"grant_type": "client_credentials"},
+    headers={"Authorization": f"Basic {basic}"},
+  )
+  assert token.status_code == 200, token.text
+  body = token.json()
+  accepted = client.post(
+    "/api/integrations/sepay/webhook",
+    json=payload(transaction_id=92715),
+    headers={"Authorization": f"Bearer {body['access_token']}"},
+  )
+
+  assert body["token_type"] == "Bearer"
+  assert accepted.status_code == 200
 
 
 def test_webhook_rejects_invalid_transaction_fields(client: TestClient, monkeypatch):

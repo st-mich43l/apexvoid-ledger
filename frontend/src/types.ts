@@ -3,6 +3,7 @@ import type { CurrencyCode } from './lib/currency'
 export type LoanType = 'secured' | 'unsecured'
 export type TransactionType = 'income' | 'expense'
 export type FinancialAccountStatus = 'verified' | 'stale' | 'unavailable' | 'inactive'
+export type SePayWebhookAuthType = 'none' | 'api_key' | 'hmac_sha256' | 'oauth2'
 export type BankActivityDirection = 'in' | 'out'
 export type BankActivityStatus = 'pending_review' | 'processed' | 'unmatched' | 'failed'
 export type BankActivityClassification =
@@ -58,6 +59,7 @@ export interface FinancialAccount {
   lastTransactionAt: string | null
   lastSyncError: string | null
   webhookAuthEnabled: boolean
+  webhookAuthType: SePayWebhookAuthType | null
 }
 
 export interface BankActivity {
@@ -105,8 +107,9 @@ export interface SePayCategorizationRuleInput {
 export interface SePayConnectionInput {
   apiToken: string
   accountNumber: string
-  webhookAuthEnabled: boolean
-  webhookAuthKey?: string
+  webhookAuthType: SePayWebhookAuthType
+  webhookAuthSecret?: string
+  webhookOauthClientId?: string
 }
 
 export interface NetWorthLine {
