@@ -12,6 +12,7 @@ import { useNetWorth } from '../hooks/useNetWorth'
 import { DashboardFinancialTrends } from '../components/dashboard/DashboardFinancialTrends'
 import type { MonthlyBudgetSummary, MonthlyCloseSummary } from '../types'
 import { Alert } from '../components/ui/Alert'
+import { PageHeader } from '../components/layout/PageHeader'
 
 export function Dashboard() {
   const { loans, loading, error } = useLoans()
@@ -38,9 +39,7 @@ export function Dashboard() {
 
   return (
     <section>
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">Overview</h2>
-      </div>
+      <PageHeader title="Overview" description="Your current financial position at a glance." />
 
       {(error || cashFlow.error || savingPot.error || routine.error || budget.error || monthlyClose.error || netWorth.error) && (
         <Alert tone="danger" className="mb-6">

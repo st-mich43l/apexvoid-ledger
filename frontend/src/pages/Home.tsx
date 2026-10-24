@@ -4,6 +4,7 @@ import { PremiumCard } from '../components/PremiumCard'
 import { useNetWorth } from '../hooks/useNetWorth'
 import { FinanceCalculators } from './Tools'
 import { formatCurrency } from '../lib/currency'
+import { PageHeader } from '../components/layout/PageHeader'
 
 export function HomePage() {
   const netWorth = useNetWorth()
@@ -17,9 +18,7 @@ export function HomePage() {
 
   return (
     <section>
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">Home</h2>
-      </div>
+      <PageHeader eyebrow="Administration" title="Home" description="Manage Ledger access and open financial tools." />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <PremiumCard

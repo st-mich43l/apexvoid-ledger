@@ -6,6 +6,7 @@ import { LoanTable } from '../components/LoanTable'
 import { DeleteLoanDialog } from '../components/loan/DeleteLoanDialog'
 import { useLoans } from '../hooks/useLoans'
 import type { Loan } from '../types'
+import { PageHeader } from '../components/layout/PageHeader'
 
 export function LoanPage() {
   const { loans, loading, error, createLoan, deleteLoan } = useLoans()
@@ -14,12 +15,7 @@ export function LoanPage() {
 
   return (
     <section>
-      <div className="mb-4 flex items-baseline justify-between">
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">Loans</h2>
-        <span className="text-sm text-neutral-500 dark:text-neutral-400">
-          {loans.length} {loans.length === 1 ? 'loan' : 'loans'}
-        </span>
-      </div>
+      <PageHeader title="Loans" description="Track active borrowing and estimated repayment." meta={<span className="text-sm text-ledger-text-secondary">{loans.length} {loans.length === 1 ? 'loan' : 'loans'}</span>} />
 
       {error && (
         <p className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">

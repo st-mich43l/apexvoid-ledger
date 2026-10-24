@@ -101,3 +101,38 @@ Future phases can migrate remaining feature dialogs, transaction tables,
 budget/routine pages, loan screens, charts, and admin screens onto these
 primitives. They should not introduce a second styling system or alter Ledger
 business behavior as part of visual work.
+
+## Application shell and navigation (UI 2)
+
+The authenticated workspace uses a compact sticky header and a centered main
+container. Navigation never reserves a permanent side column, so feature
+layouts—especially Cash Flow's independently positioned Insights rail—retain
+their own centering rules.
+
+The shared navigation model lives in `components/layout/navigation.ts` and is
+used by both presentation modes:
+
+| Section | Destinations |
+| --- | --- |
+| Overview | Dashboard |
+| Cash Flow | Cash Flow |
+| Planning | Monthly Routine, Monthly Budget, Monthly Close |
+| Wealth | Net Worth, Saving Pot |
+| Loans | Loan list and loan details |
+
+On wide screens, Planning and Wealth use keyboard-accessible floating menus.
+On smaller screens a single modal drawer exposes every destination. Both
+versions mark the active route with text, a selected treatment, and
+`aria-current`; menus close on Escape and outside interaction. The mobile
+drawer locks background scrolling, restores focus to its trigger, and keeps
+currency and theme controls available when header space is limited.
+Planning navigation retains an active `year` and `month` query when moving
+between its related pages.
+
+`PageHeader` is the shared foundation for page context, descriptions,
+breadcrumbs, metadata, and existing actions. It is deliberately optional so
+feature pages can retain contextual month selectors and established workflows.
+
+The router now lazy-loads feature pages while leaving authentication guards and
+the app shell eager. The route fallback remains inside the shell, preventing a
+navigation transition from replacing the global header.
