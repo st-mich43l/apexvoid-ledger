@@ -57,6 +57,7 @@ export interface FinancialAccount {
   lastSyncedAt: string | null
   lastTransactionAt: string | null
   lastSyncError: string | null
+  webhookAuthEnabled: boolean
 }
 
 export interface BankActivity {
@@ -104,6 +105,8 @@ export interface SePayCategorizationRuleInput {
 export interface SePayConnectionInput {
   apiToken: string
   accountNumber: string
+  webhookAuthEnabled: boolean
+  webhookAuthKey?: string
 }
 
 export interface NetWorthLine {

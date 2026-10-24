@@ -127,7 +127,8 @@ def compute_monthly_routine(
   currency: str,
   rate_provider: FrankfurterExchangeRateProvider,
 ) -> MonthlyRoutineResult:
-  # Authoritative Cash Flow totals include auto-linked scheduled income and obligations.
+  # Cash Flow includes scheduled income and recurring fixed costs. Loan
+  # schedules are reference data; completed repayments come from bank activity.
   totals = compute_converted_month_totals(db, user_id, year, month, currency, rate_provider)
   start, end = month_range(year, month)
 

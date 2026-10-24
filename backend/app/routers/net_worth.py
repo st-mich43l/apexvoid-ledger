@@ -77,6 +77,12 @@ def connect_account(
       current_user,
       api_token=payload.api_token.get_secret_value(),
       account_number=payload.account_number,
+      webhook_auth_enabled=payload.webhook_auth_enabled,
+      webhook_auth_key=(
+        payload.webhook_auth_key.get_secret_value()
+        if payload.webhook_auth_key is not None
+        else None
+      ),
     )
   except SePayError as error:
     raise _provider_http_error(error) from error

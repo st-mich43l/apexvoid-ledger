@@ -257,9 +257,9 @@ class TestInitialClose:
     assert snap["incomeTotal"] == 50_000_000
     assert snap["fixedExpenseTotal"] == 15_000_000
     assert snap["variableExpenseTotal"] == 10_000_000
-    assert snap["loanPaymentTotal"] == 8_000_000
-    assert snap["expenseTotal"] == 33_000_000
-    assert snap["netCashFlow"] == 17_000_000
+    assert snap["loanPaymentTotal"] == 0
+    assert snap["expenseTotal"] == 25_000_000
+    assert snap["netCashFlow"] == 25_000_000
     assert snap["incomeTotal"] == cf["income"]
     assert snap["expenseTotal"] == cf["expenses"]
     assert snap["netCashFlow"] == cf["netCashFlow"]
@@ -268,7 +268,7 @@ class TestInitialClose:
 
 
 class TestExpenseBreakdown:
-  def test_fixed_variable_loan_sum(self, auth_client: TestClient, user: User, db_session: Session, monkeypatch: pytest.MonkeyPatch):
+  def test_fixed_and_variable_expenses_exclude_loan_schedule(self, auth_client: TestClient, user: User, db_session: Session, monkeypatch: pytest.MonkeyPatch):
     freeze_now(monkeypatch, datetime(2026, 8, 14, tzinfo=timezone.utc))
     set_currency(db_session, user, "VND")
     create_fixed(auth_client, 12_000_000)
@@ -277,8 +277,8 @@ class TestExpenseBreakdown:
     snap = close_month(auth_client)["latestSnapshot"]
     assert snap["fixedExpenseTotal"] == 12_000_000
     assert snap["variableExpenseTotal"] == 7_000_000
-    assert snap["loanPaymentTotal"] == 8_000_000
-    assert snap["expenseTotal"] == 27_000_000
+    assert snap["loanPaymentTotal"] == 0
+    assert snap["expenseTotal"] == 19_000_000
 
 
 class TestBudgetSnapshot:
@@ -390,7 +390,7 @@ class TestRecurringDrift:
 
 
 class TestLoanDrift:
-  def test_schedule_change_without_payment_status(
+  def test_schedule_change_does_not_drift_closed_cash_flow(
     self, auth_client: TestClient, user: User, db_session: Session, monkeypatch: pytest.MonkeyPatch
   ):
     freeze_now(monkeypatch, datetime(2026, 8, 14, tzinfo=timezone.utc))
@@ -399,9 +399,8 @@ class TestLoanDrift:
     close_month(auth_client)
     auth_client.put(f"/api/loans/{loan['id']}", json={"disbursementAmount": 120_000_000})
     drifted = get_close(auth_client)
-    assert drifted["status"] == "needs_review"
-    assert "loanPaymentTotal" in drifted["driftFields"]
-    assert "paid" not in drifted["latestSnapshot"]
+    assert drifted["status"] == "closed"
+    assert "loanPaymentTotal" not in drifted["driftFields"]
 
 
 class TestSavingPotClose:

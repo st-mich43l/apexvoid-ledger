@@ -1,8 +1,11 @@
+from datetime import datetime, timezone
+from decimal import Decimal
+
 from sqlalchemy.orm import Session
 from fastapi.testclient import TestClient
 
-from app.models import FinancialAccount, SePayBankActivity, Transaction
-from app.sepay import account_number_fingerprint
+from app.models import FinancialAccount, Loan, SePayBankActivity, Transaction
+from app.sepay import account_number_fingerprint, encrypt_api_token
 
 
 def payload(account_number: str = "10937375404", transaction_id: int = 92704, direction: str = "out") -> dict:
@@ -241,6 +244,48 @@ def test_matching_sepay_expense_reconciles_recurring_occurrence_once(
   assert allocation["actualSpent"] == 150000
 
 
+def test_matching_loan_repayment_stays_a_bank_activity(
+  auth_client: TestClient,
+  db_session: Session,
+  user,
+  monkeypatch,
+):
+  monkeypatch.setenv("SEPAY_WEBHOOK_API_KEY", "webhook-test-key")
+  add_account(db_session, user.id)
+  loan = Loan(
+    user_id=user.id,
+    bank_name="Example Bank",
+    open_date=datetime(2026, 9, 22, tzinfo=timezone.utc),
+    disbursement_amount=Decimal("1800000"),
+    currency="VND",
+    interest_rate_per_year=Decimal("0"),
+    duration_months=12,
+    loan_type="unsecured",
+  )
+  db_session.add(loan)
+  db_session.commit()
+
+  accepted = auth_client.post(
+    "/api/integrations/sepay/webhook",
+    json=payload(transaction_id=92711, direction="out"),
+    headers=webhook_headers(),
+  )
+  assert accepted.status_code == 200, accepted.text
+
+  activity = db_session.query(SePayBankActivity).one()
+  assert activity.processing_status == "processed"
+  assert activity.classification == "loan_repayment"
+  assert activity.matched_kind == "loan"
+  assert activity.matched_id == loan.id
+  assert activity.linked_transaction_id is None
+  assert db_session.query(Transaction).count() == 0
+
+  listed = auth_client.get("/api/bank-activities?year=2026&month=10")
+  assert listed.status_code == 200, listed.text
+  assert listed.json()[0]["classification"] == "loan_repayment"
+  assert listed.json()[0]["linkedTransactionId"] is None
+
+
 def test_webhook_retains_unmatched_account(client: TestClient, db_session: Session, monkeypatch):
   monkeypatch.setenv("SEPAY_WEBHOOK_API_KEY", "webhook-test-key")
 
@@ -284,6 +329,41 @@ def test_webhook_authentication_and_payload_validation(client: TestClient, monke
     json=payload(),
     headers=webhook_headers(),
   ).status_code == 401
+
+
+def test_webhook_uses_the_matching_accounts_configured_key(
+  client: TestClient,
+  db_session: Session,
+  user,
+  monkeypatch,
+  tmp_path,
+):
+  monkeypatch.delenv("SEPAY_WEBHOOK_API_KEY", raising=False)
+  monkeypatch.setenv("SEPAY_CREDENTIAL_KEY_FILE", str(tmp_path / "sepay-credentials.key"))
+  account = add_account(db_session, user.id)
+  account.webhook_auth_ciphertext = encrypt_api_token("account-webhook-key")
+  db_session.commit()
+
+  rejected = client.post(
+    "/api/integrations/sepay/webhook",
+    json=payload(transaction_id=92712),
+    headers=webhook_headers("wrong-key"),
+  )
+  accepted = client.post(
+    "/api/integrations/sepay/webhook",
+    json=payload(transaction_id=92712),
+    headers=webhook_headers("account-webhook-key"),
+  )
+  duplicate = client.post(
+    "/api/integrations/sepay/webhook",
+    json=payload(transaction_id=92712),
+    headers=webhook_headers("account-webhook-key"),
+  )
+
+  assert rejected.status_code == 401
+  assert accepted.status_code == duplicate.status_code == 200
+  assert db_session.query(SePayBankActivity).count() == 1
+  assert db_session.query(SePayBankActivity).one().financial_account_id == account.id
 
 
 def test_webhook_rejects_invalid_transaction_fields(client: TestClient, monkeypatch):

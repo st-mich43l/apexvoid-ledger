@@ -28,6 +28,12 @@ MAX_AMOUNT = Decimal("10000000000000000")
 RECONCILIATION_WINDOW = timedelta(days=3)
 
 
+def _as_utc(value: datetime) -> datetime:
+  if value.tzinfo is None:
+    return value.replace(tzinfo=timezone.utc)
+  return value.astimezone(timezone.utc)
+
+
 class WebhookValidationError(ValueError):
   pass
 
@@ -243,6 +249,7 @@ def _scheduled_match(db: Session, activity: SePayBankActivity) -> tuple[str, str
     activity.user_id,
     activity.occurred_at - RECONCILIATION_WINDOW,
     activity.occurred_at + RECONCILIATION_WINDOW + timedelta(microseconds=1),
+    include_scheduled_loans=True,
   )
   matches = [
     entry
@@ -251,7 +258,12 @@ def _scheduled_match(db: Session, activity: SePayBankActivity) -> tuple[str, str
     and entry.currency == activity.currency
     and entry.amount == activity.amount
     and entry.entry_type == ("income" if activity.direction == "in" else "expense")
-    and abs((entry.occurred_at - activity.occurred_at).total_seconds()) <= RECONCILIATION_WINDOW.total_seconds()
+    and abs(
+      (
+        _as_utc(entry.occurred_at) - _as_utc(activity.occurred_at)
+      ).total_seconds()
+    )
+    <= RECONCILIATION_WINDOW.total_seconds()
   ]
   if len(matches) != 1:
     return None

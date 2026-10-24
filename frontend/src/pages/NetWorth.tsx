@@ -186,6 +186,9 @@ function BankAccountCard({
         {isUnavailable ? 'Unavailable' : formatCurrency(account.balance ?? 0, account.currency)}
       </p>
       <p className={'mt-1 text-sm ' + statusColor}>{statusText}</p>
+      {account.webhookAuthEnabled && (
+        <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">Webhook API-key authentication enabled</p>
+      )}
       <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
         {account.lastSyncedAt ? 'Last synchronized ' + formatDate(account.lastSyncedAt) : 'Not synchronized yet'}
       </p>
@@ -201,19 +204,32 @@ function ConnectSePayCard({
   onConnect,
 }: {
   connecting: boolean
-  onConnect: (input: { apiToken: string; accountNumber: string }) => Promise<void>
+  onConnect: (input: {
+    apiToken: string
+    accountNumber: string
+    webhookAuthEnabled: boolean
+    webhookAuthKey?: string
+  }) => Promise<void>
 }) {
   const [apiToken, setApiToken] = useState('')
   const [accountNumber, setAccountNumber] = useState('')
+  const [webhookAuthEnabled, setWebhookAuthEnabled] = useState(false)
+  const [webhookAuthKey, setWebhookAuthKey] = useState('')
   const [submitted, setSubmitted] = useState(false)
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSubmitted(true)
     try {
-      await onConnect({ apiToken, accountNumber })
+      await onConnect({
+        apiToken,
+        accountNumber,
+        webhookAuthEnabled,
+        webhookAuthKey: webhookAuthEnabled ? webhookAuthKey : undefined,
+      })
       setApiToken('')
       setAccountNumber('')
+      setWebhookAuthKey('')
       setSubmitted(false)
     } catch {
       // The shared page error displays the safe server message.
@@ -227,7 +243,7 @@ function ConnectSePayCard({
       <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
         Your token is encrypted on the server and belongs only to your Ledger account. Use the bank account number, not SePay’s internal ID.
       </p>
-      <form className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end" onSubmit={(event) => void submit(event)}>
+      <form className="mt-4 grid gap-3 md:grid-cols-2 md:items-end" onSubmit={(event) => void submit(event)}>
         <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
           SePay API token
           <input
@@ -251,10 +267,35 @@ function ConnectSePayCard({
             className="mt-1 block w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 font-normal text-neutral-900 outline-none focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50"
           />
         </label>
+        <label className="flex items-start gap-3 rounded-xl border border-violet-200 bg-white/70 px-3 py-2.5 text-sm text-neutral-700 dark:border-violet-900/60 dark:bg-neutral-900/70 dark:text-neutral-200">
+          <input
+            type="checkbox"
+            checked={webhookAuthEnabled}
+            onChange={(event) => setWebhookAuthEnabled(event.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-violet-600"
+          />
+          <span>
+            <span className="block font-medium">Authenticate SePay webhooks</span>
+            <span className="mt-0.5 block text-xs text-neutral-500 dark:text-neutral-400">Use the same API key you configure in SePay.</span>
+          </span>
+        </label>
+        {webhookAuthEnabled && (
+          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+            SePay webhook API key
+            <input
+              type="password"
+              value={webhookAuthKey}
+              onChange={(event) => setWebhookAuthKey(event.target.value)}
+              autoComplete="off"
+              required
+              className="mt-1 block w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 font-normal text-neutral-900 outline-none focus:border-violet-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50"
+            />
+          </label>
+        )}
         <button
           type="submit"
-          disabled={connecting || !apiToken || !accountNumber}
-          className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-wait disabled:opacity-50"
+          disabled={connecting || !apiToken || !accountNumber || (webhookAuthEnabled && !webhookAuthKey)}
+          className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-wait disabled:opacity-50 md:col-span-2"
         >
           {connecting ? 'Connecting…' : submitted ? 'Try again' : 'Connect'}
         </button>

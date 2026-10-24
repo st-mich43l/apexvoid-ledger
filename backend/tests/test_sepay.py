@@ -101,3 +101,13 @@ def test_encrypts_and_decrypts_tokens(monkeypatch):
   ciphertext = encrypt_api_token("test-token")
   assert ciphertext != "test-token"
   assert decrypt_api_token(ciphertext) == "test-token"
+
+
+def test_encrypts_and_decrypts_tokens_with_the_backend_managed_key(monkeypatch, tmp_path):
+  monkeypatch.delenv("SEPAY_CREDENTIAL_ENCRYPTION_KEY", raising=False)
+  key_file = tmp_path / "sepay-credentials.key"
+  monkeypatch.setenv("SEPAY_CREDENTIAL_KEY_FILE", str(key_file))
+  ciphertext = encrypt_api_token("test-token")
+  assert ciphertext != "test-token"
+  assert key_file.exists()
+  assert decrypt_api_token(ciphertext) == "test-token"

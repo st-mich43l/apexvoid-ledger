@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import os
 import hashlib
 import hmac
+import os
+from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
@@ -60,13 +61,38 @@ class SePayAccountDetails:
 
 
 def _credential_fernet() -> Fernet:
-  key = os.getenv("SEPAY_CREDENTIAL_ENCRYPTION_KEY", "").strip()
-  if not key:
-    raise SePayConfigurationError("SePay credential encryption is not configured")
+  # Compatibility for installations that already encrypted credentials with
+  # an explicit key. New installations use the backend-managed key file below.
+  configured_key = os.getenv("SEPAY_CREDENTIAL_ENCRYPTION_KEY", "").strip()
+  if configured_key:
+    try:
+      return Fernet(configured_key.encode("ascii"))
+    except (ValueError, TypeError) as error:
+      raise SePayConfigurationError("SePay credential encryption is invalid") from error
+
+  path = Path(
+    os.getenv("SEPAY_CREDENTIAL_KEY_FILE", "/var/lib/apexvoid-ledger/sepay-credentials.key")
+  )
+  try:
+    key = path.read_text(encoding="ascii").strip()
+  except FileNotFoundError:
+    try:
+      path.parent.mkdir(parents=True, exist_ok=True)
+      generated_key = Fernet.generate_key().decode("ascii")
+      try:
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+      except FileExistsError:
+        key = path.read_text(encoding="ascii").strip()
+      else:
+        with os.fdopen(descriptor, "w", encoding="ascii") as key_file:
+          key_file.write(generated_key)
+        key = generated_key
+    except OSError as error:
+      raise SePayConfigurationError("Server credential encryption is unavailable") from error
   try:
     return Fernet(key.encode("ascii"))
   except (ValueError, TypeError) as error:
-    raise SePayConfigurationError("SePay credential encryption is invalid") from error
+    raise SePayConfigurationError("Server credential encryption is invalid") from error
 
 
 def encrypt_api_token(api_token: str) -> str:

@@ -74,33 +74,8 @@ def get_monthly_routine(
     )
   ]
 
-  loan_payments = [
-    LoanPaymentActivityRead(
-      id=f"loan:{entry.loan.id}:{entry.loan_term}",
-      loan_id=entry.loan.id,
-      bank_name=entry.loan.bank_name,
-      term=entry.loan_term,
-      due_at=entry.occurred_at,
-      amount=entry.amount,
-      currency=entry.currency,
-      reporting_amount=converted_by_key.get(
-        (
-          "loan",
-          entry.loan.id,
-          entry.loan_term,
-          None,
-          None,
-          entry.occurred_at.isoformat(),
-        )
-      ),
-      reporting_currency=currency,
-    )
-    for entry in sorted(
-      (e for e in result.cashflow_entries if e.source_kind == "loan"),
-      key=lambda item: item.occurred_at,
-      reverse=True,
-    )
-  ]
+  # Actual repayments are bank activities, not generated schedule entries.
+  loan_payments: list[LoanPaymentActivityRead] = []
 
   expected_income = [
     RecurringIncomeActivityRead(

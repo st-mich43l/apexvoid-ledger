@@ -60,11 +60,9 @@ From these, the dashboard calculates:
   converting monthly reports with historical daily reference rates from
   [Frankfurter](https://frankfurter.dev). Weekend and holiday transactions use
   the latest prior published rate, and the UI discloses every rate used.
-- Contractual loan installments linked automatically from each owned loan's
-  repayment schedule. They appear as read-only monthly activity under the Loan
-  category, update immediately when a loan changes, and are removed when the
-  loan is deleted. They are projections, not confirmation that a payment was
-  completed, and are converted using the same historical-rate path.
+- Loan schedules provide repayment estimates only. They do not create Cash
+  Flow transactions or monthly expenses; completed repayments are tracked from
+  SePay bank activity instead.
 - SePay bank activity received through the production webhook. Incoming and
   outgoing events are stored durably and idempotently, matched to the exact
   connected account, and shown in Cash Flow for review and classification.
@@ -73,7 +71,7 @@ From these, the dashboard calculates:
   use a description/reference rule to classify matching outgoing SePay events
   as ordinary expenses; amount alone never triggers classification.
 - Conservative reconciliation for matching manual entries, recurring income,
-  fixed costs, and scheduled loan activity. Unmatched events remain pending
+  fixed costs, and loan-schedule references. Unmatched events remain pending
   review instead of being silently assigned or double-counted.
 
 Ordinary variable expenses remain manual. SePay webhook activity is not treated
@@ -137,9 +135,8 @@ activity ledger:
 - `/cashflow` — monthly cash-flow summary, visualizations, transaction CRUD,
   category management, **Monthly Fixed Costs** (recurring expenses), and
   SePay bank-activity review/classification
-- `/monthly-routine` — expected monthly income plan composed with fixed costs,
-  loan obligations, and actual variable spending (baseline available +
-  projected remainder)
+- `/monthly-routine` — expected monthly income plan composed with fixed costs
+  and actual variable spending (baseline available + projected remainder)
 - `/budget` — monthly planned savings, variable category allocations,
   budget-versus-actual progress, and safe-to-spend guidance
 - `/monthly-close` — month-end financial review, immutable close snapshots,
@@ -169,7 +166,8 @@ allocations. Migration 0018 adds monthly-close snapshots, and migration
   encrypted per-user SePay credentials, and migration 0021 adds the durable
   SePay webhook activity inbox and account-number fingerprint. Migration 0022
   adds the optional outgoing categorization rule to the existing connected
-  account.
+  account. Migration 0023 adds optional encrypted, per-account webhook
+  authentication.
 
 ### Net Worth and SePay
 
@@ -185,21 +183,21 @@ Cash-flow income/expenses, expected income, Saving Pots, and scheduled loan
 payments are not added as separate assets or liabilities. Saving Pots are
 excluded because they may already be part of a synchronized bank balance.
 
-To enable per-user SePay connections, configure this backend-only environment
-variable:
+To enable per-user SePay connections, users enter their own SePay API token
+and bank account number in `/net-worth`. The backend encrypts the token at
+rest with an installation key that it creates and keeps in its persistent
+backend volume.
 
-- SEPAY_CREDENTIAL_ENCRYPTION_KEY — a stable Fernet key used to encrypt each
-  user's SePay API token at rest. Generate it once with
-  `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
 - SEPAY_API_BASE_URL — optional test/deployment override; defaults to
   https://my.sepay.vn/userapi.
 
 Each user connects from `/net-worth` with their own SePay API token and bank
 account number. The backend resolves SePay's internal account ID, validates
 the connection, stores only a Fernet-encrypted token, and never returns the
-token to the browser. Accounts are isolated by the authenticated Ledger user.
-Configure `SEPAY_WEBHOOK_API_KEY` separately when enabling SePay's inbound
-webhook; see the setup guide for the endpoint, header, and review workflow.
+token to the browser. When a user enables webhook authentication in the same
+form, Ledger encrypts that user-selected SePay webhook key too; it is never
+returned to the browser. Accounts are isolated by the authenticated Ledger
+user. See the setup guide for the endpoint and review workflow.
 Balances synchronize on demand while the Net Worth/Dashboard UI is active, no
 more often than every five minutes, and manual refreshes are server-rate-limited.
 The integration is read-only: it does not import transactions, initiate
@@ -373,10 +371,8 @@ network, and `routing`'s `nginx/includes/apexvoid-ledger-routes.conf` proxies
 - 🔐 In `ansible-library`, `inventory/group_vars/all/vault.yml` needs a
   `vault_apexvoid_ledger_env` entry with `POSTGRES_USER`, `POSTGRES_PASSWORD`,
   `POSTGRES_DB`, `DATABASE_URL` (host must be `postgres`, the compose service
-  name), **`SECRET_KEY`**, and `SEPAY_CREDENTIAL_ENCRYPTION_KEY`. The stable
-  encryption key is injected into the backend; individual SePay tokens are
-  entered by users and stored encrypted in Postgres. `ansible-library`
-  validates all required keys before deploying.
+  name) and **`SECRET_KEY`**. Individual SePay tokens and bank account
+  numbers are entered by users and stored securely in Postgres.
 
 ## 📜 Changelog
 

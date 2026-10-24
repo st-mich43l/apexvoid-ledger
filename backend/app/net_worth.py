@@ -46,11 +46,20 @@ def connect_sepay_account(
   *,
   api_token: str,
   account_number: str,
+  webhook_auth_enabled: bool = False,
+  webhook_auth_key: str | None = None,
 ) -> FinancialAccount:
   """Validate and attach one SePay account to the currently authenticated user."""
   token = api_token.strip()
   if not token:
     raise SePayError("SePay API token is required", kind="validation", status_code=422)
+  webhook_key = webhook_auth_key.strip() if webhook_auth_key else ""
+  if webhook_auth_enabled and not webhook_key:
+    raise SePayError(
+      "A webhook API key is required when webhook authentication is enabled",
+      kind="validation",
+      status_code=422,
+    )
 
   client = SePayClient(SePayConfig(token))
   try:
@@ -65,6 +74,7 @@ def connect_sepay_account(
     client.close()
 
   ciphertext = encrypt_api_token(token)
+  webhook_ciphertext = encrypt_api_token(webhook_key) if webhook_auth_enabled else None
   now = utcnow()
   with _sync_lock:
     account = (
@@ -88,10 +98,12 @@ def connect_sepay_account(
         balance=None,
         balance_status="unavailable",
         credential_ciphertext=ciphertext,
+        webhook_auth_ciphertext=webhook_ciphertext,
       )
       db.add(account)
     else:
       account.credential_ciphertext = ciphertext
+      account.webhook_auth_ciphertext = webhook_ciphertext
 
     account.bank_name = details.bank_name
     account.account_number_masked = details.account_number_masked

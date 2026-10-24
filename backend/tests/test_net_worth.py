@@ -6,7 +6,8 @@ from cryptography.fernet import Fernet
 
 from app.net_worth import build_net_worth, connect_sepay_account, sync_account
 from app.routers.net_worth import get_summary
-from app.sepay import SePayAccountDetails, SePayAccountReference, SePayError
+from app.schemas import FinancialAccountRead
+from app.sepay import SePayAccountDetails, SePayAccountReference, SePayError, decrypt_api_token
 
 
 class FakeSePayClient:
@@ -87,6 +88,25 @@ def test_user_ownership_isolation(db_session, user, other_user, monkeypatch):
   other_result = build_net_worth(db_session, other_user, [])
   assert other_result.asset_breakdown == []
   assert other_result.net_worth is None
+
+
+def test_connect_persists_an_optional_account_webhook_key(db_session, user, monkeypatch):
+  _configure(monkeypatch, user)
+  monkeypatch.setattr("app.net_worth.SePayClient", FakeSePayClient)
+
+  account = connect_sepay_account(
+    db_session,
+    user,
+    api_token="token",
+    account_number="1234",
+    webhook_auth_enabled=True,
+    webhook_auth_key="webhook-account-key",
+  )
+
+  assert account.webhook_auth_enabled is True
+  assert account.webhook_auth_ciphertext != "webhook-account-key"
+  assert decrypt_api_token(account.webhook_auth_ciphertext or "") == "webhook-account-key"
+  assert FinancialAccountRead.model_validate(account).webhook_auth_enabled is True
 
 
 def test_loan_liabilities_use_existing_calculation_and_do_not_count_saving_pot(

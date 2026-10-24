@@ -188,11 +188,6 @@ export function CashFlowPage() {
         <div className="min-w-0">
           {error && <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">{error}</p>}
           {summaryState.summary && <CurrencyConversionNotice summary={summaryState.summary} />}
-          {summaryState.summary && summaryState.summary.loanPaymentCount > 0 && (
-            <p className="mb-4 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm text-violet-800 dark:border-violet-900/70 dark:bg-violet-950/30 dark:text-violet-200">
-              Includes {summaryState.summary.loanPaymentCount} contractual loan {summaryState.summary.loanPaymentCount === 1 ? 'payment' : 'payments'} from your loan schedule. These entries update automatically when a loan changes and do not record whether payment was completed.
-            </p>
-          )}
           {summaryState.summary && summaryState.summary.recurringIncomeCount > 0 && (
             <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-200">
               Includes {summaryState.summary.recurringIncomeCount} scheduled income {summaryState.summary.recurringIncomeCount === 1 ? 'entry' : 'entries'} from Monthly Routine. These entries map automatically to every covered month without creating manual transactions.
@@ -206,7 +201,6 @@ export function CashFlowPage() {
             <TransactionList
               transactions={transactionsState.transactions}
               recurringIncomes={summaryState.summary?.recurringIncomes ?? []}
-              loanPayments={summaryState.summary?.loanPayments ?? []}
               recurringExpenses={summaryState.summary?.recurringExpenses ?? []}
               loading={transactionsState.loading || summaryState.loading}
               monthLabel={label}

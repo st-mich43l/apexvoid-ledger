@@ -281,7 +281,7 @@ class TestMonthlyBudgetCalculations:
     assert result["actualVariableExpenseTotal"] == 0
     assert result["safeToSpend"] == 6_000_000
 
-  def test_loan_payment_is_only_in_baseline(
+  def test_loan_schedule_does_not_reduce_budget_baseline(
     self, auth_client: TestClient, db_session: Session, user: User
   ):
     set_currency(db_session, user)
@@ -303,7 +303,7 @@ class TestMonthlyBudgetCalculations:
       auth_client,
       budget_input(auth_client, savings=0, allocations=[("Food", 6_000_000)]),
     )
-    assert result["baselineAvailable"] == 42_500_000
+    assert result["baselineAvailable"] == 50_000_000
     assert result["actualVariableExpenseTotal"] == 0
     assert result["safeToSpend"] == 6_000_000
 
