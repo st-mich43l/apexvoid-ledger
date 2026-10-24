@@ -18,6 +18,8 @@ interface BankActivityListProps {
   loading: boolean
   monthLabel: string
   onChanged: () => Promise<void>
+  compact?: boolean
+  onReview?: () => void
 }
 
 const classificationOptions: Array<{ value: BankActivityClassification; label: string }> = [
@@ -32,7 +34,7 @@ const classificationOptions: Array<{ value: BankActivityClassification; label: s
 
 const selectClass = selectClassName
 
-export function BankActivityList({ activities, categories, loading, monthLabel, onChanged }: BankActivityListProps) {
+export function BankActivityList({ activities, categories, loading, monthLabel, onChanged, compact = false, onReview }: BankActivityListProps) {
   const [direction, setDirection] = useState<'all' | 'in' | 'out'>('all')
   const [status, setStatus] = useState<'all' | 'pending_review' | 'processed'>('all')
   const [accountId, setAccountId] = useState('all')
@@ -45,6 +47,19 @@ export function BankActivityList({ activities, categories, loading, monthLabel, 
     (status === 'all' || activity.processingStatus === status) &&
     (accountId === 'all' || activity.financialAccountId === accountId)
   ))
+
+  if (compact) {
+    const pending = activities.filter((activity) => activity.processingStatus === 'pending_review').length
+    const processed = activities.filter((activity) => activity.processingStatus === 'processed').length
+    return <Card className="h-fit">
+      <div className="flex items-start justify-between gap-3">
+        <div><h3 className="font-semibold text-ledger-text">Bank activity</h3><p className="mt-1 text-xs text-ledger-text-secondary">SePay events received in {monthLabel}.</p></div>
+        {!loading && <Badge tone={pending > 0 ? 'warning' : 'success'}>{pending > 0 ? `${pending} review` : 'Up to date'}</Badge>}
+      </div>
+      {loading ? <p className="mt-4 text-sm text-ledger-text-secondary">Loading bank activity…</p> : <dl className="mt-4 grid grid-cols-2 gap-3"><div><dt className="text-xs text-ledger-text-secondary">Pending review</dt><dd className="financial-amount mt-0.5 text-lg font-semibold text-ledger-text">{pending}</dd></div><div><dt className="text-xs text-ledger-text-secondary">Processed</dt><dd className="financial-amount mt-0.5 text-lg font-semibold text-ledger-text">{processed}</dd></div></dl>}
+      {onReview && <Button type="button" variant="outline" size="sm" onClick={onReview} className="mt-4 w-full">Review bank activity</Button>}
+    </Card>
+  }
 
   return (
     <Card padding="none" className="h-fit overflow-hidden">
@@ -97,6 +112,7 @@ function BankActivityRow({ activity, categories, onChanged }: { activity: BankAc
   const [categoryId, setCategoryId] = useState(activity.categoryId ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
 
   const categoryOptions = categories.filter((category) => category.type === (classification === 'income' ? 'income' : 'expense') && category.isActive)
   const needsCategory = classification === 'income' || classification === 'expense' || classification === 'loan_interest'
@@ -109,9 +125,11 @@ function BankActivityRow({ activity, categories, onChanged }: { activity: BankAc
     }
     setSaving(true)
     setError(null)
+    setSaved(false)
     try {
       await classifyBankActivity(activity.id, classification, needsCategory ? categoryId : undefined)
       await onChanged()
+      setSaved(true)
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : 'Could not classify activity.')
     } finally {
@@ -123,9 +141,9 @@ function BankActivityRow({ activity, categories, onChanged }: { activity: BankAc
     <li className="p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate font-medium text-ledger-text">{activity.description || 'Bank transaction'}</p>
+          <p className="break-words font-medium text-ledger-text">{activity.description || 'Bank transaction'}</p>
           <p className="mt-1 text-xs text-ledger-text-secondary">{activity.bankName ?? 'Bank'} · {activity.accountNumberMasked} · {formatDate(activity.occurredAt)}</p>
-          <p className="mt-1 truncate text-xs text-ledger-muted">{activity.bankReference ? `Ref ${activity.bankReference}` : `SePay #${activity.providerTransactionId}`}</p>
+          <p className="mt-1 break-all text-xs text-ledger-muted">{activity.bankReference ? `Ref ${activity.bankReference}` : `SePay #${activity.providerTransactionId}`}</p>
         </div>
         <div className="shrink-0 text-right">
           <p className={`financial-amount font-semibold ${activity.direction === 'in' ? 'text-emerald-700 dark:text-emerald-400' : 'text-ledger-text'}`}>{displayAmount}</p>
@@ -143,6 +161,7 @@ function BankActivityRow({ activity, categories, onChanged }: { activity: BankAc
         <p className="mt-2 text-xs text-ledger-text-secondary">Tracked as a bank activity; it is not added as a Cash Flow transaction.</p>
       )}
       {error && <p className="mt-2 text-xs text-rose-700 dark:text-rose-400">{error}</p>}
+      {saved && <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-400">Saved. The linked activity was updated without creating a duplicate.</p>}
     </li>
   )
 }

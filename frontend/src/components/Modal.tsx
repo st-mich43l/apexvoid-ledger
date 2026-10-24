@@ -6,6 +6,7 @@ interface ModalProps {
   label: string
   children: React.ReactNode
   dismissible?: boolean
+  variant?: 'dialog' | 'drawer'
 }
 
 const FOCUSABLE_SELECTOR = [
@@ -26,7 +27,7 @@ function getFocusableElements(dialog: HTMLElement): HTMLElement[] {
 // Reusable dialog shell (edit/delete confirmations, and future modals) with
 // native focus management. Callers can block Escape/backdrop dismissal during
 // an in-flight action without replacing onClose with an unstable no-op.
-export function Modal({ onClose, label, children, dismissible = true }: ModalProps) {
+export function Modal({ onClose, label, children, dismissible = true, variant = 'dialog' }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const previouslyFocusedRef = useRef<HTMLElement | null>(
     document.activeElement instanceof HTMLElement ? document.activeElement : null,
@@ -89,7 +90,7 @@ export function Modal({ onClose, label, children, dismissible = true }: ModalPro
   }, [dismissible, onClose])
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
+    <div className={variant === 'drawer' ? 'fixed inset-0 z-50' : 'fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4'}>
       <div
         className="fixed inset-0 bg-black/45 backdrop-blur-[1px]"
         onClick={dismissible ? onClose : undefined}
@@ -100,7 +101,9 @@ export function Modal({ onClose, label, children, dismissible = true }: ModalPro
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
-        className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[var(--ledger-radius-modal)] border border-ledger-border bg-ledger-elevated p-6 shadow-2xl sm:p-7"
+        className={variant === 'drawer'
+          ? 'relative h-full w-[min(24rem,calc(100vw-1rem))] overflow-y-auto border-r border-ledger-border bg-ledger-elevated p-5 shadow-2xl sm:p-6'
+          : 'relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[var(--ledger-radius-modal)] border border-ledger-border bg-ledger-elevated p-6 shadow-2xl sm:p-7'}
       >
         {children}
       </div>

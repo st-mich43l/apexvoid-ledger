@@ -12,13 +12,13 @@ export function CashFlowSummaryCards({ summary, loading, currency }: CashFlowSum
   const cards = [
     {
       label: 'Income',
-      value: summary ? formatCurrency(summary.income, currency) : '—',
+      value: summary ? formatCurrency(summary.income, currency) : 'Unavailable',
       tone: 'positive' as const,
       detail: 'Recorded this month',
     },
     {
       label: 'Expenses',
-      value: summary ? formatCurrency(summary.expenses, currency) : '—',
+      value: summary ? formatCurrency(summary.expenses, currency) : 'Unavailable',
       tone: 'default' as const,
       detail: 'Recorded this month',
     },
@@ -26,7 +26,7 @@ export function CashFlowSummaryCards({ summary, loading, currency }: CashFlowSum
       label: 'Net cash flow',
       value: summary
         ? `${summary.netCashFlow > 0 ? '+' : ''}${formatCurrency(summary.netCashFlow, currency)}`
-        : '—',
+        : 'Unavailable',
       tone:
         summary && summary.netCashFlow < 0
           ? 'warning' as const
@@ -37,7 +37,7 @@ export function CashFlowSummaryCards({ summary, loading, currency }: CashFlowSum
       label: 'Savings rate',
       value:
         summary?.savingsRatePercent == null
-          ? '—'
+          ? 'Unavailable'
           : `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(summary.savingsRatePercent)}%`,
       tone: 'default' as const,
       detail: summary?.savingsRatePercent == null ? 'Requires recorded income' : 'Of income retained',

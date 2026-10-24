@@ -156,3 +156,34 @@ It intentionally follows the user’s local calendar month, consistent with the
 monthly feature pages, while Net Worth remains explicitly labeled as a
 separate current valuation. Missing, unavailable, and incomplete values are
 shown as such; they are never rendered as financial zeroes.
+
+## Cash Flow workspace (UI 4)
+
+Cash Flow keeps its monthly content in a centered 72rem workspace. Insights
+are not a second content column: at a viewport of 1816px or wider an 18rem
+rail is positioned outside the workspace's left gutter, preserving the
+workspace center. Below that breakpoint, the same compact insights content is
+available from the header in the shared accessible drawer. The drawer has a
+dialog role, traps focus, closes with Escape or its backdrop, locks background
+scrolling, and restores focus to its trigger.
+
+The compact header owns period navigation, the primary **Add transaction**
+action, the Insights trigger, and one overflow menu. The overflow keeps
+categories, weekly expenses, Monthly Routine, Monthly Budget, and Monthly
+Close reachable without crowding smaller screens. Planning links retain the
+active `year` and `month` query.
+
+Monthly activity is one client-side view of existing recorded transactions and
+scheduled entries. It supports search plus type, category, and source filters;
+source labels make manual records, SePay records, scheduled income, and fixed
+costs explicit. Scheduled rows are planning entries, not additional recorded
+bank movements. Amounts and long descriptions are allowed to wrap rather than
+being clipped.
+
+The Insights surface contains a compact income-versus-expense view, category
+spending breakdown, and a SePay review count. Detailed SePay classification is
+opened only on demand in a review dialog. Its existing save guard prevents
+double submissions; a successful save reloads the existing transaction,
+summary, and activity data and communicates that no duplicate was created.
+The Monthly Living Budget rule remains collapsible and only permits reliable
+description/reference matching—amount alone is never a classifier.
