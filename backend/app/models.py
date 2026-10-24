@@ -80,6 +80,12 @@ class FinancialAccount(Base):
   webhook_auth_ciphertext: Mapped[str | None] = mapped_column(
     "webhookAuthCiphertext", String(2048), nullable=True
   )
+  webhook_auth_type: Mapped[str | None] = mapped_column(
+    "webhookAuthType", String(24), nullable=True
+  )
+  webhook_auth_client_id_ciphertext: Mapped[str | None] = mapped_column(
+    "webhookAuthClientIdCiphertext", String(2048), nullable=True
+  )
   bank_name: Mapped[str] = mapped_column("bankName", String(100), nullable=False)
   account_number_masked: Mapped[str] = mapped_column(
     "accountNumberMasked", String(32), nullable=False

@@ -46,17 +46,28 @@ def connect_sepay_account(
   *,
   api_token: str,
   account_number: str,
-  webhook_auth_enabled: bool = False,
-  webhook_auth_key: str | None = None,
+  webhook_auth_type: str = "none",
+  webhook_auth_secret: str | None = None,
+  webhook_oauth_client_id: str | None = None,
 ) -> FinancialAccount:
   """Validate and attach one SePay account to the currently authenticated user."""
   token = api_token.strip()
   if not token:
     raise SePayError("SePay API token is required", kind="validation", status_code=422)
-  webhook_key = webhook_auth_key.strip() if webhook_auth_key else ""
-  if webhook_auth_enabled and not webhook_key:
+  auth_type = webhook_auth_type.strip().lower()
+  auth_secret = webhook_auth_secret.strip() if webhook_auth_secret else ""
+  oauth_client_id = webhook_oauth_client_id.strip() if webhook_oauth_client_id else ""
+  if auth_type not in {"none", "api_key", "hmac_sha256", "oauth2"}:
+    raise SePayError("Webhook authentication type is invalid", kind="validation", status_code=422)
+  if auth_type in {"api_key", "hmac_sha256"} and not auth_secret:
     raise SePayError(
-      "A webhook API key is required when webhook authentication is enabled",
+      "A webhook secret is required for the selected authentication type",
+      kind="validation",
+      status_code=422,
+    )
+  if auth_type == "oauth2" and (not oauth_client_id or not auth_secret):
+    raise SePayError(
+      "OAuth client ID and client secret are required",
       kind="validation",
       status_code=422,
     )
@@ -74,7 +85,8 @@ def connect_sepay_account(
     client.close()
 
   ciphertext = encrypt_api_token(token)
-  webhook_ciphertext = encrypt_api_token(webhook_key) if webhook_auth_enabled else None
+  webhook_ciphertext = encrypt_api_token(auth_secret) if auth_secret else None
+  oauth_client_id_ciphertext = encrypt_api_token(oauth_client_id) if oauth_client_id else None
   now = utcnow()
   with _sync_lock:
     account = (
@@ -99,11 +111,15 @@ def connect_sepay_account(
         balance_status="unavailable",
         credential_ciphertext=ciphertext,
         webhook_auth_ciphertext=webhook_ciphertext,
+        webhook_auth_type=auth_type,
+        webhook_auth_client_id_ciphertext=oauth_client_id_ciphertext,
       )
       db.add(account)
     else:
       account.credential_ciphertext = ciphertext
       account.webhook_auth_ciphertext = webhook_ciphertext
+      account.webhook_auth_type = auth_type
+      account.webhook_auth_client_id_ciphertext = oauth_client_id_ciphertext
 
     account.bank_name = details.bank_name
     account.account_number_masked = details.account_number_masked
