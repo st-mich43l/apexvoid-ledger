@@ -14,9 +14,10 @@ ApexVoid Ledger is a same-origin web application:
 - FastAPI owns authentication, authorization, business rules, calculations,
   provider integrations, and database access.
 - PostgreSQL stores users and financial records.
-- SePay supplies read-only bank-account balances for accounts explicitly
-  connected by each Ledger user and sends bank activity to a public webhook
-  authenticated with a separate API key.
+- SePay supplies the read-only balance for the primary bank account explicitly
+  connected by each Ledger user and sends its bank activity to a public
+  webhook authenticated per account with HMAC-SHA256, API Key, OAuth 2.0, or
+  (only for controlled testing) no authentication.
 - Frankfurter supplies historical reference exchange rates when a report needs
   currency conversion.
 
@@ -28,7 +29,7 @@ flowchart LR
     N -->|proxy /api/*| A[FastAPI backend]
     A --> DB[(PostgreSQL)]
     A -->|Bearer token, read-only balance sync| S[SePay API]
-    S -->|Apikey webhook events| A
+    S -->|Authenticated webhook events| A
     A -->|historical FX rates| FX[Frankfurter API]
     OPS[Ansible deployment] --> VPS[Docker host]
     VPS --> N
@@ -157,6 +158,13 @@ erDiagram
         string account_number_masked
         decimal balance
         string balance_status
+        string webhook_auth_type
+        string webhook_auth_ciphertext "encrypted secret"
+        string webhook_auth_client_id_ciphertext "encrypted OAuth ID"
+        string auto_category_id FK
+        string auto_description_contains
+        string auto_reference_contains
+        boolean auto_rule_enabled
     }
     SEPAY_BANK_ACTIVITY {
         uuid id PK
@@ -196,13 +204,14 @@ SePay has two separate trust boundaries:
 - The authenticated Ledger user supplies an individual SePay API token for
   read-only account lookup and balance synchronization. Ledger encrypts that
   token at rest.
-- SePay sends inbound activity to the public webhook using the optional
-  account-specific API key supplied by that Ledger user. The key is encrypted
-  at rest and selected only after the payload identifies the connected
-  account. The webhook does not require a browser session, JWT, or CSRF token,
-  and rejects missing, malformed, or wrong keys. Older deployments may retain
-  a server-wide compatibility fallback, but new deployments do not configure
-  one.
+- SePay sends inbound activity to the public webhook using the mode selected
+  for that connected account: HMAC-SHA256 (recommended), API Key, OAuth 2.0,
+  or no authentication for controlled tests. The API/HMAC secret and OAuth
+  client ID/secret are encrypted at rest and selected only after the payload
+  identifies the account. The webhook does not require a browser session, JWT,
+  or CSRF token. It rejects missing or invalid account-specific credentials;
+  older deployments may retain a global API-key compatibility fallback, but
+  new deployments do not configure one.
 
 ```mermaid
 sequenceDiagram
@@ -213,28 +222,40 @@ sequenceDiagram
     participant SePay
     participant DB as PostgreSQL
 
-    User->>UI: Enter token + visible account number
+    User->>UI: Enter token, visible account number, and webhook mode
     UI->>API: POST /api/net-worth/accounts
     API->>Service: connect_sepay_account(current_user, token, number)
     Service->>SePay: GET /userapi/bankaccounts/list
     SePay-->>Service: Matching account + internal SePay ID
     Service->>SePay: GET /userapi/bankaccounts/details/{id}
     SePay-->>Service: Active account + balance
-    Service->>Service: Encrypt token with Fernet
-    Service->>DB: Save user-owned account and ciphertext
+    Service->>Service: Encrypt token and selected webhook credentials with Fernet
+    Service->>DB: Save user-owned account, mode, and ciphertext
     DB-->>Service: Account record without token in response schema
     Service-->>API: Masked account + balance
     API-->>UI: Connected account JSON
 ```
 
-The database stores `credentialCiphertext`, never the plaintext token. The
-response schema exposes the provider, masked account number, balance, status,
-and timestamps, but not the credential ciphertext.
+The database stores `credentialCiphertext`, webhook secret ciphertext, and—when
+OAuth is selected—client-ID ciphertext; it never stores those values in
+plaintext. The response schema exposes the provider, masked account number,
+balance, status, timestamps, and the selected authentication mode, but not any
+credential ciphertext or secret. The backend-managed Fernet key is generated
+under `/var/lib/apexvoid-ledger/sepay-credentials.key` and persists in the
+`backend_secrets` volume. The database and that volume must be backed up
+together.
 
 Account matching uses a keyed fingerprint of the normalized full bank account
 number. The full number is never used as a cross-user lookup key in logs or
 API responses. An activity is retained as unmatched when it cannot be linked
 to exactly one connected account.
+
+For the primary-account workflow, the user connects only the TPBank account
+used for the allowance transfer. The receiving bank is outside Ledger's model:
+there is no destination `FinancialAccount`, inferred destination balance, or
+internal-transfer transaction created by the categorization rule. The
+`/api/bank-activities/categorization-rule` endpoint resolves the user's primary
+SePay account and stores the rule on that existing `FinancialAccount`.
 
 ### SePay webhook and reconciliation flow
 
@@ -249,8 +270,8 @@ sequenceDiagram
     participant Net as Net Worth sync
 
     SePay->>Proxy: POST /api/integrations/sepay/webhook
-    Proxy->>API: Forward JSON + Authorization: Apikey ...
-    API->>API: Constant-time API-key verification
+    Proxy->>API: Forward JSON + configured authentication headers
+    API->>API: Verify HMAC, API key, OAuth Bearer, or controlled test mode
     API->>API: Validate direction, amount, date, account
     API->>Inbox: Insert provider + transaction ID
     Inbox-->>API: Duplicate or newly stored activity
@@ -262,16 +283,23 @@ sequenceDiagram
 ```
 
 The inbox is the source of truth for delivery and idempotency. A duplicate
-provider transaction ID is acknowledged without creating another Cash Flow
-transaction. Incoming and outgoing events use the same path, and unmatched or
-ambiguous events remain reviewable rather than being assigned to another user.
-Only income and expense classifications create ordinary Cash Flow
-transactions; transfers, loan repayments, and savings transfers remain
-separate classifications so they cannot inflate income or expense totals.
-The Monthly Living Budget rule is stored on the existing connected account and
-requires a description or bank-reference matcher; amount alone is never used.
-When a matching SePay expense exists, its recurring schedule occurrence is
-suppressed in reports so the expense is counted once.
+provider transaction ID is acknowledged without creating another bank activity
+or Cash Flow transaction. Incoming and outgoing events use the same path, and
+unmatched or ambiguous events remain reviewable rather than being assigned to
+another user. `income`, `expense`, and `loan_interest` classifications create
+ordinary Cash Flow transactions; `internal_transfer`, `loan_repayment`, and
+`savings_transfer` remain bank-activity classifications so they cannot inflate
+income or expense totals.
+
+The Monthly Living Budget rule is stored on the existing connected primary
+account. It is enabled only with an active expense category and at least one
+textual matcher. Description and reference matching is case-insensitive literal
+substring matching; when both matchers are present, both must match. Amount,
+date, and running balance are never sufficient by themselves. A confident
+outgoing match creates one ordinary `Transaction` with `source=sepay`. When
+that transaction also matches a recurring fixed-cost occurrence, the imported
+transaction is authoritative and the generated recurring entry is omitted from
+the report.
 
 ## Balance synchronization lifecycle
 
@@ -365,9 +393,9 @@ encrypted after users sign in.
 
 | Secret or setting | Owner | Storage/use |
 | --- | --- | --- |
-| `SECRET_KEY` | Operator | Backend environment; signs session cookies. |
+| `SECRET_KEY` | Operator | Backend environment; signs session cookies and short-lived OAuth webhook tokens. |
 | SePay credential key | Backend | Generated on first use and retained in the backend-only persistent Docker volume. |
-| SePay webhook API key | Individual user + SePay webhook | Submitted in the authenticated Net Worth form, then Fernet-encrypted in `FinancialAccount`; validates events for that account. |
+| SePay webhook authentication | Individual user + SePay webhook | The form stores `hmac_sha256`, `api_key`, `oauth2`, or `none`, plus encrypted per-account secret/client ID; validates events for that account. |
 | `DATABASE_URL` | Operator | Backend environment; database connection. |
 | PostgreSQL credentials | Operator | PostgreSQL environment and encrypted deployment vault. |
 | SePay API token | Individual user | Submitted over the authenticated UI, then Fernet-encrypted in `FinancialAccount`. |
@@ -388,6 +416,11 @@ container workflows. The relevant Net Worth migrations are:
   idempotency constraint, and keyed account-number fingerprint.
 - `0022_add_sepay_categorization_rule.py` adds the optional outgoing
   description/reference categorization rule to `FinancialAccount`.
+- `0023_add_sepay_account_webhook_auth.py` adds encrypted per-account webhook
+  secret storage.
+- `0024_add_sepay_webhook_auth_type.py` records the selected webhook mode and
+  adds encrypted OAuth client-ID storage. Existing encrypted webhook secrets
+  are backfilled as `api_key` for compatibility.
 
 Do not edit an already-applied migration. Add a new migration for a schema
 change, and verify it against a copy of the production database before
