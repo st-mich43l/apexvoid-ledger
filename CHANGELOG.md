@@ -7,6 +7,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### ✨ Added
+- 🏦 SePay bank-activity ingestion for the connected primary account: durable
+  incoming/outgoing webhook inbox, exact account matching, review states,
+  manual classification, and idempotent provider-transaction delivery.
+- 💸 Default **Monthly Living Budget** expense category, integrated with the
+  existing category manager and transaction/reporting architecture. Outgoing
+  activities can be classified using case-insensitive description/reference
+  matchers; amount-only rules are rejected and uncertain events stay pending.
+- 🔁 Exactly-once SePay expense creation with provider-transaction uniqueness,
+  `source=sepay` transaction identity, recurring-expense reconciliation, and
+  no duplicate generated loan-payment expense.
+- 🧬 Migrations `0021` and `0022` add the SePay activity inbox, keyed account
+  fingerprint, and per-account outgoing categorization rule.
+- 🔐 Four per-account SePay webhook modes in the Net Worth form: HMAC-SHA256,
+  API Key, OAuth 2.0, and no authentication for controlled testing. HMAC
+  validates the raw request body and timestamp; OAuth provides an account-bound
+  token endpoint and refresh-token flow.
+- 🧬 Migrations `0023` and `0024` add encrypted webhook credentials, selected
+  auth mode, and encrypted OAuth client-ID storage.
 - 🔐 Per-user SePay connections: users connect their own token and bank
   account number from `/net-worth`; tokens are Fernet-encrypted at rest,
   account IDs are resolved through SePay, and users can disconnect accounts.
@@ -64,6 +82,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   without changing `SavingPot.balance`.
 
 ### 🔧 Changed
+- 🏦 Loan schedule payments are estimates and reconciliation references only.
+  Completed repayments are represented by matching SePay bank activity rather
+  than generated Cash Flow transactions, and no destination bank account or
+  inferred destination balance is created.
+- 🔑 SePay credential encryption is backend-owned: the backend creates the
+  Fernet key in the persistent `backend_secrets` volume. Users enter provider
+  credentials in the frontend, and Compose no longer requires
+  `SEPAY_CREDENTIAL_ENCRYPTION_KEY`.
+- 📊 Categorized SePay expenses flow through Cash Flow totals, category
+  summaries, budgets, Monthly Close, and Saving Pot reconciliation while
+  preserving the existing TPBank balance synchronization and Net Worth model.
 - Dashboard chart accessibility data no longer leaks into the visible page
   footer, and the document background now remains consistent below the app
   shell.

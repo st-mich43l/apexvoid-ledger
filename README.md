@@ -1,7 +1,7 @@
 # 💰 apexvoid-ledger
 
-A personal finance dashboard for monthly cash-flow tracking and loans across
-multiple banks. Session-based accounts gate access — see
+A personal finance dashboard for monthly cash-flow tracking, a primary TPBank
+bank-activity feed, and loan planning. Session-based accounts gate access — see
 [Accounts & access](#-accounts--access) below.
 
 ## 🧱 Stack
@@ -67,18 +67,23 @@ From these, the dashboard calculates:
   outgoing events are stored durably and idempotently, matched to the exact
   connected account, and shown in Cash Flow for review and classification.
 - A default **Monthly Living Budget** expense category can be renamed and
-  selected like any other category. The connected primary TPBank account can
-  use a description/reference rule to classify matching outgoing SePay events
-  as ordinary expenses; amount alone never triggers classification.
+  selected like any other category. For the intended single-account setup, the
+  primary TPBank account can use a description/reference rule to classify
+  matching outgoing SePay events as ordinary expenses. If both description and
+  reference matchers are configured, both must match; amount alone never
+  triggers classification.
 - Conservative reconciliation for matching manual entries, recurring income,
   fixed costs, and loan-schedule references. Unmatched events remain pending
   review instead of being silently assigned or double-counted.
 
-Ordinary variable expenses remain manual. SePay webhook activity is not treated
-as confirmed income or expense until it is matched automatically or classified
-by the user. Configured Monthly Living Budget matches become normal Cash Flow
-expenses and are counted once. Net Worth still uses verified bank balances and
-outstanding loan liabilities, not Cash Flow activity.
+SePay webhook activity starts as a bank-activity review item. It becomes a
+normal `Transaction` only after a reliable automatic rule or an explicit user
+classification. Configured Monthly Living Budget matches are ordinary
+`source=sepay` expenses and are included once in Cash Flow totals, category
+summaries, budgets, Monthly Close, and Saving Pot reconciliation. Net Worth
+still uses verified bank balances and outstanding loan liabilities, not Cash
+Flow activity. No destination account or internal-transfer model is created
+for the primary-account allowance workflow.
 
 Default categories are created lazily and idempotently the first time each
 account accesses cash flow. All categories and transactions are scoped to the
@@ -98,7 +103,8 @@ activity ledger:
 - After a calendar month ends, Cash Flow net is synchronized into the pot.
   The creation month only includes activity occurring at or after pot creation
   (so the opening balance is not double-counted). Later months use the full
-  calendar month, including linked loan schedule expenses.
+  calendar month of recorded Cash Flow activity. Contractual loan schedules
+  are estimates only and do not create Cash Flow expenses.
 - If Cash Flow for an already-applied month later changes, Saving Pot
   **reconciles** only the difference (never re-applies the whole month).
 - Incomplete FX conversion never permanently applies a partial month; the pot
@@ -166,8 +172,9 @@ allocations. Migration 0018 adds monthly-close snapshots, and migration
   encrypted per-user SePay credentials, and migration 0021 adds the durable
   SePay webhook activity inbox and account-number fingerprint. Migration 0022
   adds the optional outgoing categorization rule to the existing connected
-  account. Migration 0023 adds optional encrypted, per-account webhook
-  authentication.
+  account. Migration `0023` adds encrypted per-account webhook credentials,
+  and migration `0024` records the selected webhook mode plus the encrypted
+  OAuth client ID where applicable.
 
 ### Net Worth and SePay
 
@@ -183,21 +190,24 @@ Cash-flow income/expenses, expected income, Saving Pots, and scheduled loan
 payments are not added as separate assets or liabilities. Saving Pots are
 excluded because they may already be part of a synchronized bank balance.
 
-To enable per-user SePay connections, users enter their own SePay API token
-and bank account number in `/net-worth`. The backend encrypts the token at
-rest with an installation key that it creates and keeps in its persistent
-backend volume.
+To enable a per-user SePay connection, the user enters the primary TPBank
+SePay API token, visible bank account number, and webhook-authentication
+settings in `/net-worth`. The backend validates the token with SePay, then
+encrypts it and any webhook credentials at rest with an installation key that
+it creates and keeps in its persistent backend volume. The user never supplies
+that encryption key.
 
 - SEPAY_API_BASE_URL — optional test/deployment override; defaults to
   https://my.sepay.vn/userapi.
 
-Each user connects from `/net-worth` with their own SePay API token and bank
-account number. The backend resolves SePay's internal account ID, validates
-the connection, stores only a Fernet-encrypted token, and never returns the
-token to the browser. When a user enables webhook authentication in the same
-form, Ledger encrypts that user-selected SePay webhook key too; it is never
-returned to the browser. Accounts are isolated by the authenticated Ledger
-user. See the setup guide for the endpoint and review workflow.
+Each user connects from `/net-worth` with the primary account's SePay API token
+and visible bank account number. The backend resolves SePay's internal account
+ID, validates the connection, stores only Fernet-encrypted credentials, and
+never returns secrets to the browser. The form supports SePay's four delivery
+modes: **HMAC-SHA256** (recommended), **API Key**, **OAuth 2.0**, and **None**
+for controlled testing only. Accounts are isolated by the authenticated Ledger
+user. See the setup guide for the exact request contract, headers, token
+endpoint, migration recovery, and review workflow.
 Balances synchronize on demand while the Net Worth/Dashboard UI is active, no
 more often than every five minutes, and manual refreshes are server-rate-limited.
 The integration is read-only: it does not import transactions, initiate
@@ -216,10 +226,12 @@ discretionary spending:
   from the same schedule and update automatically.
   A first-time setup pre-fills a monthly salary baseline; the amount remains
   required, and users can add more income sources or update future months.
-- **Committed costs** — existing recurring fixed expenses + linked loan
-  installments (same obligation semantics as Cash Flow).
+- **Committed costs** — existing recurring fixed expenses. Loan schedules
+  remain estimates; a completed repayment is tracked from the matching bank
+  activity instead of becoming a generated Cash Flow expense.
 - **Baseline available** = expected income − committed costs.
-- **Projected remainder** = baseline − actual variable (manual) expenses.
+- **Projected remainder** = baseline − actual variable expenses, including
+  categorized SePay expenses.
 - Actual manually recorded income is shown side-by-side with scheduled income.
   Do not enter the same salary manually unless it is a separate adjustment.
 
@@ -232,13 +244,13 @@ editable transaction and is counted separately.
 plan per account and calendar month:
 
 - **Planned savings** is an optional reservation from baseline available.
-- **Category allocations** set boundaries for manual variable expense
-  categories; progress compares those allocations with actual Cash Flow
-  transactions in the same month.
+- **Category allocations** set boundaries for variable expense categories;
+  progress compares those allocations with actual Cash Flow transactions in the
+  same month, including categorized SePay expenses.
 - **Unallocated buffer** = baseline available − planned savings − category
   allocations. It remains visible when negative so intentional over-plans are
   not hidden.
-- **Safe to spend** = total category allocations − all actual manual variable
+- **Safe to spend** = total category allocations − all actual variable
   spending. Expenses in categories without allocations are surfaced as
   unbudgeted spending and still reduce this amount.
 - **Daily spending pace** is shown for the current calendar month using the
@@ -252,9 +264,10 @@ plan per account and calendar month:
   value as authoritative.
 
 Budget plans do not create transactions and do not directly move Saving Pot
-balances. Fixed recurring costs and loans are excluded from variable budget
-usage because they are already represented in Monthly Routine's committed
-costs and therefore already reduce the baseline.
+balances. Fixed recurring costs are excluded from variable budget usage because
+they are already represented in Monthly Routine's committed costs. Completed
+loan repayments remain bank activity rather than generated budget or Cash Flow
+expenses.
 
 ### Monthly Close (financial review)
 
@@ -371,8 +384,14 @@ network, and `routing`'s `nginx/includes/apexvoid-ledger-routes.conf` proxies
 - 🔐 In `ansible-library`, `inventory/group_vars/all/vault.yml` needs a
   `vault_apexvoid_ledger_env` entry with `POSTGRES_USER`, `POSTGRES_PASSWORD`,
   `POSTGRES_DB`, `DATABASE_URL` (host must be `postgres`, the compose service
-  name) and **`SECRET_KEY`**. Individual SePay tokens and bank account
-  numbers are entered by users and stored securely in Postgres.
+  name) and **`SECRET_KEY`**. `SECRET_KEY` is an operator-owned application
+  secret used for session cookies and signed OAuth webhook tokens; it is not a
+  SePay credential and is never entered by users. Individual SePay tokens,
+  webhook secrets, OAuth client IDs, and bank account numbers are entered by
+  users and stored securely by the application. The backend-generated
+  credential-encryption key is kept in the persistent `backend_secrets`
+  volume, so `SEPAY_CREDENTIAL_ENCRYPTION_KEY` is not required in Compose or
+  the vault.
 
 ## 📜 Changelog
 
