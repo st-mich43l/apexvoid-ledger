@@ -46,6 +46,11 @@ export function LoanDetailPage() {
 
   return (
     <section className="space-y-4">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-ledger-text-secondary">
+        <Link to="/loan" className="font-medium hover:text-ledger-primary">Loans</Link>
+        <span aria-hidden="true">/</span>
+        <span className="truncate text-ledger-text">{detail.bankName}</span>
+      </nav>
       {error && (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">
           {error}

@@ -5,6 +5,7 @@ import { useCurrency } from '../context/CurrencyContext'
 import { useSavingPot } from '../hooks/useSavingPot'
 import { formatCurrency } from '../lib/currency'
 import type { SavingPotAdjustDirection, SavingPotEntry, SavingPotEntryType } from '../types'
+import { PageHeader } from '../components/layout/PageHeader'
 
 function monthLabel(year: number, month: number): string {
   return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
@@ -46,15 +47,8 @@ export function SavingPotPage() {
 
   return (
     <section>
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">Saving pot</h2>
-          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-            Track and understand your available savings.
-          </p>
-        </div>
-        {pot ? (
-          <div className="flex flex-wrap gap-2">
+      <PageHeader title="Saving Pot" description="Track and understand your available savings." actions={pot ? (
+          <>
             <button
               type="button"
               onClick={() => setAdjustDirection('add')}
@@ -76,7 +70,7 @@ export function SavingPotPage() {
             >
               Correct balance
             </button>
-          </div>
+          </>
         ) : (
           <button
             type="button"
@@ -85,8 +79,7 @@ export function SavingPotPage() {
           >
             Create pot
           </button>
-        )}
-      </div>
+        )} />
 
       {error && (
         <p className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">

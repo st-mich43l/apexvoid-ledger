@@ -9,6 +9,7 @@ import { Card } from '../components/ui/Card'
 import { FinancialMetric } from '../components/ui/FinancialMetric'
 import { controlClassName } from '../components/ui/Field'
 import { EmptyState, LoadingState } from '../components/ui/State'
+import { PageHeader } from '../components/layout/PageHeader'
 
 export function NetWorthPage() {
   const { currency } = useCurrency()
@@ -17,15 +18,7 @@ export function NetWorthPage() {
 
   return (
     <section>
-      <div className="mb-6 flex flex-col gap-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ledger-primary">
-          Financial position
-        </p>
-        <h2 className="text-2xl font-semibold tracking-tight text-ledger-text">Net Worth</h2>
-        <p className="text-sm text-ledger-text-secondary">
-          Verified assets minus outstanding loan balances, shown in {reportingCurrency}.
-        </p>
-      </div>
+      <PageHeader eyebrow="Financial position" title="Net Worth" description={<>Verified assets minus outstanding loan balances, shown in {reportingCurrency}.</>} />
 
       {error && (
         <Alert tone="danger" className="mb-5">
