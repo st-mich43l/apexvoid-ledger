@@ -136,3 +136,23 @@ feature pages can retain contextual month selectors and established workflows.
 The router now lazy-loads feature pages while leaving authentication guards and
 the app shell eager. The route fallback remains inside the shell, preventing a
 navigation transition from replacing the global header.
+
+## Dashboard command center (UI 3)
+
+The Dashboard is a composition of existing read-only summaries rather than a
+second financial-calculation layer. Its information order is current Net
+Worth, current-month Cash Flow metrics, actionable attention, budget health,
+trends, commitments, account health, and compact shortcuts.
+
+`dashboard/financialAttention.ts` derives the attention list as a pure
+function. It can surface only conditions already supplied by the existing
+summaries: reliable budget overrun/80% utilization, incomplete valuation,
+stale or unavailable balances, pending SePay review, an actionable previous
+monthly-close state, and unavailable currency conversion. It never creates a
+health score, prediction, deadline, or recommendation.
+
+Dashboard monthly reporting uses `currentReportingPeriod` from `lib/date.ts`.
+It intentionally follows the user’s local calendar month, consistent with the
+monthly feature pages, while Net Worth remains explicitly labeled as a
+separate current valuation. Missing, unavailable, and incomplete values are
+shown as such; they are never rendered as financial zeroes.

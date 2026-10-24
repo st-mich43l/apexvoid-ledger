@@ -1,0 +1,18 @@
+import { Link } from 'react-router-dom'
+import { formatCurrency } from '../../lib/currency'
+import type { MonthlyBudgetSummary } from '../../types'
+import { Badge } from '../ui/Badge'
+import { Card } from '../ui/Card'
+
+export function BudgetHealth({ summary, loading, error, year, month }: { summary: MonthlyBudgetSummary | null; loading: boolean; error?: boolean; year: number; month: number }) {
+  const href = `/budget?year=${year}&month=${month}`
+  if (loading) return <Card className="h-full"><p className="text-sm text-ledger-text-secondary">Loading budget health…</p></Card>
+  if (!summary) return <Card className="h-full"><h2 className="text-lg font-semibold text-ledger-text">Budget health</h2><p className="mt-2 text-sm text-ledger-text-secondary">{error ? 'Budget information could not be loaded.' : 'Budget information is unavailable.'}</p></Card>
+  if (!summary.hasBudget) return <Card className="h-full"><h2 className="text-lg font-semibold text-ledger-text">Budget health</h2><p className="mt-2 text-sm text-ledger-text-secondary">No monthly spending plan is set for this period.</p><Link to={href} className="mt-4 inline-flex text-sm font-semibold text-ledger-primary hover:underline">Create Monthly Budget →</Link></Card>
+  if (!summary.budgetComparisonComplete || summary.plannedVariableBudgetTotal === null || summary.remainingVariableBudget === null) return <Card className="h-full"><div className="flex items-center justify-between gap-3"><h2 className="text-lg font-semibold text-ledger-text">Budget health</h2><Badge tone="warning">Incomplete</Badge></div><p className="mt-2 text-sm text-ledger-text-secondary">Currency conversion is incomplete, so safe-to-spend and budget comparison are not shown as final.</p><Link to={href} className="mt-4 inline-flex text-sm font-semibold text-ledger-primary hover:underline">Review spending plan →</Link></Card>
+  const planned = summary.plannedVariableBudgetTotal
+  const spent = summary.actualVariableExpenseTotal
+  const utilization = planned > 0 ? spent / planned * 100 : spent > 0 ? 100 : 0
+  const status = utilization > 100 ? { label: 'Over plan', tone: 'danger' as const } : utilization >= 80 ? { label: 'Approaching limit', tone: 'warning' as const } : { label: 'On track', tone: 'success' as const }
+  return <Card className="h-full"><div className="flex items-start justify-between gap-3"><div><h2 className="text-lg font-semibold text-ledger-text">Budget health</h2><p className="mt-1 text-sm text-ledger-text-secondary">Variable spending for this month.</p></div><Badge tone={status.tone}>{status.label}</Badge></div><div className="mt-5 flex items-end justify-between gap-4"><div><p className="text-xs text-ledger-text-secondary">Spent of plan</p><p className="financial-amount mt-1 text-xl font-semibold text-ledger-text">{formatCurrency(spent, summary.currency)} <span className="text-sm font-normal text-ledger-text-secondary">of {formatCurrency(planned, summary.currency)}</span></p></div><p className={`financial-amount text-right text-sm font-semibold ${summary.remainingVariableBudget < 0 ? 'text-rose-700 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-400'}`}>{formatCurrency(summary.remainingVariableBudget, summary.currency)}<span className="block text-xs font-normal text-ledger-text-secondary">remaining</span></p></div><div className="mt-4 h-2 overflow-hidden rounded-full bg-ledger-subtle"><div className={status.tone === 'danger' ? 'h-full bg-rose-500' : status.tone === 'warning' ? 'h-full bg-amber-500' : 'h-full bg-ledger-primary'} style={{ width: `${Math.min(Math.max(utilization, 0), 100)}%` }} /></div><Link to={href} className="mt-4 inline-flex text-sm font-semibold text-ledger-primary hover:underline">Open spending plan →</Link></Card>
+}

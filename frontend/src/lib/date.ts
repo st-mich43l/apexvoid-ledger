@@ -62,6 +62,13 @@ export function todayDateDigits(): string {
   return `${day}${month}${now.getFullYear()}`
 }
 
+// Reporting periods are based on the Ledger user's local calendar month.
+// Monthly feature pages already use local dates; keeping this helper shared
+// avoids a UTC boundary moving the Dashboard into a different month.
+export function currentReportingPeriod(now = new Date()): { year: number; month: number } {
+  return { year: now.getFullYear(), month: now.getMonth() + 1 }
+}
+
 export interface MonthWeekOption {
   value: string
   startDay: number

@@ -240,7 +240,7 @@ function ChartMetric({ label, value, tone }: { label: string; value: string; ton
   return (
     <div className="min-w-0">
       <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">{label}</p>
-      <p className={`mt-0.5 truncate text-sm font-semibold tabular-nums ${tone === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-violet-600 dark:text-violet-400'}`} title={value}>{value}</p>
+      <p className={`financial-amount mt-0.5 break-words text-sm font-semibold ${tone === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-violet-600 dark:text-violet-400'}`}>{value}</p>
     </div>
   )
 }
