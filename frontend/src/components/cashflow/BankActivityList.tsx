@@ -51,13 +51,14 @@ export function BankActivityList({ activities, categories, loading, monthLabel, 
   if (compact) {
     const pending = activities.filter((activity) => activity.processingStatus === 'pending_review').length
     const processed = activities.filter((activity) => activity.processingStatus === 'processed').length
-    return <Card className="h-fit">
+    const isCurrent = pending === 0
+    return <Card padding="sm" className="h-fit">
       <div className="flex items-start justify-between gap-3">
-        <div><h3 className="font-semibold text-ledger-text">Bank activity</h3><p className="mt-1 text-xs text-ledger-text-secondary">SePay events received in {monthLabel}.</p></div>
-        {!loading && <Badge tone={pending > 0 ? 'warning' : 'success'}>{pending > 0 ? `${pending} review` : 'Up to date'}</Badge>}
+        <div><h3 className="font-semibold text-ledger-text">Bank activity</h3><p className="mt-0.5 text-xs text-ledger-text-secondary">SePay · {monthLabel}</p></div>
+        {!loading && <span className={`inline-flex items-center gap-1.5 pt-0.5 text-xs font-semibold ${isCurrent ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}`}><span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${isCurrent ? 'bg-emerald-500' : 'bg-amber-500'}`} />{isCurrent ? 'Current' : 'Needs review'}</span>}
       </div>
-      {loading ? <p className="mt-4 text-sm text-ledger-text-secondary">Loading bank activity…</p> : <dl className="mt-4 grid grid-cols-2 gap-3"><div><dt className="text-xs text-ledger-text-secondary">Pending review</dt><dd className="financial-amount mt-0.5 text-lg font-semibold text-ledger-text">{pending}</dd></div><div><dt className="text-xs text-ledger-text-secondary">Processed</dt><dd className="financial-amount mt-0.5 text-lg font-semibold text-ledger-text">{processed}</dd></div></dl>}
-      {onReview && <Button type="button" variant="outline" size="sm" onClick={onReview} className="mt-4 w-full">Review bank activity</Button>}
+      {loading ? <p className="mt-3 text-sm text-ledger-text-secondary">Loading bank activity…</p> : <dl className="mt-3 flex items-center divide-x divide-ledger-border border-y border-ledger-border py-2.5"><div className="flex-1 pr-3"><dt className="text-[11px] font-medium text-ledger-text-secondary">Awaiting review</dt><dd className="financial-amount mt-0.5 text-base font-semibold text-ledger-text">{pending}</dd></div><div className="flex-1 pl-3"><dt className="text-[11px] font-medium text-ledger-text-secondary">Processed</dt><dd className="financial-amount mt-0.5 text-base font-semibold text-ledger-text">{processed}</dd></div></dl>}
+      {onReview && <Button type="button" variant="ghost" size="sm" onClick={onReview} className="mt-2 -ml-2">Review activity <span aria-hidden="true">→</span></Button>}
     </Card>
   }
 

@@ -56,7 +56,7 @@ export function CurrencySelector() {
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label="Display currency"
-        className="flex h-9 items-center gap-2 rounded-[var(--ledger-radius-control)] border border-ledger-border bg-ledger-elevated py-0 pr-3 pl-2.5 text-sm font-medium text-ledger-text-secondary transition-colors hover:bg-ledger-subtle hover:text-ledger-text"
+        className="flex h-8 items-center gap-2 rounded-[calc(var(--ledger-radius-control)-0.125rem)] border border-transparent py-0 pr-2.5 pl-2 text-sm font-semibold text-ledger-text-secondary transition-colors hover:bg-ledger-subtle hover:text-ledger-text"
       >
         <FlagImg code={currency} />
         {currency}

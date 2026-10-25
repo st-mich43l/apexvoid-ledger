@@ -34,8 +34,8 @@ export function Layout() {
           <div className="min-w-0 flex-1 xl:flex xl:justify-center"><PrimaryNavigation /></div>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-            <div className="hidden sm:block"><CurrencySelector /></div>
-            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+            <div className="hidden items-center rounded-[var(--ledger-radius-control)] border border-ledger-border bg-ledger-elevated p-0.5 shadow-sm sm:flex"><CurrencySelector /><span aria-hidden="true" className="h-4 w-px bg-ledger-border" /><ThemeToggle theme={theme} onToggle={toggleTheme} /></div>
+            <div className="sm:hidden"><ThemeToggle theme={theme} onToggle={toggleTheme} /></div>
             {user && <AccountMenu user={user} onLogout={handleLogout} />}
             <Button type="button" variant="ghost" size="sm" aria-label="Open navigation" aria-expanded={mobileNavigationOpen} onClick={() => setMobileNavigationOpen(true)} className="h-9 min-h-9 w-9 px-0 xl:hidden">
               <MenuIcon className="h-5 w-5" />
