@@ -10,15 +10,18 @@ import { FinancialMetric } from '../components/ui/FinancialMetric'
 import { controlClassName } from '../components/ui/Field'
 import { EmptyState, LoadingState } from '../components/ui/State'
 import { PageHeader } from '../components/layout/PageHeader'
+import { Modal } from '../components/Modal'
 
 export function NetWorthPage() {
   const { currency } = useCurrency()
   const { summary, accounts, loading, refreshing, connecting, error, refresh, connect, disconnect } = useNetWorth()
   const reportingCurrency = summary?.reportingCurrency ?? currency
+  const [showConnect, setShowConnect] = useState(false)
+  const [pendingDisconnect, setPendingDisconnect] = useState<FinancialAccount | null>(null)
 
   return (
     <section>
-      <PageHeader eyebrow="Financial position" title="Net Worth" description={<>Verified assets minus outstanding loan balances, shown in {reportingCurrency}.</>} />
+      <PageHeader eyebrow="Financial position" title="Net Worth" description={<>Included bank assets minus outstanding loan balances, shown in {reportingCurrency}.</>} actions={<Button type="button" onClick={() => setShowConnect(true)}>{accounts.length ? 'Add bank account' : 'Connect bank account'}</Button>} />
 
       {error && (
         <Alert tone="danger" className="mb-5">
@@ -33,8 +36,6 @@ export function NetWorthPage() {
           </ul>
         </Alert>
       ) : null}
-
-      <ConnectSePayCard connecting={connecting} onConnect={connect} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <SummaryCard
@@ -74,7 +75,7 @@ export function NetWorthPage() {
                 account={account}
                 refreshing={refreshing}
                 onRefresh={() => void refresh(account.id)}
-                onDisconnect={() => void disconnect(account.id)}
+                onDisconnect={() => setPendingDisconnect(account)}
               />
             ))}
           </div>
@@ -98,6 +99,8 @@ export function NetWorthPage() {
         Saving Pots, cash-flow income/expenses, future income, and scheduled payments are not added separately.
         {!summary?.valuationComplete && <span className="ml-1 text-amber-700 dark:text-amber-300">The current valuation is incomplete.</span>}
       </Card>
+      {showConnect && <ConnectSePayCard connecting={connecting} onConnect={connect} onClose={() => setShowConnect(false)} />}
+      {pendingDisconnect && <Modal label={`Disconnect ${pendingDisconnect.bankName}`} onClose={() => setPendingDisconnect(null)}><h2 className="text-lg font-semibold text-ledger-text">Disconnect {pendingDisconnect.bankName}?</h2><p className="mt-2 text-sm leading-6 text-ledger-text-secondary">This stops future balance synchronization for {pendingDisconnect.accountNumberMasked}. Existing Ledger history is handled by the current backend behavior.</p><div className="mt-6 flex justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setPendingDisconnect(null)}>Cancel</Button><Button type="button" variant="destructive" onClick={async () => { await disconnect(pendingDisconnect.id); setPendingDisconnect(null) }}>Disconnect account</Button></div></Modal>}
     </section>
   )
 }
@@ -198,9 +201,11 @@ function BankAccountCard({
 function ConnectSePayCard({
   connecting,
   onConnect,
+  onClose,
 }: {
   connecting: boolean
   onConnect: (input: SePayConnectionInput) => Promise<void>
+  onClose: () => void
 }) {
   const [apiToken, setApiToken] = useState('')
   const [accountNumber, setAccountNumber] = useState('')
@@ -228,13 +233,14 @@ function ConnectSePayCard({
       setWebhookAuthSecret('')
       setWebhookOauthClientId('')
       setSubmitted(false)
+      onClose()
     } catch {
       // The shared page error displays the safe server message.
     }
   }
 
   return (
-    <section className="mb-6 overflow-hidden rounded-[var(--ledger-radius-card)] border border-violet-200 bg-ledger-surface shadow-[var(--ledger-shadow-card)] dark:border-violet-900">
+    <Modal label="Connect SePay bank account" onClose={onClose} dismissible={!connecting}><section className="overflow-hidden rounded-[var(--ledger-radius-card)] border border-violet-200 bg-ledger-surface dark:border-violet-900">
       <div className="border-b border-violet-100 bg-ledger-primary-subtle px-5 py-4 dark:border-violet-900/50">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-400">Personal connection</p>
         <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -333,7 +339,7 @@ function ConnectSePayCard({
           {connecting ? 'Connecting…' : submitted ? 'Try again' : 'Connect'}
         </Button>
       </form>
-    </section>
+    </section></Modal>
   )
 }
 
