@@ -6,6 +6,9 @@ import { useSavingPot } from '../hooks/useSavingPot'
 import { formatCurrency } from '../lib/currency'
 import type { SavingPotAdjustDirection, SavingPotEntry, SavingPotEntryType } from '../types'
 import { PageHeader } from '../components/layout/PageHeader'
+import { Alert } from '../components/ui/Alert'
+import { Button } from '../components/ui/Button'
+import { Card } from '../components/ui/Card'
 
 function monthLabel(year: number, month: number): string {
   return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
@@ -47,58 +50,29 @@ export function SavingPotPage() {
 
   return (
     <section>
-      <PageHeader title="Saving Pot" description="Track and understand your available savings." actions={pot ? (
+      <PageHeader eyebrow="Savings ledger" title="Saving Pot" description="Track the application-managed savings ledger; it is not added separately to Net Worth when bank assets already represent those funds." actions={pot ? (
           <>
-            <button
-              type="button"
-              onClick={() => setAdjustDirection('add')}
-              className="rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-500"
-            >
-              Add
-            </button>
-            <button
-              type="button"
-              onClick={() => setAdjustDirection('subtract')}
-              className="rounded-full bg-amber-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-amber-500"
-            >
-              Subtract
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowCorrect(true)}
-              className="rounded-full border border-neutral-300 px-5 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
-            >
-              Correct balance
-            </button>
+            <Button type="button" onClick={() => setAdjustDirection('add')}>Adjust savings</Button>
+            <Button type="button" variant="outline" onClick={() => setShowCorrect(true)}>Correct balance</Button>
           </>
         ) : (
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="rounded-full bg-violet-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-violet-500 dark:bg-violet-500 dark:hover:bg-violet-400"
-          >
-            Create pot
-          </button>
+          <Button type="button" onClick={() => setShowCreate(true)}>Create Saving Pot</Button>
         )} />
 
-      {error && (
-        <p className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">
-          {error}
-        </p>
-      )}
+      {error && <Alert tone="danger" className="mb-6">{error}</Alert>}
 
       {pot && pot.syncWarnings.length > 0 && (
-        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/50 dark:text-amber-200">
+        <Alert tone="warning" title="Savings synchronization needs attention" className="mb-6">
           <p className="font-medium">Some closed months could not be synchronized</p>
           <ul className="mt-1 list-disc space-y-1 pl-5">
             {pot.syncWarnings.map((warning) => (
               <li key={warning}>{warning}</li>
             ))}
           </ul>
-        </div>
+        </Alert>
       )}
 
-      <article className="rounded-3xl border border-neutral-200/80 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none">
+      <Card variant={pot && pot.balance < 0 ? 'subtle' : 'highlighted'} padding="lg">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-neutral-500 dark:text-neutral-400">
           Current balance
         </p>
@@ -118,7 +92,7 @@ export function SavingPotPage() {
               : `Currency ${pot.currency}. Add, subtract, or correct the balance; closed months sync from cash flow.`
             : 'Create a pot and set your current savings to get started.'}
         </p>
-      </article>
+      </Card>
 
       <div className="mt-8">
         <h3 className="font-semibold text-neutral-900 dark:text-neutral-50">Recent activity</h3>

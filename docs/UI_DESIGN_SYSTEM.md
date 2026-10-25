@@ -186,6 +186,21 @@ previews are explicitly unsaved, preserve validation, and never silently
 rebalance allocations or create transactions, recurring entries, transfers,
 or Saving Pot changes.
 
+## Wealth management (UI 6)
+
+Net Worth, Saving Pot, and Loans use the same Quiet Premium financial
+surfaces. Net Worth keeps its valuation definition explicit: included bank
+assets less loan liabilities. Saving Pot is a separate application ledger and
+is never added as another Net Worth asset. Bank setup and disconnection are
+deliberate modal workflows; connection methods and validation remain supplied
+by the existing SePay API.
+
+Saving Pot uses a primary adjustment workflow, a separate deliberate
+correction path, and a ledger history that distinguishes automatic month-close
+events from manual adjustments. Loans keep the portfolio visible by moving
+creation into the shared modal shell; repayment schedules and contractual
+amounts remain estimates, not bank-confirmed payment history.
+
 ## Cash Flow workspace (UI 4)
 
 Cash Flow keeps its monthly content in a centered 72rem workspace. Insights
