@@ -3,7 +3,7 @@ import { ApiError } from '../api'
 import { useLoanFormState } from '../hooks/useLoanFormState'
 import { LoanFormFields } from './loan/LoanFormFields'
 import type { LoanInput } from '../types'
-import { useCurrency } from '../context/CurrencyContext'
+import { useCurrency } from '../hooks/useCurrency'
 
 interface LoanFormProps {
   onSubmit: (input: LoanInput) => Promise<void>

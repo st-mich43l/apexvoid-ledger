@@ -7,7 +7,7 @@ import { AccountMenu } from './layout/AccountMenu'
 import { MobileNavigation } from './layout/MobileNavigation'
 import { PrimaryNavigation } from './layout/PrimaryNavigation'
 import { Button } from './ui/Button'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
 
 export function Layout() {

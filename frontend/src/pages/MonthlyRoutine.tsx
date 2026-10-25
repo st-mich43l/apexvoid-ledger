@@ -17,7 +17,7 @@ import { RecurringIncomeManageDialog } from '../components/routine/RecurringInco
 import { PlanningLink, PlanningPageHeader } from '../components/planning/PlanningPageHeader'
 import { Alert } from '../components/ui/Alert'
 import { FinancialMetric } from '../components/ui/FinancialMetric'
-import { useCurrency } from '../context/CurrencyContext'
+import { useCurrency } from '../hooks/useCurrency'
 import { useCategories } from '../hooks/useCategories'
 import { useMonthlyRoutine } from '../hooks/useMonthlyRoutine'
 import { useMonthlyBudget } from '../hooks/useMonthlyBudget'

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BrandLockup } from '../components/BrandMark'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 import { currencyName, SUPPORTED_CURRENCIES, type CurrencyCode } from '../lib/currency'
 import { CURRENCY_FLAG_SRC } from '../lib/flags'
 
