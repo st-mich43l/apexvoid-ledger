@@ -157,6 +157,35 @@ monthly feature pages, while Net Worth remains explicitly labeled as a
 separate current valuation. Missing, unavailable, and incomplete values are
 shown as such; they are never rendered as financial zeroes.
 
+## Monthly planning experience (UI 5)
+
+Monthly Routine, Monthly Budget, and Monthly Close are one planning workflow:
+baseline, spending control, then auditable review. `planningPeriod.ts` owns
+the shared reporting-period parsing, local-calendar month stepping, and month
+labels. It accepts direct valid `year`/`month` links, falls back safely for
+invalid parameters, and lets browser history remain the source of navigation.
+No planning page uses UTC month stepping for the user-facing reporting period.
+
+`PlanningPageHeader` provides the compact stage navigation and the period
+selector. It preserves the active `year` and `month` across Routine, Budget,
+Month Close, and Cash Flow handoffs without adding routes or replacing global
+navigation.
+
+Routine distinguishes expected scheduled income and fixed commitments from
+recorded variable activity. Its metrics describe their source instead of
+claiming that scheduled amounts are bank-confirmed. Budget continues to use
+the existing allocation and FX-completeness calculations, with Safe to Spend
+as the leading financial position; planned savings remain a plan and are not
+represented as a Saving Pot or bank transfer. Month Close keeps backend status
+authoritative, presents its actual blockers and drift, and stores revisions
+through the existing confirmation flows. A checkpoint never locks historical
+transactions, and prior revisions remain visible.
+
+Planning forms use the shared accessible modal foundation. Their draft
+previews are explicitly unsaved, preserve validation, and never silently
+rebalance allocations or create transactions, recurring entries, transfers,
+or Saving Pot changes.
+
 ## Cash Flow workspace (UI 4)
 
 Cash Flow keeps its monthly content in a centered 72rem workspace. Insights

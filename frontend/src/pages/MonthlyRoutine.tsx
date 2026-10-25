@@ -14,6 +14,9 @@ import { RecurringExpenseFormDialog } from '../components/routine/RecurringExpen
 import { RecurringExpenseManageDialog } from '../components/routine/RecurringExpenseManageDialog'
 import { RecurringIncomeFormDialog } from '../components/routine/RecurringIncomeFormDialog'
 import { RecurringIncomeManageDialog } from '../components/routine/RecurringIncomeManageDialog'
+import { PlanningLink, PlanningPageHeader } from '../components/planning/PlanningPageHeader'
+import { Alert } from '../components/ui/Alert'
+import { FinancialMetric } from '../components/ui/FinancialMetric'
 import { useCurrency } from '../context/CurrencyContext'
 import { useCategories } from '../hooks/useCategories'
 import { useMonthlyRoutine } from '../hooks/useMonthlyRoutine'
@@ -22,6 +25,7 @@ import { useRecurringExpenses } from '../hooks/useRecurringExpenses'
 import { useRecurringIncomes } from '../hooks/useRecurringIncomes'
 import { formatCurrency } from '../lib/currency'
 import { formatDate } from '../lib/date'
+import { planningMonthLabel, planningPeriodFromSearch, shiftPlanningPeriod } from '../lib/planningPeriod'
 import type {
   RecurringExpense,
   RecurringExpenseInput,
@@ -31,30 +35,9 @@ import type {
   RecurringIncomeUpdateInput,
 } from '../types'
 
-function selectedMonth(searchParams: URLSearchParams): { year: number; month: number } {
-  const today = new Date()
-  const fallback = { year: today.getFullYear(), month: today.getMonth() + 1 }
-  const year = Number(searchParams.get('year'))
-  const month = Number(searchParams.get('month'))
-  if (!Number.isInteger(year) || year < 1 || year > 9999) return fallback
-  if (!Number.isInteger(month) || month < 1 || month > 12) return fallback
-  return { year, month }
-}
-
-function monthName(year: number, month: number): string {
-  return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
-    new Date(Date.UTC(year, month - 1, 1)),
-  )
-}
-
-function moneyTone(amount: number): string {
-  if (amount < 0) return 'text-rose-600 dark:text-rose-400'
-  return 'text-neutral-900 dark:text-neutral-50'
-}
-
 export function MonthlyRoutinePage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const { year, month } = useMemo(() => selectedMonth(searchParams), [searchParams])
+  const { year, month } = useMemo(() => planningPeriodFromSearch(searchParams), [searchParams])
   const { currency } = useCurrency()
   const categoriesState = useCategories(true)
   const routineState = useMonthlyRoutine(year, month, currency)
@@ -67,7 +50,7 @@ export function MonthlyRoutinePage() {
   const [showAddFixed, setShowAddFixed] = useState(false)
   const [showManageFixed, setShowManageFixed] = useState(false)
   const [editingFixed, setEditingFixed] = useState<RecurringExpense | null>(null)
-  const label = monthName(year, month)
+  const label = planningMonthLabel(year, month)
   const summary = routineState.summary
   const incomeControlsReady = !incomesState.loading
     && !incomesState.error
@@ -80,8 +63,8 @@ export function MonthlyRoutinePage() {
     && !categoriesState.error
 
   function navigateMonth(offset: number) {
-    const next = new Date(Date.UTC(year, month - 1 + offset, 1))
-    setSearchParams({ year: String(next.getUTCFullYear()), month: String(next.getUTCMonth() + 1) })
+    const next = shiftPlanningPeriod({ year, month }, offset)
+    setSearchParams({ year: String(next.year), month: String(next.month) })
   }
 
   async function refresh() {
@@ -138,57 +121,45 @@ export function MonthlyRoutinePage() {
 
   return (
     <section>
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-violet-600 dark:text-violet-400">Monthly Routine</p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">Normal monthly plan</h2>
-          <p className="mt-2 max-w-2xl text-sm text-neutral-500 dark:text-neutral-400">
-            Expected income, fixed commitments, and current variable spending — before discretionary choices.
-          </p>
-          <div className="mt-3 inline-flex items-center rounded-full border border-neutral-200 bg-white p-1 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-            <button type="button" onClick={() => navigateMonth(-1)} aria-label="Previous month" className="rounded-full px-3 py-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white">←</button>
-            <span className="min-w-36 px-2 text-center text-sm font-medium text-neutral-800 dark:text-neutral-200">{label}</span>
-            <button type="button" onClick={() => navigateMonth(1)} aria-label="Next month" className="rounded-full px-3 py-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white">→</button>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <Link to={`/budget?year=${year}&month=${month}`} className="text-sm font-medium text-neutral-600 hover:text-violet-600 dark:text-neutral-300 dark:hover:text-violet-400">Monthly Budget</Link>
-          <Link to={`/cashflow?year=${year}&month=${month}`} className="text-sm font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400">Open Cash Flow →</Link>
-        </div>
-      </div>
+      <PlanningPageHeader stage="routine" eyebrow="Monthly planning" title="Financial baseline" description="What your normal month looks like before discretionary spending: expected income, commitments, and what remains." year={year} month={month} monthLabel={label} onNavigateMonth={navigateMonth}>
+        <PlanningLink to={`/cashflow?year=${year}&month=${month}`}>Open Cash Flow</PlanningLink>
+      </PlanningPageHeader>
 
-      {error && <p role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">{error}</p>}
+      {error && <Alert tone="danger" className="mb-5">{error}</Alert>}
 
       {summary?.unconvertedCurrencies.length ? (
-        <p className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+        <Alert tone="warning" className="mb-5">
           Could not convert {summary.unconvertedCurrencies.join(', ')} into {summary.currency}. Native amounts remain visible; converted totals exclude those values.
-        </p>
+        </Alert>
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard
+        <FinancialMetric
           label="Expected income"
-          value={summary ? formatCurrency(summary.expectedIncomeTotal, currency) : '—'}
+          value={summary ? formatCurrency(summary.expectedIncomeTotal, currency) : 'Unavailable'}
           loading={routineState.loading}
+          detail="Scheduled, not bank-confirmed"
+          tone="positive"
         />
-        <SummaryCard
+        <FinancialMetric
           label="Committed costs"
-          value={summary ? formatCurrency(summary.committedExpenseTotal, currency) : '—'}
+          value={summary ? formatCurrency(summary.committedExpenseTotal, currency) : 'Unavailable'}
           loading={routineState.loading}
+          detail="Fixed bills and loan obligations"
         />
-        <SummaryCard
+        <FinancialMetric
           label="Baseline available"
-          value={summary ? formatCurrency(summary.baselineAvailable, currency) : '—'}
+          value={summary ? formatCurrency(summary.baselineAvailable, currency) : 'Unavailable'}
           loading={routineState.loading}
-          tone={summary ? moneyTone(summary.baselineAvailable) : undefined}
-          hint={summary && summary.baselineAvailable < 0 ? 'Projected deficit before variable spending' : 'After fixed bills and loans'}
+          tone={summary && summary.baselineAvailable < 0 ? 'negative' : 'primary'}
+          detail={summary && summary.baselineAvailable < 0 ? 'Projected deficit before variable spending' : 'After fixed bills and loans'}
         />
-        <SummaryCard
+        <FinancialMetric
           label="Projected remainder"
-          value={summary ? formatCurrency(summary.projectedRemainder, currency) : '—'}
+          value={summary ? formatCurrency(summary.projectedRemainder, currency) : 'Unavailable'}
           loading={routineState.loading}
-          tone={summary ? moneyTone(summary.projectedRemainder) : undefined}
-          hint="Baseline minus actual variable spending"
+          tone={summary && summary.projectedRemainder < 0 ? 'negative' : 'positive'}
+          detail="Baseline minus recorded variable spending"
         />
       </div>
 
@@ -475,29 +446,5 @@ export function MonthlyRoutinePage() {
         />
       )}
     </section>
-  )
-}
-
-function SummaryCard({
-  label,
-  value,
-  loading,
-  tone,
-  hint,
-}: {
-  label: string
-  value: string
-  loading: boolean
-  tone?: string
-  hint?: string
-}) {
-  return (
-    <div className="rounded-3xl border border-neutral-200/80 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none">
-      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">{label}</p>
-      <p className={`mt-2 text-xl font-semibold tabular-nums ${tone ?? 'text-neutral-900 dark:text-neutral-50'}`}>
-        {loading ? '…' : value}
-      </p>
-      {hint && <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{hint}</p>}
-    </div>
   )
 }
