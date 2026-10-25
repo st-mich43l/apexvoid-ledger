@@ -3,7 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { RequireAdmin } from './components/RequireAdmin'
 import { RequireAuth } from './components/RequireAuth'
-import { useAuth } from './context/AuthContext'
+import { useAuth } from './hooks/useAuth'
 
 const AdminUsersPage = lazy(() => import('./pages/admin/Users').then((module) => ({ default: module.AdminUsersPage })))
 const CashFlowPage = lazy(() => import('./pages/CashFlow').then((module) => ({ default: module.CashFlowPage })))

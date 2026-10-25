@@ -1,5 +1,5 @@
 import { useId, useMemo, useRef, useState, type ChangeEvent } from 'react'
-import { useCurrency } from '../context/CurrencyContext'
+import { useCurrency } from '../hooks/useCurrency'
 import { formatCompactCurrency, formatCurrency } from '../lib/currency'
 import { formatAmountDisplay, sanitizeAmountInput } from '../hooks/useLoanFormState'
 import {

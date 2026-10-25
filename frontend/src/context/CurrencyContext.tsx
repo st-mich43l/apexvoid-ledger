@@ -1,17 +1,11 @@
-import { createContext, useContext, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { SUPPORTED_CURRENCIES, type CurrencyCode } from '../lib/currency'
-import { useAuth } from './AuthContext'
+import { useAuth } from '../hooks/useAuth'
+import { CurrencyContext } from './currencyStore'
 
 function isCurrencyCode(value: string | null | undefined): value is CurrencyCode {
   return value != null && (SUPPORTED_CURRENCIES as readonly string[]).includes(value)
 }
-
-interface CurrencyContextValue {
-  currency: CurrencyCode
-  setCurrency: (currency: CurrencyCode) => void
-}
-
-const CurrencyContext = createContext<CurrencyContextValue | null>(null)
 
 // Sourced from the account (user.preferredCurrency), not localStorage — picked
 // once on first login (RequireAuth forces /select-currency while it's null,
@@ -31,10 +25,4 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   }
 
   return <CurrencyContext.Provider value={{ currency, setCurrency }}>{children}</CurrencyContext.Provider>
-}
-
-export function useCurrency() {
-  const ctx = useContext(CurrencyContext)
-  if (!ctx) throw new Error('useCurrency must be used within a CurrencyProvider')
-  return ctx
 }

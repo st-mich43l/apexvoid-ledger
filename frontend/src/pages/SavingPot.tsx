@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { AdjustBalanceDialog } from '../components/saving/AdjustBalanceDialog'
 import { SetBalanceDialog } from '../components/saving/SetBalanceDialog'
-import { useCurrency } from '../context/CurrencyContext'
+import { useCurrency } from '../hooks/useCurrency'
 import { useSavingPot } from '../hooks/useSavingPot'
 import { formatCurrency } from '../lib/currency'
 import type { SavingPotAdjustDirection, SavingPotEntry, SavingPotEntryType } from '../types'

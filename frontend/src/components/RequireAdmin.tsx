@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 
 // Nested inside RequireAuth, so `user` is guaranteed non-null and password
 // change (if any) is already satisfied by the time this runs.

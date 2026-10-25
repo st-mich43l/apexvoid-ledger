@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useCurrency } from '../context/CurrencyContext'
+import { useCurrency } from '../hooks/useCurrency'
 import { currencyName, SUPPORTED_CURRENCIES, type CurrencyCode } from '../lib/currency'
 import { CURRENCY_FLAG_SRC } from '../lib/flags'
 

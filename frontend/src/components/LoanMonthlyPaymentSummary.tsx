@@ -1,4 +1,4 @@
-import { useCurrency } from '../context/CurrencyContext'
+import { useCurrency } from '../hooks/useCurrency'
 import { formatCurrency } from '../lib/currency'
 import { summarizeMonthlyPayments } from '../lib/loans'
 import type { Loan } from '../types'
