@@ -1,29 +1,18 @@
 import { useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { ApiError } from '../api'
 import { BudgetEditorDialog } from '../components/budget/BudgetEditorDialog'
 import { BudgetResetDialog } from '../components/budget/BudgetResetDialog'
+import { PlanningLink, PlanningPageHeader } from '../components/planning/PlanningPageHeader'
+import { Alert } from '../components/ui/Alert'
+import { Badge } from '../components/ui/Badge'
+import { Button } from '../components/ui/Button'
 import { useCategories } from '../hooks/useCategories'
 import { useMonthlyBudget } from '../hooks/useMonthlyBudget'
 import { useMonthlyClose } from '../hooks/useMonthlyClose'
 import { formatCurrency } from '../lib/currency'
+import { planningMonthLabel, planningPeriodFromSearch, shiftPlanningPeriod } from '../lib/planningPeriod'
 import type { MonthlyBudgetAllocation, MonthlyBudgetInput, MonthlyBudgetSummary } from '../types'
-
-function selectedMonth(searchParams: URLSearchParams): { year: number; month: number } {
-  const today = new Date()
-  const fallback = { year: today.getFullYear(), month: today.getMonth() + 1 }
-  const year = Number(searchParams.get('year'))
-  const month = Number(searchParams.get('month'))
-  if (!Number.isInteger(year) || year < 1 || year > 9999) return fallback
-  if (!Number.isInteger(month) || month < 1 || month > 12) return fallback
-  return { year, month }
-}
-
-function monthName(year: number, month: number): string {
-  return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
-    new Date(Date.UTC(year, month - 1, 1)),
-  )
-}
 
 function moneyTone(amount: number | null): string {
   if (amount !== null && amount < 0) return 'text-rose-600 dark:text-rose-400'
@@ -38,7 +27,7 @@ function utilizationTone(percent: number): { bar: string; label: string; text: s
 
 export function BudgetPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const { year, month } = useMemo(() => selectedMonth(searchParams), [searchParams])
+  const { year, month } = useMemo(() => planningPeriodFromSearch(searchParams), [searchParams])
   const budgetState = useMonthlyBudget(year, month)
   const closeState = useMonthlyClose(year, month)
   const categoriesState = useCategories(true)
@@ -46,7 +35,7 @@ export function BudgetPage() {
   const [showReset, setShowReset] = useState(false)
   const [copying, setCopying] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
-  const label = monthName(year, month)
+  const label = planningMonthLabel(year, month)
   const summary = budgetState.summary
   const now = new Date()
   const selectedKey = year * 12 + month
@@ -54,8 +43,8 @@ export function BudgetPage() {
   const period = selectedKey < currentKey ? 'past' : selectedKey > currentKey ? 'future' : 'current'
 
   function navigateMonth(offset: number) {
-    const next = new Date(Date.UTC(year, month - 1 + offset, 1))
-    setSearchParams({ year: String(next.getUTCFullYear()), month: String(next.getUTCMonth() + 1) })
+    const next = shiftPlanningPeriod({ year, month }, offset)
+    setSearchParams({ year: String(next.year), month: String(next.month) })
     setActionError(null)
   }
 
@@ -87,33 +76,13 @@ export function BudgetPage() {
 
   return (
     <section>
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-violet-600 dark:text-violet-400">Monthly Budget</p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">Spending plan</h2>
-          <p className="mt-2 max-w-2xl text-sm text-neutral-500 dark:text-neutral-400">
-            Reserve savings, set category boundaries, and see what is still safe to spend.
-          </p>
-          <div className="mt-3 inline-flex items-center rounded-full border border-neutral-200 bg-white p-1 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-            <button type="button" onClick={() => navigateMonth(-1)} aria-label="Previous month" className="rounded-full px-3 py-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white">←</button>
-            <span className="min-w-36 px-2 text-center text-sm font-medium text-neutral-800 dark:text-neutral-200">{label}</span>
-            <button type="button" onClick={() => navigateMonth(1)} aria-label="Next month" className="rounded-full px-3 py-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white">→</button>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Link to={`/monthly-routine?year=${year}&month=${month}`} className="text-sm font-medium text-neutral-600 hover:text-violet-600 dark:text-neutral-300 dark:hover:text-violet-400">Monthly Routine</Link>
-          <Link to={`/monthly-close?year=${year}&month=${month}`} className="text-sm font-medium text-neutral-600 hover:text-violet-600 dark:text-neutral-300 dark:hover:text-violet-400">
-            Month Close{closeState.summary?.status === 'closed' ? ': Closed' : closeState.summary?.status === 'needs_review' ? ': Needs review' : ''}
-          </Link>
-          <Link to={`/cashflow?year=${year}&month=${month}`} className="text-sm font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400">Cash Flow →</Link>
-        </div>
-      </div>
+      <PlanningPageHeader stage="budget" eyebrow="Monthly planning" title="Spending control" description="See how much remains safe to spend, then guide discretionary spending by category." year={year} month={month} monthLabel={label} onNavigateMonth={navigateMonth}>
+        <PlanningLink to={`/cashflow?year=${year}&month=${month}`}>Open Cash Flow</PlanningLink>
+        {closeState.summary?.status === 'needs_review' && <Badge tone="warning">Close needs review</Badge>}
+        {closeState.summary?.status === 'closed' && <Badge tone="success">Month closed</Badge>}
+      </PlanningPageHeader>
 
-      {error && (
-        <p role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">
-          {error}
-        </p>
-      )}
+      {error && <Alert tone="danger" className="mb-5">{error}</Alert>}
 
       {summary && <BudgetFxNotice summary={summary} />}
 
@@ -179,8 +148,8 @@ function BudgetOnboarding({
             Choose a savings target and allocate variable spending by category. Your recorded expenses will be compared automatically without generating transactions.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <button type="button" onClick={onCreate} className="rounded-full bg-violet-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-violet-500 dark:bg-violet-500 dark:hover:bg-violet-400">Create spending plan</button>
-            <button type="button" onClick={onCopy} disabled={copying} className="rounded-full border border-neutral-300 px-5 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800">{copying ? 'Copying…' : 'Copy previous month'}</button>
+            <Button type="button" onClick={onCreate}>Create spending plan</Button>
+            <Button type="button" variant="outline" onClick={onCopy} loading={copying}>{copying ? 'Copying…' : 'Copy previous month'}</Button>
           </div>
         </div>
         <dl className="grid gap-3 sm:grid-cols-2 md:grid-cols-1">
@@ -278,7 +247,7 @@ function BudgetPlan({
               <h3 className="font-semibold text-neutral-900 dark:text-neutral-50">Plan structure</h3>
               <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">How your baseline is assigned.</p>
             </div>
-            <button type="button" onClick={onEdit} className="text-sm font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400">Edit</button>
+            <Button type="button" variant="ghost" size="sm" onClick={onEdit}>Edit</Button>
           </div>
           <dl className="mt-5 space-y-3 text-sm">
             <PlanMetric label="Baseline available" value={summary.baselineAvailable} summary={summary} />
@@ -301,8 +270,8 @@ function BudgetPlan({
             <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">Manual expenses compared with your {monthLabel} allocations.</p>
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={onEdit} className="rounded-full bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 dark:bg-violet-500 dark:hover:bg-violet-400">Edit plan</button>
-            <button type="button" onClick={onReset} className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-600 hover:border-rose-300 hover:text-rose-600 dark:border-neutral-700 dark:text-neutral-300 dark:hover:border-rose-800 dark:hover:text-rose-400">Reset</button>
+            <Button type="button" onClick={onEdit}>Edit plan</Button>
+            <Button type="button" variant="destructive" onClick={onReset}>Reset</Button>
           </div>
         </div>
 

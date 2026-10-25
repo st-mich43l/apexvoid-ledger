@@ -2,8 +2,15 @@ import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ApiError } from '../api'
 import { Modal } from '../components/Modal'
+import { PlanningLink, PlanningPageHeader } from '../components/planning/PlanningPageHeader'
+import { Alert } from '../components/ui/Alert'
+import { Badge } from '../components/ui/Badge'
+import { Button } from '../components/ui/Button'
+import { Card } from '../components/ui/Card'
+import { FinancialMetric } from '../components/ui/FinancialMetric'
 import { useMonthlyClose } from '../hooks/useMonthlyClose'
 import { formatCurrency } from '../lib/currency'
+import { planningMonthLabel, planningPeriodFromSearch, shiftPlanningPeriod } from '../lib/planningPeriod'
 import type { CurrencyCode } from '../lib/currency'
 import type {
   MonthlyCloseCurrent,
@@ -12,22 +19,6 @@ import type {
   MonthlyCloseStatus,
   MonthlyCloseSummary,
 } from '../types'
-
-function selectedMonth(searchParams: URLSearchParams): { year: number; month: number } {
-  const today = new Date()
-  const fallback = { year: today.getFullYear(), month: today.getMonth() + 1 }
-  const year = Number(searchParams.get('year'))
-  const month = Number(searchParams.get('month'))
-  if (!Number.isInteger(year) || year < 1 || year > 9999) return fallback
-  if (!Number.isInteger(month) || month < 1 || month > 12) return fallback
-  return { year, month }
-}
-
-function monthName(year: number, month: number): string {
-  return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
-    new Date(Date.UTC(year, month - 1, 1)),
-  )
-}
 
 function formatClosedAt(value: string): string {
   return new Intl.DateTimeFormat('en-US', {
@@ -70,7 +61,7 @@ function Line({ label, amount, currency }: { label: string; amount: number | nul
 
 export function MonthlyClosePage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const { year, month } = useMemo(() => selectedMonth(searchParams), [searchParams])
+  const { year, month } = useMemo(() => planningPeriodFromSearch(searchParams), [searchParams])
   const closeState = useMonthlyClose(year, month)
   const [showClose, setShowClose] = useState(false)
   const [showReclose, setShowReclose] = useState(false)
@@ -78,12 +69,12 @@ export function MonthlyClosePage() {
   const [reason, setReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
-  const label = monthName(year, month)
+  const label = planningMonthLabel(year, month)
   const summary = closeState.summary
 
   function navigateMonth(offset: number) {
-    const next = new Date(Date.UTC(year, month - 1 + offset, 1))
-    setSearchParams({ year: String(next.getUTCFullYear()), month: String(next.getUTCMonth() + 1) })
+    const next = shiftPlanningPeriod({ year, month }, offset)
+    setSearchParams({ year: String(next.year), month: String(next.month) })
   }
 
   async function handleClose() {
@@ -120,30 +111,11 @@ export function MonthlyClosePage() {
 
   return (
     <section>
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-violet-600 dark:text-violet-400">Monthly Close</p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">Month-end review</h2>
-          <p className="mt-2 max-w-2xl text-sm text-neutral-500 dark:text-neutral-400">
-            Review the final financial result and keep an auditable checkpoint for completed months.
-          </p>
-          <div className="mt-3 inline-flex items-center rounded-full border border-neutral-200 bg-white p-1 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-            <button type="button" onClick={() => navigateMonth(-1)} aria-label="Previous month" className="rounded-full px-3 py-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white">←</button>
-            <span className="min-w-36 px-2 text-center text-sm font-medium text-neutral-800 dark:text-neutral-200">{label}</span>
-            <button type="button" onClick={() => navigateMonth(1)} aria-label="Next month" className="rounded-full px-3 py-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white">→</button>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Link to={`/cashflow?year=${year}&month=${month}`} className="text-sm font-medium text-neutral-600 hover:text-violet-600 dark:text-neutral-300 dark:hover:text-violet-400">Cash Flow</Link>
-          <Link to={`/budget?year=${year}&month=${month}`} className="text-sm font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400">Budget →</Link>
-        </div>
-      </div>
+      <PlanningPageHeader stage="close" eyebrow="Monthly planning" title="Month-end review" description="Confirm the financial record is complete, then preserve an auditable checkpoint without locking transactions." year={year} month={month} monthLabel={label} onNavigateMonth={navigateMonth}>
+        <PlanningLink to={`/cashflow?year=${year}&month=${month}`}>Open Cash Flow</PlanningLink>
+      </PlanningPageHeader>
 
-      {error && (
-        <p role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">
-          {error}
-        </p>
-      )}
+      {error && <Alert tone="danger" className="mb-5">{error}</Alert>}
 
       {closeState.loading || !summary || !current || !reporting ? (
         <p className="rounded-2xl border border-neutral-200 bg-white px-5 py-8 text-sm text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">Loading monthly close…</p>
@@ -164,14 +136,14 @@ export function MonthlyClosePage() {
         <Modal label={`Close ${label}`} onClose={() => !submitting && setShowClose(false)} dismissible={!submitting}>
           <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">Close {label}?</h2>
           <p className="mt-2 text-sm leading-6 text-neutral-500 dark:text-neutral-400">
-            This stores an auditable snapshot of the current financial result. Closing does not lock historical transactions. If {monthName(year, month).split(' ')[0]} data changes later, Ledger will mark the month as needing review.
+            This stores an auditable snapshot of the current financial result. Closing does not lock historical transactions. If {planningMonthLabel(year, month).split(' ')[0]} data changes later, Ledger will mark the month as needing review.
           </p>
           <label className="mt-5 block text-sm font-medium text-neutral-700 dark:text-neutral-200" htmlFor="close-note">Close note (optional)</label>
-          <textarea id="close-note" value={note} onChange={(event) => setNote(event.target.value)} maxLength={240} className="mt-2 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100" rows={3} />
-          {actionError && <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">{actionError}</p>}
+          <textarea id="close-note" value={note} onChange={(event) => setNote(event.target.value)} maxLength={240} className="mt-2 w-full rounded-[var(--ledger-radius-control)] border border-ledger-border bg-ledger-elevated px-3 py-2 text-sm text-ledger-text" rows={3} />
+          {actionError && <Alert tone="danger" className="mt-4">{actionError}</Alert>}
           <div className="mt-7 flex justify-end gap-3">
-            <button type="button" onClick={() => setShowClose(false)} disabled={submitting} className="rounded-full px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 disabled:opacity-50 dark:text-neutral-300 dark:hover:bg-neutral-800">Cancel</button>
-            <button type="button" onClick={handleClose} disabled={submitting} className="rounded-full bg-violet-600 px-5 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50">{submitting ? 'Closing…' : 'Close month'}</button>
+            <Button type="button" variant="ghost" onClick={() => setShowClose(false)} disabled={submitting}>Cancel</Button>
+            <Button type="button" onClick={handleClose} loading={submitting}>{submitting ? 'Closing…' : 'Close month'}</Button>
           </div>
         </Modal>
       )}
@@ -183,11 +155,11 @@ export function MonthlyClosePage() {
             The previous close remains in history. Revision {(summary.latestSnapshot?.revisionNumber ?? 1) + 1} will become the official checkpoint.
           </p>
           <label className="mt-5 block text-sm font-medium text-neutral-700 dark:text-neutral-200" htmlFor="reclose-reason">Reason for update</label>
-          <textarea id="reclose-reason" value={reason} onChange={(event) => setReason(event.target.value)} maxLength={240} required data-autofocus className="mt-2 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100" rows={3} />
-          {actionError && <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">{actionError}</p>}
+          <textarea id="reclose-reason" value={reason} onChange={(event) => setReason(event.target.value)} maxLength={240} required data-autofocus className="mt-2 w-full rounded-[var(--ledger-radius-control)] border border-ledger-border bg-ledger-elevated px-3 py-2 text-sm text-ledger-text" rows={3} />
+          {actionError && <Alert tone="danger" className="mt-4">{actionError}</Alert>}
           <div className="mt-7 flex justify-end gap-3">
-            <button type="button" onClick={() => setShowReclose(false)} disabled={submitting} className="rounded-full px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 disabled:opacity-50 dark:text-neutral-300 dark:hover:bg-neutral-800">Cancel</button>
-            <button type="button" onClick={handleReclose} disabled={submitting || reason.trim().length === 0} className="rounded-full bg-violet-600 px-5 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50">{submitting ? 'Saving…' : `Create Revision ${(summary.latestSnapshot?.revisionNumber ?? 1) + 1}`}</button>
+            <Button type="button" variant="ghost" onClick={() => setShowReclose(false)} disabled={submitting}>Cancel</Button>
+            <Button type="button" onClick={handleReclose} disabled={reason.trim().length === 0} loading={submitting}>{`Create Revision ${(summary.latestSnapshot?.revisionNumber ?? 1) + 1}`}</Button>
           </div>
         </Modal>
       )}
@@ -221,8 +193,8 @@ function CloseBody({
 
   return (
     <div className="space-y-5">
-      <div className={`rounded-2xl border px-5 py-4 ${statusClasses(summary.status)}`}>
-        <p className="text-xs font-semibold uppercase tracking-[0.14em]">{STATUS_COPY[summary.status]}</p>
+      <Card className={`border px-5 py-4 ${statusClasses(summary.status)}`}>
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.14em]">Close status</p><h2 className="mt-1 text-lg font-semibold">{STATUS_COPY[summary.status]}</h2></div><Badge tone={summary.status === 'closed' ? 'success' : summary.status === 'blocked' ? 'danger' : summary.status === 'needs_review' ? 'warning' : summary.status === 'ready_to_close' ? 'primary' : 'neutral'}>{STATUS_COPY[summary.status]}</Badge></div>
         {summary.status === 'in_progress' && (
           <p className="mt-2 text-sm leading-6">
             {label} is still in progress. Final close becomes available after {lastDay}.
@@ -244,19 +216,20 @@ function CloseBody({
             {label} needs review. Financial data changed after Revision {snapshot.revisionNumber}.
           </p>
         )}
-      </div>
+        {(summary.status === 'blocked' || summary.status === 'needs_review') && <div className="mt-4 flex flex-wrap gap-2"><Link to={`/cashflow?year=${year}&month=${month}`} className="text-sm font-semibold underline underline-offset-4">Review Cash Flow</Link><Link to={`/budget?year=${year}&month=${month}`} className="text-sm font-semibold underline underline-offset-4">Review Budget</Link></div>}
+      </Card>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard title="Income" value={money(current.incomeTotal, reporting)} />
-        <SummaryCard title="Expenses" value={money(-current.expenseTotal, reporting)} />
-        <SummaryCard title="Net cash flow" value={money(current.netCashFlow, reporting)} tone={current.netCashFlow < 0 ? 'negative' : 'positive'} />
-        <SummaryCard
-          title="Budget result"
+        <FinancialMetric label="Income" value={money(current.incomeTotal, reporting)} detail="Scheduled and recorded" />
+        <FinancialMetric label="Expenses" value={money(-current.expenseTotal, reporting)} detail="Fixed and variable" />
+        <FinancialMetric label="Net cash flow" value={money(current.netCashFlow, reporting)} tone={current.netCashFlow < 0 ? 'negative' : 'positive'} detail={current.netCashFlow < 0 ? 'Deficit for this month' : 'Available after expenses'} />
+        <FinancialMetric label="Budget result"
           value={
             current.hasBudget && current.safeToSpend !== null && budgetCurrency
               ? `${money(Math.abs(current.safeToSpend), budgetCurrency)} ${current.safeToSpend < 0 ? 'over' : 'under'}`
               : current.hasBudget ? 'Incomplete' : 'No budget'
           }
+          detail={current.hasBudget ? 'Existing budget comparison' : 'No monthly plan'}
         />
       </div>
 
@@ -278,6 +251,7 @@ function CloseBody({
         </section>
       )}
 
+      <div className="grid gap-5 lg:grid-cols-2">
       <ReviewCard title="Month result">
         <Line label="Income" amount={current.incomeTotal} currency={reporting} />
         <Line label="Expenses" amount={-current.expenseTotal} currency={reporting} />
@@ -341,24 +315,16 @@ function CloseBody({
         {current.savingPotStatus === 'not_applicable' && <p className="text-sm text-neutral-500 dark:text-neutral-400">Saving Pot was created after this month.</p>}
         {current.savingPotStatus !== 'not_configured' && current.savingPotStatus !== 'not_applicable' && (
           <>
-            <Line label={`${monthName(year, month).split(' ')[0]} Cash Flow application`} amount={current.savingPotMonthAppliedAmount} currency={potCurrency} />
+            <Line label={`${planningMonthLabel(year, month).split(' ')[0]} Cash Flow application`} amount={current.savingPotMonthAppliedAmount} currency={potCurrency} />
             <p className="mt-2 text-sm text-neutral-700 dark:text-neutral-200">
               Status: {current.savingPotStatus === 'synced' ? 'Synced' : current.savingPotStatus === 'blocked' ? 'Blocked' : current.savingPotStatus === 'stale' ? 'Needs sync' : 'Missing'}
             </p>
           </>
         )}
-      </ReviewCard>
+      </ReviewCard></div>
 
-      {summary.closeEligible && (
-        <button type="button" onClick={onClose} className="rounded-full bg-violet-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-violet-500">
-          Close {monthName(year, month).split(' ')[0]}
-        </button>
-      )}
-      {summary.recloseEligible && (
-        <button type="button" onClick={onReclose} className="rounded-full bg-amber-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-amber-500">
-          Re-close with updated numbers
-        </button>
-      )}
+      {summary.closeEligible && <Button type="button" onClick={onClose}>Close {planningMonthLabel(year, month).split(' ')[0]}</Button>}
+      {summary.recloseEligible && <Button type="button" variant="secondary" onClick={onReclose}>Re-close with updated numbers</Button>}
 
       {summary.history.length > 0 && (
         <section>
@@ -374,16 +340,6 @@ function CloseBody({
       <p className="text-xs text-neutral-500 dark:text-neutral-400">
         Closing a month does not lock historical data. Transaction edits stay available on Cash Flow.
       </p>
-    </div>
-  )
-}
-
-function SummaryCard({ title, value, tone }: { title: string; value: string; tone?: 'positive' | 'negative' }) {
-  const color = tone === 'negative' ? 'text-rose-600 dark:text-rose-400' : tone === 'positive' ? 'text-emerald-700 dark:text-emerald-300' : 'text-neutral-900 dark:text-neutral-50'
-  return (
-    <div className="rounded-2xl border border-neutral-200 bg-white px-4 py-4 dark:border-neutral-800 dark:bg-neutral-900">
-      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-neutral-500 dark:text-neutral-400">{title}</p>
-      <p className={`mt-2 break-all text-lg font-semibold tabular-nums ${color}`}>{value}</p>
     </div>
   )
 }
