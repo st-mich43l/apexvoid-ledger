@@ -2,167 +2,44 @@ import { useMemo, useState } from 'react'
 import { ApiError, classifyBankActivity } from '../../api'
 import { formatCurrency } from '../../lib/currency'
 import { formatDate } from '../../lib/date'
-import type {
-  BankActivity,
-  BankActivityClassification,
-  Category,
-} from '../../types'
+import type { BankActivity, BankActivityClassification, Category } from '../../types'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
 import { selectClassName } from '../ui/Field'
 
-interface BankActivityListProps {
-  activities: BankActivity[]
-  categories: Category[]
-  loading: boolean
-  monthLabel: string
-  onChanged: () => Promise<void>
-  compact?: boolean
-  onReview?: () => void
-}
-
-const classificationOptions: Array<{ value: BankActivityClassification; label: string }> = [
-  { value: 'unreviewed', label: 'Unreviewed' },
-  { value: 'income', label: 'Income' },
-  { value: 'expense', label: 'Expense' },
-  { value: 'internal_transfer', label: 'Internal transfer' },
-  { value: 'loan_repayment', label: 'Loan repayment' },
-  { value: 'loan_interest', label: 'Loan interest' },
-  { value: 'savings_transfer', label: 'Savings transfer' },
-]
-
-const selectClass = selectClassName
+interface BankActivityListProps { activities: BankActivity[]; categories: Category[]; loading: boolean; monthLabel: string; onChanged: () => Promise<void>; compact?: boolean; onReview?: () => void }
+type Draft = { classification: BankActivityClassification; categoryId: string }
+const classificationOptions: Array<{ value: BankActivityClassification; label: string }> = [{ value: 'unreviewed', label: 'Unreviewed' }, { value: 'income', label: 'Income' }, { value: 'expense', label: 'Expense' }, { value: 'internal_transfer', label: 'Internal transfer' }, { value: 'loan_repayment', label: 'Loan repayment' }, { value: 'loan_interest', label: 'Loan interest' }, { value: 'savings_transfer', label: 'Savings transfer' }]
+const needsCategory = (value: BankActivityClassification) => value === 'income' || value === 'expense' || value === 'loan_interest'
 
 export function BankActivityList({ activities, categories, loading, monthLabel, onChanged, compact = false, onReview }: BankActivityListProps) {
   const [direction, setDirection] = useState<'all' | 'in' | 'out'>('all')
   const [status, setStatus] = useState<'all' | 'pending_review' | 'processed'>('all')
   const [accountId, setAccountId] = useState('all')
-
-  const accounts = useMemo(() => {
-    return [...new Map(activities.map((activity) => [activity.financialAccountId, activity])).values()]
-  }, [activities])
-  const filtered = activities.filter((activity) => (
-    (direction === 'all' || activity.direction === direction) &&
-    (status === 'all' || activity.processingStatus === status) &&
-    (accountId === 'all' || activity.financialAccountId === accountId)
-  ))
-
-  if (compact) {
-    const pending = activities.filter((activity) => activity.processingStatus === 'pending_review').length
-    const processed = activities.filter((activity) => activity.processingStatus === 'processed').length
-    const isCurrent = pending === 0
-    return <Card padding="sm" className="h-fit">
-      <div className="flex items-start justify-between gap-3">
-        <div><h3 className="font-semibold text-ledger-text">Bank activity</h3><p className="mt-0.5 text-xs text-ledger-text-secondary">SePay · {monthLabel}</p></div>
-        {!loading && <span className={`inline-flex items-center gap-1.5 pt-0.5 text-xs font-semibold ${isCurrent ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}`}><span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${isCurrent ? 'bg-emerald-500' : 'bg-amber-500'}`} />{isCurrent ? 'Current' : 'Needs review'}</span>}
-      </div>
-      {loading ? <p className="mt-3 text-sm text-ledger-text-secondary">Loading bank activity…</p> : <dl className="mt-3 flex items-center divide-x divide-ledger-border border-y border-ledger-border py-2.5"><div className="flex-1 pr-3"><dt className="text-[11px] font-medium text-ledger-text-secondary">Awaiting review</dt><dd className="financial-amount mt-0.5 text-base font-semibold text-ledger-text">{pending}</dd></div><div className="flex-1 pl-3"><dt className="text-[11px] font-medium text-ledger-text-secondary">Processed</dt><dd className="financial-amount mt-0.5 text-base font-semibold text-ledger-text">{processed}</dd></div></dl>}
-      {onReview && <Button type="button" variant="ghost" size="sm" onClick={onReview} className="mt-2 -ml-2">Review activity <span aria-hidden="true">→</span></Button>}
-    </Card>
-  }
-
-  return (
-    <Card padding="none" className="h-fit overflow-hidden">
-      <div className="border-b border-ledger-border px-5 py-4">
-        <div className="flex flex-col gap-3">
-          <div>
-            <h3 className="font-semibold text-ledger-text">Bank activity</h3>
-            <p className="mt-1 text-xs text-ledger-text-secondary">
-              {activities.length} SePay {activities.length === 1 ? 'event' : 'events'} received in {monthLabel}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <select aria-label="Filter bank activity by direction" value={direction} onChange={(event) => setDirection(event.target.value as typeof direction)} className={selectClass}>
-              <option value="all">All directions</option>
-              <option value="in">Incoming</option>
-              <option value="out">Outgoing</option>
-            </select>
-            <select aria-label="Filter bank activity by status" value={status} onChange={(event) => setStatus(event.target.value as typeof status)} className={selectClass}>
-              <option value="all">All statuses</option>
-              <option value="pending_review">Needs review</option>
-              <option value="processed">Processed</option>
-            </select>
-            {accounts.length > 1 && (
-              <select aria-label="Filter bank activity by account" value={accountId} onChange={(event) => setAccountId(event.target.value)} className={selectClass}>
-                <option value="all">All accounts</option>
-                {accounts.map((activity) => <option key={activity.financialAccountId} value={activity.financialAccountId ?? ''}>{activity.bankName ?? 'Bank'} · {activity.accountNumberMasked}</option>)}
-              </select>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {loading ? (
-        <p className="p-5 text-sm text-ledger-text-secondary">Loading bank activity…</p>
-      ) : filtered.length === 0 ? (
-        <p className="px-5 py-5 text-center text-xs text-ledger-text-secondary">{activities.length === 0 ? `No SePay activity received in ${monthLabel}.` : 'No bank activity matches these filters.'}</p>
-      ) : (
-        <ul className="divide-y divide-ledger-border">
-          {filtered.map((activity) => (
-            <BankActivityRow key={activity.id} activity={activity} categories={categories} onChanged={onChanged} />
-          ))}
-        </ul>
-      )}
-    </Card>
-  )
-}
-
-function BankActivityRow({ activity, categories, onChanged }: { activity: BankActivity; categories: Category[]; onChanged: () => Promise<void> }) {
-  const [classification, setClassification] = useState<BankActivityClassification>(activity.classification)
-  const [categoryId, setCategoryId] = useState(activity.categoryId ?? '')
+  const [drafts, setDrafts] = useState<Record<string, Draft>>({})
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
+  const accounts = useMemo(() => [...new Map(activities.map((activity) => [activity.financialAccountId, activity])).values()], [activities])
+  const filtered = activities.filter((activity) => (direction === 'all' || activity.direction === direction) && (status === 'all' || activity.processingStatus === status) && (accountId === 'all' || activity.financialAccountId === accountId))
+  const changed = Object.entries(drafts).filter(([id, draft]) => { const activity = activities.find((item) => item.id === id); return activity && (draft.classification !== activity.classification || draft.categoryId !== (activity.categoryId ?? '')) })
 
-  const categoryOptions = categories.filter((category) => category.type === (classification === 'income' ? 'income' : 'expense') && category.isActive)
-  const needsCategory = classification === 'income' || classification === 'expense' || classification === 'loan_interest'
-  const displayAmount = `${activity.direction === 'in' ? '+' : '-'}${formatCurrency(activity.amount, activity.currency)}`
-
-  async function save() {
-    if (needsCategory && !categoryId) {
-      setError('Select a category.')
-      return
-    }
-    setSaving(true)
-    setError(null)
-    setSaved(false)
-    try {
-      await classifyBankActivity(activity.id, classification, needsCategory ? categoryId : undefined)
-      await onChanged()
-      setSaved(true)
-    } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'Could not classify activity.')
-    } finally {
-      setSaving(false)
-    }
+  function draftFor(activity: BankActivity): Draft { return drafts[activity.id] ?? { classification: activity.classification, categoryId: activity.categoryId ?? '' } }
+  function update(activity: BankActivity, next: Partial<Draft>) { setError(null); setDrafts((current) => ({ ...current, [activity.id]: { ...draftFor(activity), ...next } })) }
+  async function saveAll() {
+    const invalid = changed.find(([, draft]) => needsCategory(draft.classification) && !draft.categoryId)
+    if (invalid) { setError('Select a category for every income, expense, or loan-interest classification.'); return }
+    setSaving(true); setError(null)
+    try { for (const [id, draft] of changed) await classifyBankActivity(id, draft.classification, needsCategory(draft.classification) ? draft.categoryId : undefined); await onChanged(); setDrafts({}) } catch (caught) { setError(caught instanceof ApiError ? caught.message : 'Could not save all classifications. Review the remaining changes and try again.') } finally { setSaving(false) }
   }
 
-  return (
-    <li className="p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="break-words font-medium text-ledger-text">{activity.description || 'Bank transaction'}</p>
-          <p className="mt-1 text-xs text-ledger-text-secondary">{activity.bankName ?? 'Bank'} · {activity.accountNumberMasked} · {formatDate(activity.occurredAt)}</p>
-          <p className="mt-1 break-all text-xs text-ledger-muted">{activity.bankReference ? `Ref ${activity.bankReference}` : `SePay #${activity.providerTransactionId}`}</p>
-        </div>
-        <div className="shrink-0 text-right">
-          <p className={`financial-amount font-semibold ${activity.direction === 'in' ? 'text-emerald-700 dark:text-emerald-400' : 'text-ledger-text'}`}>{displayAmount}</p>
-          <Badge tone={activity.processingStatus === 'pending_review' ? 'warning' : 'success'} className="mt-2">{activity.processingStatus === 'pending_review' ? 'Review' : activity.processingStatus}</Badge>
-        </div>
-      </div>
-      <div className="mt-4 grid gap-2">
-        <select aria-label={`Classify ${activity.description || 'bank activity'}`} value={classification} onChange={(event) => setClassification(event.target.value as BankActivityClassification)} disabled={saving} className={selectClass}>
-          {classificationOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-        </select>
-        {needsCategory && <select aria-label="Select bank activity category" value={categoryId} onChange={(event) => setCategoryId(event.target.value)} disabled={saving} className={selectClass}><option value="">Select category</option>{categoryOptions.map((category) => <option key={category.id} value={category.id}>{category.icon ? `${category.icon} ` : ''}{category.name}</option>)}</select>}
-        {(classification !== activity.classification || categoryId !== (activity.categoryId ?? '')) && <Button type="button" onClick={() => void save()} loading={saving} size="sm" className="justify-self-start">Save</Button>}
-      </div>
-      {activity.classification === 'loan_repayment' && (
-        <p className="mt-2 text-xs text-ledger-text-secondary">Tracked as a bank activity; it is not added as a Cash Flow transaction.</p>
-      )}
-      {error && <p className="mt-2 text-xs text-rose-700 dark:text-rose-400">{error}</p>}
-      {saved && <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-400">Saved. The linked activity was updated without creating a duplicate.</p>}
-    </li>
-  )
+  if (compact) { const pending = activities.filter((item) => item.processingStatus === 'pending_review').length; const processed = activities.filter((item) => item.processingStatus === 'processed').length; return <Card padding="sm" className="h-fit"><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold text-ledger-text">Bank activity</h3><p className="mt-0.5 text-xs text-ledger-text-secondary">SePay · {monthLabel}</p></div>{!loading && <Badge tone={pending ? 'warning' : 'success'}>{pending ? `${pending} review` : 'Current'}</Badge>}</div>{loading ? <p className="mt-3 text-sm text-ledger-text-secondary">Loading bank activity…</p> : <dl className="mt-3 flex divide-x divide-ledger-border border-y border-ledger-border py-2.5"><div className="flex-1 pr-3"><dt className="text-[11px] text-ledger-text-secondary">Awaiting review</dt><dd className="financial-amount text-base font-semibold">{pending}</dd></div><div className="flex-1 pl-3"><dt className="text-[11px] text-ledger-text-secondary">Processed</dt><dd className="financial-amount text-base font-semibold">{processed}</dd></div></dl>}{onReview && <Button type="button" variant="ghost" size="sm" onClick={onReview} className="mt-2 -ml-2">Review activity →</Button>}</Card> }
+
+  return <Card padding="none" className="h-fit overflow-hidden"><div className="border-b border-ledger-border px-5 py-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold text-ledger-text">Bank activity</h3><p className="mt-1 text-xs text-ledger-text-secondary">Stage classifications, then save them together.</p></div><Button type="button" onClick={() => void saveAll()} disabled={changed.length === 0} loading={saving}>{changed.length ? `Save ${changed.length} change${changed.length === 1 ? '' : 's'}` : 'Save changes'}</Button></div><div className="mt-3 flex flex-wrap gap-2"><select aria-label="Filter bank activity by direction" value={direction} onChange={(event) => setDirection(event.target.value as typeof direction)} className={selectClassName}><option value="all">All directions</option><option value="in">Incoming</option><option value="out">Outgoing</option></select><select aria-label="Filter bank activity by status" value={status} onChange={(event) => setStatus(event.target.value as typeof status)} className={selectClassName}><option value="all">All statuses</option><option value="pending_review">Needs review</option><option value="processed">Processed</option></select>{accounts.length > 1 && <select aria-label="Filter bank activity by account" value={accountId} onChange={(event) => setAccountId(event.target.value)} className={selectClassName}><option value="all">All accounts</option>{accounts.map((item) => <option key={item.financialAccountId} value={item.financialAccountId ?? ''}>{item.bankName ?? 'Bank'} · {item.accountNumberMasked}</option>)}</select>}</div>{error && <p role="alert" className="mt-3 text-sm text-rose-700 dark:text-rose-400">{error}</p>}</div>{loading ? <p className="p-5 text-sm text-ledger-text-secondary">Loading bank activity…</p> : filtered.length === 0 ? <p className="px-5 py-5 text-center text-xs text-ledger-text-secondary">{activities.length === 0 ? `No SePay activity received in ${monthLabel}.` : 'No bank activity matches these filters.'}</p> : <ul className="divide-y divide-ledger-border">{filtered.map((activity) => <BankActivityRow key={activity.id} activity={activity} draft={draftFor(activity)} categories={categories} saving={saving} onChange={(next) => update(activity, next)} />)}</ul>}</Card>
+}
+
+function BankActivityRow({ activity, draft, categories, saving, onChange }: { activity: BankActivity; draft: Draft; categories: Category[]; saving: boolean; onChange: (next: Partial<Draft>) => void }) {
+  const categoryOptions = categories.filter((category) => category.type === (draft.classification === 'income' ? 'income' : 'expense') && category.isActive)
+  const changed = draft.classification !== activity.classification || draft.categoryId !== (activity.categoryId ?? '')
+  return <li className="p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="break-words font-medium text-ledger-text">{activity.description || 'Bank transaction'}</p><p className="mt-1 text-xs text-ledger-text-secondary">{activity.bankName ?? 'Bank'} · {activity.accountNumberMasked} · {formatDate(activity.occurredAt)}</p><p className="mt-1 break-all text-xs text-ledger-muted">{activity.bankReference ? `Ref ${activity.bankReference}` : `SePay #${activity.providerTransactionId}`}</p></div><div className="shrink-0 text-right"><p className={`financial-amount font-semibold ${activity.direction === 'in' ? 'text-emerald-700 dark:text-emerald-400' : 'text-ledger-text'}`}>{activity.direction === 'in' ? '+' : '-'}{formatCurrency(activity.amount, activity.currency)}</p><Badge tone={changed ? 'primary' : activity.processingStatus === 'pending_review' ? 'warning' : 'success'} className="mt-2">{changed ? 'Staged' : activity.processingStatus === 'pending_review' ? 'Review' : 'Saved'}</Badge></div></div><div className="mt-4 grid gap-2"><select aria-label={`Classify ${activity.description || 'bank activity'}`} value={draft.classification} onChange={(event) => onChange({ classification: event.target.value as BankActivityClassification, categoryId: '' })} disabled={saving} className={selectClassName}>{classificationOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>{needsCategory(draft.classification) && <select aria-label="Select bank activity category" value={draft.categoryId} onChange={(event) => onChange({ categoryId: event.target.value })} disabled={saving} className={selectClassName}><option value="">Select category</option>{categoryOptions.map((category) => <option key={category.id} value={category.id}>{category.icon ? `${category.icon} ` : ''}{category.name}</option>)}</select>}</div>{activity.classification === 'loan_repayment' && <p className="mt-2 text-xs text-ledger-text-secondary">Tracked as a bank activity; it is not added as a Cash Flow transaction.</p>}</li>
 }
