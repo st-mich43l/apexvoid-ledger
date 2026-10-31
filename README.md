@@ -228,6 +228,10 @@ discretionary spending:
   from the same schedule and update automatically.
   A first-time setup pre-fills a monthly salary baseline; the amount remains
   required, and users can add more income sources or update future months.
+  Inactive schedules can be permanently deleted from Manage. Deletion removes
+  that schedule's derived projections (including prior months) but never
+  deletes recorded Cash Flow transactions or bank activity. Active schedules
+  must be stopped before they can be deleted.
 - **Committed costs** — existing recurring fixed expenses. Loan schedules
   remain estimates; a completed repayment is tracked from the matching bank
   activity instead of becoming a generated Cash Flow expense.
@@ -310,6 +314,10 @@ subscriptions, etc.) without recreating them every month.
 - Editing is effective-dated: changing rent from September leaves earlier
   months at the previous amount. Stop ends the schedule from a chosen month;
   Resume starts a new period (gaps are not backfilled).
+- Inactive schedules can be permanently deleted from Manage. This removes the
+  schedule's derived projections, including historical ones, while leaving
+  manual and imported bank transactions untouched. An active schedule must be
+  stopped first.
 - Fixed costs are **planned obligations**, not payment confirmation — similar
   to linked loan expenses.
 - Monthly summary exposes fixed / variable / loan / committed totals:

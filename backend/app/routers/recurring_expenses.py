@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..auth import require_password_changed
@@ -142,3 +142,19 @@ def reactivate_expense(
     end_month=parse_month(payload.end_month) if payload.end_month else None,
   )
   return _serialize(expense)
+
+
+@router.delete("/{expense_id}", status_code=204)
+def delete_expense(
+  expense_id: str,
+  db: Session = Depends(get_db),
+  current_user: User = Depends(require_password_changed),
+):
+  expense = get_owned_expense(db, current_user.id, expense_id)
+  if is_series_active(expense):
+    raise HTTPException(
+      status_code=409,
+      detail="Stop recurring expense before deleting it",
+    )
+  db.delete(expense)
+  db.commit()

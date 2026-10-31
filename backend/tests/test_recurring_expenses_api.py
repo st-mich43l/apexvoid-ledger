@@ -341,6 +341,33 @@ class TestRecurringExpenseLifecycle:
     assert summary(auth_client, 2026, 8)["fixedExpenseTotal"] == 0
     assert summary(auth_client, 2026, 9)["fixedExpenseTotal"] == 500000
 
+  def test_inactive_expense_can_be_deleted_without_deleting_transactions(
+    self, auth_client: TestClient, db_session: Session
+  ):
+    created = create_recurring(auth_client, startMonth="2020-01", endMonth="2020-01")
+    transaction = create_tx(
+      auth_client,
+      amount=100000,
+      currency="VND",
+      occurredAt="2020-01-15T00:00:00Z",
+    )
+
+    deleted = auth_client.delete(f"/api/recurring-expenses/{created['id']}")
+
+    assert deleted.status_code == 204, deleted.text
+    assert auth_client.get("/api/recurring-expenses").json() == []
+    assert db_session.query(RecurringExpenseRevision).count() == 0
+    assert db_session.query(Transaction).filter(Transaction.id == transaction["id"]).count() == 1
+    assert summary(auth_client, 2020, 1)["fixedExpenseTotal"] == 0
+
+  def test_active_expense_cannot_be_deleted(self, auth_client: TestClient):
+    created = create_recurring(auth_client)
+
+    response = auth_client.delete(f"/api/recurring-expenses/{created['id']}")
+
+    assert response.status_code == 409
+    assert auth_client.get("/api/recurring-expenses").json()[0]["id"] == created["id"]
+
 
 class TestCashFlowRecurringTotals:
   def test_fixed_only(self, auth_client: TestClient):

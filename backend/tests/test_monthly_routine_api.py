@@ -340,6 +340,34 @@ class TestRecurringIncomeLifecycle:
     assert db_session.query(Transaction).count() == before_tx
     assert db_session.query(RecurringIncomeRevision).count() == before_rev
 
+  def test_inactive_income_can_be_deleted_without_deleting_transactions(
+    self, auth_client: TestClient, db_session: Session
+  ):
+    created = create_income(auth_client, startMonth="2020-01", endMonth="2020-01")
+    transaction = create_tx(
+      auth_client,
+      type="income",
+      amount=45000000,
+      currency="VND",
+      occurredAt="2020-01-25T00:00:00Z",
+    )
+
+    deleted = auth_client.delete(f"/api/recurring-incomes/{created['id']}")
+
+    assert deleted.status_code == 204, deleted.text
+    assert auth_client.get("/api/recurring-incomes").json() == []
+    assert db_session.query(RecurringIncomeRevision).count() == 0
+    assert db_session.query(Transaction).filter(Transaction.id == transaction["id"]).count() == 1
+    assert routine(auth_client, 2020, 1)["expectedIncomeTotal"] == 0
+
+  def test_active_income_cannot_be_deleted(self, auth_client: TestClient):
+    created = create_income(auth_client)
+
+    response = auth_client.delete(f"/api/recurring-incomes/{created['id']}")
+
+    assert response.status_code == 409
+    assert auth_client.get("/api/recurring-incomes").json()[0]["id"] == created["id"]
+
 
 class TestMonthlyRoutineCalculations:
   def test_basic_equations(self, auth_client: TestClient):

@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..auth import require_password_changed
@@ -141,3 +141,19 @@ def reactivate_income(
     end_month=parse_month(payload.end_month) if payload.end_month else None,
   )
   return _serialize(income)
+
+
+@router.delete("/{income_id}", status_code=204)
+def delete_income(
+  income_id: str,
+  db: Session = Depends(get_db),
+  current_user: User = Depends(require_password_changed),
+):
+  income = get_owned_income(db, current_user.id, income_id)
+  if is_series_active(income):
+    raise HTTPException(
+      status_code=409,
+      detail="Stop expected income before deleting it",
+    )
+  db.delete(income)
+  db.commit()
