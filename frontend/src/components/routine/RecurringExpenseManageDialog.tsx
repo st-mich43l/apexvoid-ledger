@@ -20,6 +20,7 @@ interface RecurringExpenseManageDialogProps {
   onEdit: (expense: RecurringExpense) => void
   onStop: (id: string, effectiveFromMonth: string) => Promise<void>
   onResume: (id: string, resumeFromMonth: string) => Promise<void>
+  onDelete: (id: string) => Promise<void>
 }
 
 export function RecurringExpenseManageDialog({
@@ -30,10 +31,12 @@ export function RecurringExpenseManageDialog({
   onEdit,
   onStop,
   onResume,
+  onDelete,
 }: RecurringExpenseManageDialogProps) {
   const defaultMonth = `${year}-${String(month).padStart(2, '0')}`
   const [pendingStop, setPendingStop] = useState<RecurringExpense | null>(null)
   const [pendingResume, setPendingResume] = useState<RecurringExpense | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<RecurringExpense | null>(null)
   const [stopMonth, setStopMonth] = useState(defaultMonth)
   const [resumeMonth, setResumeMonth] = useState(defaultMonth)
   const [busy, setBusy] = useState(false)
@@ -62,6 +65,20 @@ export function RecurringExpenseManageDialog({
       setPendingResume(null)
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : 'Could not resume this fixed cost.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return
+    setBusy(true)
+    setError(null)
+    try {
+      await onDelete(pendingDelete.id)
+      setPendingDelete(null)
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : 'Could not delete this fixed cost.')
     } finally {
       setBusy(false)
     }
@@ -129,6 +146,30 @@ export function RecurringExpenseManageDialog({
           </button>
           <button type="button" disabled={busy} onClick={() => void confirmResume()} className="rounded-full bg-violet-600 px-5 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50">
             {busy ? 'Resuming…' : 'Resume'}
+          </button>
+        </div>
+      </Modal>
+    )
+  }
+
+  if (pendingDelete) {
+    return (
+      <Modal label="Delete fixed cost" onClose={() => !busy && setPendingDelete(null)} dismissible={!busy}>
+        <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">Delete {pendingDelete.name}?</h2>
+        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+          This permanently removes the inactive schedule and its derived projections. Recorded transactions and bank activity stay unchanged.
+        </p>
+        {error && (
+          <p role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/60 dark:text-red-300">
+            {error}
+          </p>
+        )}
+        <div className="mt-7 flex justify-end gap-3">
+          <button type="button" disabled={busy} onClick={() => setPendingDelete(null)} className="rounded-full px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 disabled:opacity-50 dark:text-neutral-300 dark:hover:bg-neutral-800">
+            Cancel
+          </button>
+          <button type="button" disabled={busy} onClick={() => void confirmDelete()} className="rounded-full bg-red-600 px-5 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50">
+            {busy ? 'Deleting…' : 'Delete schedule'}
           </button>
         </div>
       </Modal>
@@ -205,17 +246,29 @@ export function RecurringExpenseManageDialog({
                       Stop
                     </button>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setError(null)
-                        setResumeMonth(defaultMonth)
-                        setPendingResume(item)
-                      }}
-                      className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-100 dark:border-violet-900/70 dark:bg-violet-950/40 dark:text-violet-300"
-                    >
-                      Resume
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setError(null)
+                          setResumeMonth(defaultMonth)
+                          setPendingResume(item)
+                        }}
+                        className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-100 dark:border-violet-900/70 dark:bg-violet-950/40 dark:text-violet-300"
+                      >
+                        Resume
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setError(null)
+                          setPendingDelete(item)
+                        }}
+                        className="rounded-full px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
+                      >
+                        Delete
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

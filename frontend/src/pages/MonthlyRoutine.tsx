@@ -3,6 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 import {
   createRecurringExpense,
   createRecurringIncome,
+  deleteRecurringExpense,
+  deleteRecurringIncome,
   deactivateRecurringExpense,
   deactivateRecurringIncome,
   reactivateRecurringExpense,
@@ -94,6 +96,11 @@ export function MonthlyRoutinePage() {
     await refresh()
   }
 
+  async function handleDelete(id: string) {
+    await deleteRecurringIncome(id)
+    await refresh()
+  }
+
   async function handleCreateFixed(input: RecurringExpenseInput) {
     await createRecurringExpense(input)
     await refresh()
@@ -114,6 +121,11 @@ export function MonthlyRoutinePage() {
 
   async function handleResumeFixed(id: string, resumeFromMonth: string) {
     await reactivateRecurringExpense(id, resumeFromMonth)
+    await refresh()
+  }
+
+  async function handleDeleteFixed(id: string) {
+    await deleteRecurringExpense(id)
     await refresh()
   }
 
@@ -400,6 +412,7 @@ export function MonthlyRoutinePage() {
           }}
           onStop={handleStop}
           onResume={handleResume}
+          onDelete={handleDelete}
         />
       )}
 
@@ -443,6 +456,7 @@ export function MonthlyRoutinePage() {
           }}
           onStop={handleStopFixed}
           onResume={handleResumeFixed}
+          onDelete={handleDeleteFixed}
         />
       )}
     </section>

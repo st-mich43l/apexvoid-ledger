@@ -320,6 +320,10 @@ export function reactivateRecurringExpense(
   })
 }
 
+export function deleteRecurringExpense(id: string): Promise<void> {
+  return authedRequest<void>(`${RECURRING_EXPENSES_URL}/${id}`, { method: 'DELETE' })
+}
+
 const RECURRING_INCOMES_URL = '/api/recurring-incomes'
 
 export function fetchRecurringIncomes(): Promise<RecurringIncome[]> {
@@ -361,6 +365,10 @@ export function reactivateRecurringIncome(
     method: 'POST',
     body: JSON.stringify({ resumeFromMonth }),
   })
+}
+
+export function deleteRecurringIncome(id: string): Promise<void> {
+  return authedRequest<void>(`${RECURRING_INCOMES_URL}/${id}`, { method: 'DELETE' })
 }
 
 export function fetchMonthlyRoutine(
