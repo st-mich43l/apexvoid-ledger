@@ -244,6 +244,11 @@ discretionary spending:
 Scheduled income contributes to Cash Flow totals; manual income remains an
 editable transaction and is counted separately.
 
+SePay activity uses the Vietnam banking day (`Asia/Ho_Chi_Minh`) for its display
+date, review filter, Cash Flow, budget, Saving Pot, and trend reporting. The
+application stores timestamps in UTC, but an early-morning local transaction is
+never shifted into the preceding calendar month.
+
 ### Monthly Budget (spending plan)
 
 `/budget` turns Monthly Routine's established baseline into one independent

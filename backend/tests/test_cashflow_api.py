@@ -259,7 +259,7 @@ class TestTransactions:
 
   def test_default_currency_and_ordering(self, auth_client: TestClient):
     older = create_transaction(auth_client, currency=None, occurredAt="2026-08-01T00:00:00Z")
-    newer = create_transaction(auth_client, occurredAt="2026-08-31T23:59:59Z")
+    newer = create_transaction(auth_client, occurredAt="2026-08-31T16:59:59Z")
     response = auth_client.get("/api/transactions", params={"year": 2026, "month": 8})
     assert response.status_code == 200
     assert [item["id"] for item in response.json()] == [newer["id"], older["id"]]
@@ -518,7 +518,7 @@ class TestMonthlySummary:
       auth_client, categoryId=food["id"], amount=1, occurredAt="2026-08-01T00:00:00Z"
     )
     create_transaction(
-      auth_client, categoryId=food["id"], amount=2, occurredAt="2026-08-31T23:59:59Z"
+      auth_client, categoryId=food["id"], amount=2, occurredAt="2026-08-31T16:59:59Z"
     )
     create_transaction(
       auth_client, categoryId=food["id"], amount=4, occurredAt="2026-09-01T00:00:00Z"
