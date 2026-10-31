@@ -1,10 +1,21 @@
-// dd/mm/yyyy, independent of the visitor's browser/OS locale — same
-// rationale as LoanForm's masked date input.
+export const REPORTING_TIME_ZONE = 'Asia/Ho_Chi_Minh'
+
+// dd/mm/yyyy, independent of the visitor's browser/OS locale. SePay records
+// Vietnam banking time, so activity cannot move to the prior UTC date.
 export function formatDate(iso: string): string {
   const date = new Date(iso)
-  const dd = String(date.getUTCDate()).padStart(2, '0')
-  const mm = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const yyyy = date.getUTCFullYear()
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: REPORTING_TIME_ZONE,
+  }).formatToParts(date)
+  const values = Object.fromEntries(
+    parts.filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]),
+  )
+  const dd = values.day
+  const mm = values.month
+  const yyyy = values.year
   return `${dd}/${mm}/${yyyy}`
 }
 
@@ -62,11 +73,17 @@ export function todayDateDigits(): string {
   return `${day}${month}${now.getFullYear()}`
 }
 
-// Reporting periods are based on the Ledger user's local calendar month.
-// Monthly feature pages already use local dates; keeping this helper shared
-// avoids a UTC boundary moving the Dashboard into a different month.
+// Dashboard and SePay-backed reporting use the same Vietnam banking calendar.
 export function currentReportingPeriod(now = new Date()): { year: number; month: number } {
-  return { year: now.getFullYear(), month: now.getMonth() + 1 }
+  const parts = new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    timeZone: REPORTING_TIME_ZONE,
+  }).formatToParts(now)
+  const values = Object.fromEntries(
+    parts.filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]),
+  )
+  return { year: Number(values.year), month: Number(values.month) }
 }
 
 export interface MonthWeekOption {

@@ -510,3 +510,51 @@ def test_authenticated_user_can_review_and_classify_bank_activity(
   )
   assert duplicate_review.status_code == 200, duplicate_review.text
   assert db_session.query(Transaction).filter(Transaction.source == "sepay").count() == 1
+
+
+def test_early_morning_vietnam_activity_uses_its_local_reporting_month(
+  auth_client: TestClient,
+  db_session: Session,
+  user,
+  monkeypatch,
+):
+  monkeypatch.setenv("SEPAY_WEBHOOK_API_KEY", "webhook-test-key")
+  add_account(db_session, user.id)
+  event = payload(transaction_id=92712, direction="in")
+  event["transactionDate"] = "2026-11-01 05:17:00"
+  event["transferAmount"] = 22000000
+
+  accepted = auth_client.post(
+    "/api/integrations/sepay/webhook",
+    json=event,
+    headers=webhook_headers(),
+  )
+  assert accepted.status_code == 200, accepted.text
+
+  november = auth_client.get("/api/bank-activities?year=2026&month=11")
+  october = auth_client.get("/api/bank-activities?year=2026&month=10")
+  assert november.status_code == october.status_code == 200
+  assert len(november.json()) == 1
+  assert october.json() == []
+
+  categories = auth_client.get("/api/categories?type=income").json()
+  salary_id = next(category["id"] for category in categories if category["name"] == "Salary")
+  classified = auth_client.patch(
+    f"/api/bank-activities/{november.json()[0]['id']}",
+    json={"classification": "income", "categoryId": salary_id},
+  )
+  assert classified.status_code == 200, classified.text
+
+  october_summary = auth_client.get(
+    "/api/cashflow/summary?year=2026&month=10&currency=VND"
+  ).json()
+  november_summary = auth_client.get(
+    "/api/cashflow/summary?year=2026&month=11&currency=VND"
+  ).json()
+  assert october_summary["income"] == 0
+  assert november_summary["income"] == 22000000
+
+  trend = auth_client.get(
+    "/api/cashflow/trend?endYear=2026&endMonth=11&months=6&currency=VND"
+  ).json()
+  assert trend["points"][-1]["income"] == 22000000

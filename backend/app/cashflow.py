@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -37,6 +38,10 @@ DEFAULT_CATEGORIES = {
   ],
 }
 
+# SePay timestamps describe activity on Vietnam's banking day. Persisted
+# values remain UTC, while reports use this zone for calendar boundaries.
+REPORTING_TIME_ZONE = ZoneInfo("Asia/Ho_Chi_Minh")
+
 
 def normalize_category_name(name: str) -> str:
   return re.sub(r"\s+", " ", name.strip()).casefold()
@@ -53,10 +58,21 @@ def as_utc(value: datetime) -> datetime:
 
 
 def month_range(year: int, month: int) -> tuple[datetime, datetime]:
-  start = datetime(year, month, 1, tzinfo=timezone.utc)
+  start = datetime(year, month, 1, tzinfo=REPORTING_TIME_ZONE)
   if month == 12:
-    return start, datetime(year + 1, 1, 1, tzinfo=timezone.utc)
-  return start, datetime(year, month + 1, 1, tzinfo=timezone.utc)
+    end = datetime(year + 1, 1, 1, tzinfo=REPORTING_TIME_ZONE)
+  else:
+    end = datetime(year, month + 1, 1, tzinfo=REPORTING_TIME_ZONE)
+  return start.astimezone(timezone.utc), end.astimezone(timezone.utc)
+
+
+def reporting_month(value: datetime) -> tuple[int, int]:
+  local = as_utc(value).astimezone(REPORTING_TIME_ZONE)
+  return local.year, local.month
+
+
+def reporting_date(value: datetime):
+  return as_utc(value).astimezone(REPORTING_TIME_ZONE).date()
 
 
 def ensure_default_categories(db: Session, user_id: str) -> None:

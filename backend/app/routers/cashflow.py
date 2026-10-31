@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from ..auth import require_password_changed
-from ..cashflow import as_utc, month_range
+from ..cashflow import month_range, reporting_month
 from ..cashflow_report import compute_converted_month_totals, compute_converted_period_totals
 from ..database import get_db
 from ..exchange_rates import FrankfurterExchangeRateProvider, get_exchange_rate_provider
@@ -274,8 +274,7 @@ def get_cash_flow_trend(
     buckets[key] = _TrendBucket()
 
   for entry, amount in totals.converted:
-    occurred_at = as_utc(entry.occurred_at)
-    key = (occurred_at.year, occurred_at.month)
+    key = reporting_month(entry.occurred_at)
     bucket = buckets.get(key)
     if bucket is None:
       continue

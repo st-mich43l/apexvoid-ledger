@@ -9,7 +9,13 @@ from decimal import ROUND_HALF_UP, Decimal
 from sqlalchemy.orm import Session
 
 from .calculations import generate_loan_schedule
-from .cashflow import as_utc, ensure_default_categories, month_range, normalize_category_name
+from .cashflow import (
+  as_utc,
+  ensure_default_categories,
+  month_range,
+  normalize_category_name,
+  reporting_date,
+)
 from .exchange_rates import (
   ExchangeRateProviderError,
   ExchangeRateQuote,
@@ -246,9 +252,11 @@ def compute_converted_period_totals(
   )
   rate_tables: dict[str, list[ExchangeRateQuote]] = {}
   unconverted_currencies: set[str] = set()
-  lookback_days = min(7, max(start.date().toordinal() - 1, 0))
-  rates_start = start.date() - timedelta(days=lookback_days)
-  rates_end = (end - timedelta(microseconds=1)).date()
+  reporting_start = reporting_date(start)
+  reporting_end = reporting_date(end - timedelta(microseconds=1))
+  lookback_days = min(7, max(reporting_start.toordinal() - 1, 0))
+  rates_start = reporting_start - timedelta(days=lookback_days)
+  rates_end = reporting_end
   for source_currency in foreign_currencies:
     try:
       rate_tables[source_currency] = rate_provider.get_rates(
@@ -265,9 +273,7 @@ def compute_converted_period_totals(
       converted.append((entry, entry.amount))
       continue
 
-    quote = quote_for_date(
-      rate_tables.get(entry.currency, []), as_utc(entry.occurred_at).date()
-    )
+    quote = quote_for_date(rate_tables.get(entry.currency, []), reporting_date(entry.occurred_at))
     if quote is None:
       unconverted_currencies.add(entry.currency)
       continue
