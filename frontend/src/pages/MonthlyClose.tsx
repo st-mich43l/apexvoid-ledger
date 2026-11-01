@@ -274,7 +274,7 @@ function CloseBody({
         <div className="mt-2 border-t border-neutral-200 pt-2 dark:border-neutral-800">
           <Line label="Total" amount={current.expenseTotal} currency={reporting} />
         </div>
-        <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">Completed loan repayments are tracked in Bank activity, not generated from the loan schedule.</p>
+        <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">Completed loan repayments are imported from Bank activity as Loan expenses, never generated from the loan schedule.</p>
       </ReviewCard>
 
       <ReviewCard title="Budget">

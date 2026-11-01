@@ -24,7 +24,7 @@ export function LoanMonthlyPaymentSummary({ loans }: LoanMonthlyPaymentSummaryPr
           Estimated monthly loan payments
         </h2>
         <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
-          Contractual estimates across non-matured loans. Track actual repayments in Bank activity.
+          Contractual estimates across non-matured loans. Classify actual bank repayments as Loan expenses in Bank activity.
         </p>
 
         {summary.currencies.length <= 1 ? (

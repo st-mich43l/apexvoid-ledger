@@ -251,7 +251,7 @@ def test_matching_sepay_expense_reconciles_recurring_occurrence_once(
   assert allocation["actualSpent"] == 150000
 
 
-def test_matching_loan_repayment_stays_a_bank_activity(
+def test_loan_repayment_creates_one_cashflow_expense_without_loan_schedule_reconciliation(
   auth_client: TestClient,
   db_session: Session,
   user,
@@ -280,17 +280,45 @@ def test_matching_loan_repayment_stays_a_bank_activity(
   assert accepted.status_code == 200, accepted.text
 
   activity = db_session.query(SePayBankActivity).one()
-  assert activity.processing_status == "processed"
-  assert activity.classification == "loan_repayment"
-  assert activity.matched_kind == "loan"
-  assert activity.matched_id == loan.id
+  # The loan record and its estimated schedule never classify a bank event.
+  assert activity.processing_status == "pending_review"
+  assert activity.classification == "unreviewed"
+  assert activity.matched_kind is None
+  assert activity.matched_id is None
   assert activity.linked_transaction_id is None
   assert db_session.query(Transaction).count() == 0
 
-  listed = auth_client.get("/api/bank-activities?year=2026&month=10")
-  assert listed.status_code == 200, listed.text
-  assert listed.json()[0]["classification"] == "loan_repayment"
-  assert listed.json()[0]["linkedTransactionId"] is None
+  classified = auth_client.patch(
+    f"/api/bank-activities/{activity.id}",
+    json={"classification": "loan_repayment"},
+  )
+  assert classified.status_code == 200, classified.text
+  assert classified.json()["classification"] == "loan_repayment"
+  assert classified.json()["linkedTransactionId"]
+
+  # Re-saving and retrying the webhook cannot create a second expense.
+  repeat = auth_client.patch(
+    f"/api/bank-activities/{activity.id}",
+    json={"classification": "loan_repayment"},
+  )
+  duplicate = auth_client.post(
+    "/api/integrations/sepay/webhook",
+    json=payload(transaction_id=92711, direction="out"),
+    headers=webhook_headers(),
+  )
+  assert repeat.status_code == 200, repeat.text
+  assert duplicate.status_code == 200, duplicate.text
+
+  transaction = db_session.query(Transaction).one()
+  assert transaction.transaction_type == "expense"
+  assert transaction.source == "sepay"
+  assert transaction.amount == Decimal("150000")
+  assert transaction.category.name == "Loan"
+  assert transaction.category_id != loan.id
+
+  summary = auth_client.get("/api/cashflow/summary?year=2026&month=10&currency=VND")
+  assert summary.status_code == 200, summary.text
+  assert summary.json()["expenses"] == 150000
 
 
 def test_webhook_retains_unmatched_account(client: TestClient, db_session: Session, monkeypatch):

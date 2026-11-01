@@ -5,7 +5,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from ..auth import require_password_changed
-from ..bank_activity import process_activity
+from ..bank_activity import (
+  WebhookValidationError,
+  get_loan_expense_category,
+  get_or_create_sepay_expense_transaction,
+  process_activity,
+)
 from ..cashflow import as_utc, month_range
 from ..database import get_db
 from ..models import Category, FinancialAccount, SePayBankActivity, Transaction, User
@@ -202,7 +207,15 @@ def classify_bank_activity(
     raise HTTPException(status_code=409, detail="This bank activity is not linked to a Ledger account")
 
   classification = payload.classification
-  if classification in {"income", "expense", "loan_interest"}:
+  category = None
+  if classification == "loan_repayment":
+    if activity.direction != "out":
+      raise HTTPException(status_code=422, detail="Loan repayment must be an outgoing bank activity")
+    try:
+      category = get_loan_expense_category(db, current_user.id)
+    except WebhookValidationError as error:
+      raise HTTPException(status_code=422, detail=str(error)) from error
+  elif classification in {"income", "expense", "loan_interest"}:
     if payload.category_id is None:
       raise HTTPException(status_code=422, detail="A category is required for income or expense")
     category = (
@@ -216,20 +229,25 @@ def classify_bank_activity(
     if category.category_type != expected_type or not category.is_active:
       raise HTTPException(status_code=422, detail="Select an active category with the matching type")
 
+  if category is not None:
+    expected_type = "income" if classification == "income" else "expense"
     if activity.linked_transaction_id is None:
-      transaction = Transaction(
-        user_id=current_user.id,
-        transaction_type=expected_type,
-        category_id=category.id,
-        amount=activity.amount,
-        currency=activity.currency,
-        occurred_at=as_utc(activity.occurred_at),
-        description=activity.description or f"SePay {activity.provider_transaction_id}",
-        source="sepay",
-        external_id=f"sepay:{activity.provider}:{activity.provider_transaction_id}",
-      )
-      db.add(transaction)
-      db.flush()
+      if expected_type == "expense":
+        transaction = get_or_create_sepay_expense_transaction(db, activity, category)
+      else:
+        transaction = Transaction(
+          user_id=current_user.id,
+          transaction_type=expected_type,
+          category_id=category.id,
+          amount=activity.amount,
+          currency=activity.currency,
+          occurred_at=as_utc(activity.occurred_at),
+          description=activity.description or f"SePay {activity.provider_transaction_id}",
+          source="sepay",
+          external_id=f"sepay:{activity.provider}:{activity.provider_transaction_id}",
+        )
+        db.add(transaction)
+        db.flush()
       activity.linked_transaction_id = transaction.id
     else:
       transaction = db.get(Transaction, activity.linked_transaction_id)

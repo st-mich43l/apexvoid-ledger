@@ -236,9 +236,9 @@ Webhook flow:
    remains **Needs review**.
 6. Cash Flow lets users classify review items as income, expense, internal
    transfer, loan repayment, loan interest, or savings transfer. Income,
-   expense, and loan-interest classifications create actual Cash Flow
-   transactions. Loan repayments remain bank activities and do not create
-   synthetic expenses.
+   expense, loan-interest, and outgoing loan-repayment classifications create
+   actual Cash Flow transactions. A loan repayment creates one linked **Loan**
+   expense and does not update a loan record or schedule.
 
 The inbox is the source of truth for delivery idempotency. A repeated provider
 transaction identity is acknowledged without creating a second activity or
@@ -438,7 +438,8 @@ The SePay tests cover:
 - controlled no-auth mode;
 - unmatched account retention;
 - recurring-expense reconciliation without a second expense; and
-- loan repayment tracking as bank activity without a generated transaction.
+- loan repayment classification as one linked Loan Cash Flow expense without
+  loan-schedule reconciliation.
 
 For a full local release check, also run:
 
@@ -565,8 +566,8 @@ Webhook duplicate delivery is safe: the provider transaction identity can be
 stored only once, so a retry cannot create another activity or transaction. A
 recurring expense occurrence is also suppressed when a matching imported SePay
 expense already represents it. Contractual loan schedules are estimates only;
-a matching repayment remains a bank activity and does not generate a separate
-Cash Flow or budget expense.
+they never classify or generate repayment expenses. An explicitly classified
+bank repayment is one linked Loan expense in Cash Flow and budget actuals.
 
 ## Account connection and synchronization behavior
 
@@ -709,10 +710,12 @@ The category endpoints used by the existing manager are:
 
 For a pending item, Cash Flow sends the selected classification to
 `PATCH /api/bank-activities/{id}`. `income`, `expense`, and `loan_interest`
-require a category of the matching type; `internal_transfer`,
-`loan_repayment`, and `savings_transfer` remain bank activity without creating
-a normal income/expense transaction. Sending `unreviewed` returns the item to
-review when it has no linked transaction.
+require a category of the matching type. An outgoing `loan_repayment` uses the
+default active **Loan** expense category and creates one normal linked expense;
+it does not use or modify any loan record.
+`internal_transfer` and `savings_transfer` remain bank activity without
+creating a normal income/expense transaction. Sending `unreviewed` returns the
+item to review when it has no linked transaction.
 
 ### Classification and exactly-once behavior
 
@@ -724,16 +727,17 @@ An accepted event follows this state model:
 2. A new provider transaction ID is inserted into `SePayBankActivity` with
    `pending_review` and `unreviewed` defaults.
 3. Ledger first checks an unambiguous matching manual transaction, then the
-   configured outgoing text/reference rule, then scheduled income/fixed-cost/
-   loan references.
+   configured outgoing text/reference rule, then scheduled income/fixed-cost
+   references. Loan schedules are not reconciliation inputs.
 4. A confident rule match creates one ordinary expense with
    `source=sepay`, links the activity to it, and marks the activity
    `processed`.
-5. A matching loan repayment remains `loan_repayment` bank activity and does
-   not create a Cash Flow transaction. An internal or savings transfer also
-   remains a bank-activity classification. `income`, `expense`, and
-   `loan_interest` manual classifications create a linked Cash Flow
-   transaction with the required category.
+5. An explicit outgoing `loan_repayment` creates one linked Cash Flow expense
+   in the default **Loan** category, without reading or updating a loan record
+   or schedule. An internal or savings transfer remains a bank-activity
+   classification. `income`, `expense`, and `loan_interest` manual
+   classifications create a linked Cash Flow transaction with the required
+   category.
 6. A repeated delivery of the same provider transaction ID returns a successful
    acknowledgement and reuses the existing activity. The unique provider/ID
    constraint and the `sepay:<provider>:<transaction-id>` transaction identity
