@@ -568,6 +568,8 @@ recurring expense occurrence is also suppressed when a matching imported SePay
 expense already represents it. Contractual loan schedules are estimates only;
 they never classify or generate repayment expenses. An explicitly classified
 bank repayment is one linked Loan expense in Cash Flow and budget actuals.
+The `0025` migration repairs legacy saved `loan_repayment` activities from the
+old bank-only flow by creating that same one linked Loan expense exactly once.
 
 ## Account connection and synchronization behavior
 
