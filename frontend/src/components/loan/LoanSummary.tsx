@@ -78,7 +78,7 @@ export function LoanSummary({ detail, onEdit, onDelete }: LoanSummaryProps) {
       </dl>
 
       <p className="relative mt-6 text-xs text-neutral-400 dark:text-neutral-500">
-        Estimated from the contractual loan schedule. Track completed repayments in Bank activity.
+        Estimated from the contractual loan schedule. Classify completed bank repayments in Bank activity as Loan expenses.
       </p>
     </div>
   )

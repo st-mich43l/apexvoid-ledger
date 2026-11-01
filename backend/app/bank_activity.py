@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
+from .cashflow import ensure_default_categories, normalize_category_name
 from .cashflow_report import period_entries
 from .models import Category, FinancialAccount, SePayBankActivity, Transaction
 from .net_worth import sync_if_due
@@ -249,12 +250,12 @@ def _scheduled_match(db: Session, activity: SePayBankActivity) -> tuple[str, str
     activity.user_id,
     activity.occurred_at - RECONCILIATION_WINDOW,
     activity.occurred_at + RECONCILIATION_WINDOW + timedelta(microseconds=1),
-    include_scheduled_loans=True,
+    include_scheduled_loans=False,
   )
   matches = [
     entry
     for entry in entries
-    if entry.source_kind in {"recurring", "recurring_income", "loan"}
+    if entry.source_kind in {"recurring", "recurring_income"}
     and entry.currency == activity.currency
     and entry.amount == activity.amount
     and entry.entry_type == ("income" if activity.direction == "in" else "expense")
@@ -272,7 +273,7 @@ def _scheduled_match(db: Session, activity: SePayBankActivity) -> tuple[str, str
     return "recurring_income", entry.recurring_income_id or "", "income"
   if entry.source_kind == "recurring":
     return "recurring_expense", entry.recurring_expense_id or "", "expense"
-  return "loan", entry.loan.id if entry.loan is not None else "", "loan_repayment"
+  raise AssertionError("Only recurring income and expense entries can be reconciled")
 
 
 def _auto_category_for_activity(
@@ -315,7 +316,24 @@ def _auto_category_for_activity(
   return category
 
 
-def _get_or_create_sepay_transaction(
+def get_loan_expense_category(db: Session, user_id: str) -> Category:
+  ensure_default_categories(db, user_id)
+  category = (
+    db.query(Category)
+    .filter(
+      Category.user_id == user_id,
+      Category.category_type == "expense",
+      Category.normalized_name == normalize_category_name("Loan"),
+      Category.is_active.is_(True),
+    )
+    .first()
+  )
+  if category is None:  # pragma: no cover - defaults are seeded above
+    raise WebhookValidationError("The active Loan expense category is required")
+  return category
+
+
+def get_or_create_sepay_expense_transaction(
   db: Session, activity: SePayBankActivity, category: Category
 ) -> Transaction:
   external_id = f"sepay:{activity.provider}:{activity.provider_transaction_id}"
@@ -366,7 +384,7 @@ def process_activity(db: Session, activity: SePayBankActivity) -> None:
   category = _auto_category_for_activity(db, activity)
   if category is not None:
     scheduled = _scheduled_match(db, activity)
-    transaction = _get_or_create_sepay_transaction(db, activity, category)
+    transaction = get_or_create_sepay_expense_transaction(db, activity, category)
     activity.linked_transaction_id = transaction.id
     if scheduled is not None and scheduled[0] == "recurring_expense":
       activity.matched_kind = scheduled[0]

@@ -270,7 +270,7 @@ export function MonthlyRoutinePage() {
             <div>
               <h3 className="font-semibold text-neutral-900 dark:text-neutral-50">Committed costs</h3>
               <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                Fixed bills included in Cash Flow. Track completed loan repayments in Bank activity.
+                Fixed bills included in Cash Flow. Classify completed loan repayments in Bank activity to record one Loan expense.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
