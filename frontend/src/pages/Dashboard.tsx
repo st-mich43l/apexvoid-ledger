@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useBankActivities } from '../hooks/useBankActivities'
 import { useCashFlowSummary } from '../hooks/useCashFlowSummary'
 import { useMonthlyBudget } from '../hooks/useMonthlyBudget'
@@ -16,6 +16,7 @@ import { deriveFinancialAttention } from '../components/dashboard/financialAtten
 import { FinancialMetrics } from '../components/dashboard/FinancialMetrics'
 import { FinancialOverview } from '../components/dashboard/FinancialOverview'
 import { MonthlyCommitments } from '../components/dashboard/MonthlyCommitments'
+import { MobileDashboard } from '../components/dashboard/MobileDashboard'
 import { PageHeader } from '../components/layout/PageHeader'
 import { Alert } from '../components/ui/Alert'
 
@@ -24,6 +25,7 @@ function monthLabel(year: number, month: number) {
 }
 
 export function Dashboard() {
+  const [showMobileInsights, setShowMobileInsights] = useState(false)
   const { currency } = useCurrency()
   const { year, month } = currentReportingPeriod()
   const previous = month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 }
@@ -54,6 +56,8 @@ export function Dashboard() {
       <PageHeader eyebrow="Financial command center" title="Overview" description={`Current position plus monthly reporting for ${monthLabel(year, month)}.`} />
       {hasError && <Alert tone="warning" className="mb-6">Some dashboard information could not be refreshed. Available sections remain current to their last successful response.</Alert>}
 
+      <MobileDashboard netWorth={netWorth.summary} cashFlow={cashFlow.summary} attention={attention} loading={loadingAttention} incomplete={Boolean(hasError)} />
+      <div className="hidden sm:block">
       <FinancialOverview summary={netWorth.summary} accounts={netWorth.accounts} loading={netWorth.loading} />
 
       <div className="mt-7"><FinancialMetrics cashFlow={cashFlow.summary} budget={budget.summary} loading={cashFlow.loading || budget.loading} budgetError={Boolean(budget.error)} /></div>
@@ -71,6 +75,8 @@ export function Dashboard() {
       </div>
 
       <DashboardQuickAccess />
+      </div>
+      <details className="mt-5 sm:hidden" onToggle={(event) => setShowMobileInsights(event.currentTarget.open)}><summary className="min-h-11 cursor-pointer rounded-xl border border-ledger-border bg-ledger-surface px-4 py-3 text-sm font-semibold text-ledger-primary">More financial insights</summary>{showMobileInsights && <><DashboardFinancialTrends year={year} month={month} currency={currency} /><div className="mt-5 space-y-5"><BudgetHealth summary={budget.summary} loading={budget.loading} error={Boolean(budget.error)} year={year} month={month} /><MonthlyCommitments summary={routine.summary} loading={routine.loading} year={year} month={month} /><AccountHealth accounts={netWorth.accounts} loading={netWorth.loading} error={Boolean(netWorth.error)} /><DashboardQuickAccess /></div></>}</details>
     </section>
   )
 }

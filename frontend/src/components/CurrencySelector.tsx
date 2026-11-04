@@ -78,7 +78,7 @@ export function CurrencySelector() {
             role="listbox"
             aria-label="Display currency"
             style={menuPos}
-            className="fixed z-50 w-48 max-w-[calc(100vw-1rem)] overflow-hidden rounded-[var(--ledger-radius-card)] border border-ledger-border bg-ledger-elevated py-1.5 shadow-[var(--ledger-shadow-card)]"
+            className="matte-glass fixed z-50 w-48 max-w-[calc(100vw-1rem)] overflow-hidden rounded-[var(--ledger-radius-card)] py-1.5"
           >
             {SUPPORTED_CURRENCIES.map((code) => (
               <li key={code} role="option" aria-selected={code === currency}>

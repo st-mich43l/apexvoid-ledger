@@ -43,7 +43,7 @@ export function MobileNavigation({ open, onClose, theme, onToggleTheme }: Mobile
   return (
     <div className="fixed inset-0 z-50 xl:hidden" role="dialog" aria-modal="true" aria-label="Application navigation">
       <button type="button" tabIndex={-1} aria-hidden="true" className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" onClick={onClose} />
-      <nav ref={drawerRef} aria-label="Mobile primary navigation" className="relative flex h-full w-[min(21rem,calc(100vw-1.5rem))] flex-col overflow-y-auto border-r border-ledger-border bg-ledger-elevated p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl">
+      <nav ref={drawerRef} aria-label="Mobile primary navigation" className="matte-glass relative flex h-full w-[min(21rem,calc(100vw-1.5rem))] flex-col overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="mb-5 flex items-center justify-between">
           <p className="text-sm font-semibold text-ledger-text">Navigate Ledger</p>
           <Button ref={closeButtonRef} type="button" variant="ghost" size="sm" onClick={onClose} className="min-h-11 px-4">Close</Button>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { Button } from '../ui/Button'
+import { Modal } from '../Modal'
 
 interface CashFlowActionsMenuProps {
   year: number
@@ -12,6 +13,7 @@ interface CashFlowActionsMenuProps {
 
 export function CashFlowActionsMenu({ year, month, onManageCategories, onWeeklyExpenses }: CashFlowActionsMenuProps) {
   const [open, setOpen] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState({ top: 8, left: 8 })
@@ -62,14 +64,15 @@ export function CashFlowActionsMenu({ year, month, onManageCategories, onWeeklyE
   const itemClass = 'flex w-full items-center rounded-[var(--ledger-radius-control)] px-3 py-2 text-left text-sm font-medium text-ledger-text hover:bg-ledger-subtle'
 
   return <div>
-    <Button ref={triggerRef} type="button" variant="outline" onClick={() => setOpen((current) => !current)} aria-haspopup="menu" aria-expanded={open}>More</Button>
+    <Button ref={triggerRef} type="button" variant="outline" onClick={() => window.matchMedia('(max-width: 639px)').matches ? setSheetOpen(true) : setOpen((current) => !current)} aria-haspopup="menu" aria-expanded={open || sheetOpen}>More</Button>
+    {sheetOpen && <Modal matte label="Cash Flow actions" onClose={() => setSheetOpen(false)}><h2 className="text-lg font-semibold text-ledger-text">Cash Flow actions</h2><div className="mt-4 space-y-1"><button type="button" onClick={() => { setSheetOpen(false); onManageCategories() }} className={`${itemClass} min-h-11`}>Manage categories</button><button type="button" onClick={() => { setSheetOpen(false); onWeeklyExpenses() }} className={`${itemClass} min-h-11`}>Add weekly expenses</button><Link onClick={() => setSheetOpen(false)} to={`/monthly-routine?${planningQuery}`} className={`${itemClass} min-h-11`}>Monthly Routine</Link><Link onClick={() => setSheetOpen(false)} to={`/budget?${planningQuery}`} className={`${itemClass} min-h-11`}>Monthly Budget</Link><Link onClick={() => setSheetOpen(false)} to={`/monthly-close?${planningQuery}`} className={`${itemClass} min-h-11`}>Monthly Close</Link></div></Modal>}
     {open && createPortal(
       <div
         ref={menuRef}
         role="menu"
         aria-label="Cash Flow actions"
         style={position}
-        className="fixed z-50 max-h-[calc(100dvh-1rem)] w-56 max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[var(--ledger-radius-card)] border border-ledger-border bg-ledger-elevated p-2 shadow-[var(--ledger-shadow-card)]"
+        className="matte-glass fixed z-50 max-h-[calc(100dvh-1rem)] w-56 max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[var(--ledger-radius-card)] p-2"
       >
         <button autoFocus type="button" role="menuitem" onClick={() => { onManageCategories(); close() }} className={itemClass}>Manage categories</button>
         <button type="button" role="menuitem" onClick={() => { onWeeklyExpenses(); close() }} className={itemClass}>Add weekly expenses</button>

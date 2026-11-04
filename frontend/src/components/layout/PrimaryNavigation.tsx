@@ -50,7 +50,7 @@ export function PrimaryNavigation() {
               {item.matches(pathname) && <span className="sr-only">, current section</span>}
             </button>
             {openGroup === item.label && (
-              <div role="menu" aria-label={`${item.label} navigation`} className="absolute top-full left-0 z-50 mt-2 w-52 rounded-[var(--ledger-radius-card)] border border-ledger-border bg-ledger-elevated p-1.5 shadow-[var(--ledger-shadow-card)]">
+              <div role="menu" aria-label={`${item.label} navigation`} className="matte-glass absolute top-full left-0 z-50 mt-2 w-52 rounded-[var(--ledger-radius-card)] p-1.5">
                 {item.items.map((child) => (
                   <Link key={child.to} to={navigationDestination(child, item, search)} role="menuitem" aria-current={child.matches(pathname) ? 'page' : undefined} className={buttonClassName({ variant: 'ghost', size: 'md', className: cn('w-full justify-between px-3', child.matches(pathname) && 'bg-ledger-primary-subtle text-ledger-primary') })}>
                     {child.label}{child.matches(pathname) && <span className="text-xs">Current</span>}
