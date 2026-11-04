@@ -1,3 +1,5 @@
+import { isMoneyHidden } from './moneyPrivacy'
+
 export const SUPPORTED_CURRENCIES = ['USD', 'EUR', 'GBP', 'AUD', 'JPY', 'CNY', 'VND'] as const
 
 export type CurrencyCode = (typeof SUPPORTED_CURRENCIES)[number]
@@ -12,6 +14,7 @@ const formatters = new Map<string, Intl.NumberFormat>()
 const compactFormatters = new Map<string, Intl.NumberFormat>()
 
 export function formatCurrency(amount: number, code: string): string {
+  if (isMoneyHidden()) return '••••'
   let formatter = formatters.get(code)
   if (!formatter) {
     formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: code })
@@ -21,6 +24,7 @@ export function formatCurrency(amount: number, code: string): string {
 }
 
 export function formatCompactCurrency(amount: number, code: string): string {
+  if (isMoneyHidden()) return '••••'
   let formatter = compactFormatters.get(code)
   if (!formatter) {
     formatter = new Intl.NumberFormat('en-US', {
