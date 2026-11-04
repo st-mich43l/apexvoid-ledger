@@ -23,9 +23,9 @@ export function Layout() {
 
   const homePath = user?.isAdmin ? '/home' : '/dashboard'
   return (
-    <div className="min-h-screen min-h-dvh bg-ledger-bg">
-      <header className="sticky top-0 z-30 border-b border-ledger-border bg-ledger-bg/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen min-h-dvh min-w-0 bg-ledger-bg">
+      <header className="sticky top-0 z-30 border-b border-ledger-border bg-ledger-bg/95 backdrop-blur supports-[backdrop-filter]:bg-ledger-bg/85">
+        <div className="mx-auto flex min-h-16 max-w-7xl items-center gap-2 px-[var(--ledger-page-gutter)] py-2">
           <Link to={homePath} aria-label="ApexVoid Ledger home" className="flex shrink-0 items-center gap-2 rounded-[var(--ledger-radius-control)] text-ledger-text transition-opacity hover:opacity-75">
             <BrandMark className="h-7 w-7" />
             <span className="hidden text-base font-semibold tracking-tight sm:inline">ApexVoid Ledger</span>
@@ -33,18 +33,18 @@ export function Layout() {
 
           <div className="min-w-0 flex-1 xl:flex xl:justify-center"><PrimaryNavigation /></div>
 
-          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <div className="hidden items-center rounded-[var(--ledger-radius-control)] border border-ledger-border bg-ledger-elevated p-0.5 shadow-sm sm:flex"><CurrencySelector /><span aria-hidden="true" className="h-4 w-px bg-ledger-border" /><ThemeToggle theme={theme} onToggle={toggleTheme} /></div>
             <div className="sm:hidden"><ThemeToggle theme={theme} onToggle={toggleTheme} /></div>
             {user && <AccountMenu user={user} onLogout={handleLogout} />}
-            <Button type="button" variant="ghost" size="sm" aria-label="Open navigation" aria-expanded={mobileNavigationOpen} onClick={() => setMobileNavigationOpen(true)} className="h-9 min-h-9 w-9 px-0 xl:hidden">
+            <Button type="button" variant="ghost" size="sm" aria-label="Open navigation" aria-expanded={mobileNavigationOpen} onClick={() => setMobileNavigationOpen(true)} className="h-11 min-h-11 w-11 px-0 xl:hidden">
               <MenuIcon className="h-5 w-5" />
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <main className="mx-auto min-w-0 max-w-7xl px-[var(--ledger-page-gutter)] py-5 sm:py-8">
         <Outlet />
       </main>
 

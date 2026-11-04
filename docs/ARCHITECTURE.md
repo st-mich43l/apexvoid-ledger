@@ -94,22 +94,22 @@ route tree and the guards enforce the main UI boundaries:
 
 ```mermaid
 flowchart TD
-    App[App router]
-    App --> Login[/login]
-    App --> AuthGuard[RequireAuth]
-    AuthGuard --> Password[/settings/users for password update]
-    AuthGuard --> Currency[/select-currency]
-    AuthGuard --> Layout[Authenticated layout]
-    Layout --> Dashboard[/dashboard]
-    Layout --> CashFlow[/cashflow]
-    Layout --> NetWorth[/net-worth]
-    Layout --> SavingPot[/saving-pot]
-    Layout --> Loans[/loan and /loan/:id]
-    Layout --> Planning[/monthly-routine, /budget, /monthly-close]
-    Layout --> Accounts[/settings/users]
-    Layout --> AdminGuard[RequireAdmin]
-    AdminGuard --> Home[/home]
-    AdminGuard --> Users[/settings/users]
+    App["App router"]
+    App --> Login["/login"]
+    App --> AuthGuard["RequireAuth"]
+    AuthGuard --> Password["/settings/users: password update"]
+    AuthGuard --> Currency["/select-currency"]
+    AuthGuard --> Layout["Authenticated layout"]
+    Layout --> Dashboard["/dashboard"]
+    Layout --> CashFlow["/cashflow"]
+    Layout --> NetWorth["/net-worth"]
+    Layout --> SavingPot["/saving-pot"]
+    Layout --> Loans["/loan and /loan/:id"]
+    Layout --> Planning["/monthly-routine, /budget, /monthly-close"]
+    Layout --> Accounts["/settings/users"]
+    Layout --> AdminGuard["RequireAdmin"]
+    AdminGuard --> Home["/home"]
+    AdminGuard --> Users["/settings/users"]
 ```
 
 Pages use hooks for loading and mutation state. `frontend/src/api.ts` is the

@@ -41,6 +41,8 @@
   --ledger-radius-control: 0.75rem;
   --ledger-radius-modal: 1.25rem;
   --ledger-shadow-card: 0 1px 2px rgb(24 16 54 / 0.04), 0 10px 24px rgb(24 16 54 / 0.06);
+  --ledger-page-gutter: 1rem;
+  --ledger-control-height: 2.75rem;
 }
 
 html.dark {
@@ -63,14 +65,29 @@ html.dark {
   --ledger-shadow-card: 0 1px 2px rgb(0 0 0 / 0.14), 0 10px 28px rgb(0 0 0 / 0.16);
 }
 
+@media (min-width: 640px) {
+  :root { --ledger-page-gutter: 1.5rem; }
+}
+
+@media (min-width: 1024px) {
+  :root { --ledger-page-gutter: 2rem; }
+}
+
+html {
+  min-width: 320px;
+  background: var(--ledger-bg);
+}
+
 body,
 #root {
   min-height: 100%;
+  min-width: 0;
 }
 
 body {
   margin: 0;
   min-width: 320px;
+  max-width: 100%;
   background: var(--ledger-bg);
   color: var(--ledger-text);
   text-rendering: optimizeLegibility;
@@ -80,6 +97,35 @@ button,
 input,
 select,
 textarea { font: inherit; }
+
+button,
+[role="button"],
+select { touch-action: manipulation; }
+
+img,
+svg,
+canvas { max-width: 100%; }
+
+.app-page {
+  width: min(100%, 80rem);
+  min-width: 0;
+  margin-inline: auto;
+}
+
+.app-toolbar {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.responsive-table {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
 
 :focus-visible { outline: 2px solid var(--ledger-primary); outline-offset: 2px; }
 

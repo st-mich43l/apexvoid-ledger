@@ -90,7 +90,7 @@ export function Modal({ onClose, label, children, dismissible = true, variant = 
   }, [dismissible, onClose])
 
   return createPortal(
-    <div className={variant === 'drawer' ? 'fixed inset-0 z-50' : 'fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4'}>
+    <div className={variant === 'drawer' ? 'fixed inset-0 z-50' : 'fixed inset-0 z-50 flex items-end justify-center overflow-y-auto p-0 sm:items-center sm:p-4'}>
       <div
         className="fixed inset-0 bg-black/45 backdrop-blur-[1px]"
         onClick={dismissible ? onClose : undefined}
@@ -102,12 +102,26 @@ export function Modal({ onClose, label, children, dismissible = true, variant = 
         aria-label={label}
         tabIndex={-1}
         className={variant === 'drawer'
-          ? 'relative h-full w-[min(24rem,calc(100vw-1rem))] overflow-y-auto border-r border-ledger-border bg-ledger-elevated p-5 shadow-2xl sm:p-6'
-          : 'relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[var(--ledger-radius-modal)] border border-ledger-border bg-ledger-elevated p-6 shadow-2xl sm:p-7'}
+          ? 'relative h-full w-[min(24rem,calc(100vw-1rem))] overflow-y-auto border-r border-ledger-border bg-ledger-elevated p-5 pr-14 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:p-6 sm:pr-16'
+          : 'relative max-h-[calc(100dvh-1rem)] w-full max-w-2xl overflow-y-auto rounded-t-[var(--ledger-radius-modal)] border border-ledger-border bg-ledger-elevated p-5 pr-14 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:max-h-[90vh] sm:rounded-[var(--ledger-radius-modal)] sm:p-7 sm:pr-16'}
       >
+        {dismissible && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={`Close ${label}`}
+            className="absolute top-3 right-3 inline-flex h-11 w-11 items-center justify-center rounded-[var(--ledger-radius-control)] text-ledger-text-secondary transition-colors hover:bg-ledger-subtle hover:text-ledger-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ledger-primary sm:top-4 sm:right-4"
+          >
+            <CloseIcon />
+          </button>
+        )}
         {children}
       </div>
     </div>,
     document.body,
   )
+}
+
+function CloseIcon() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true"><path strokeLinecap="round" d="m6 6 12 12M18 6 6 18" /></svg>
 }
