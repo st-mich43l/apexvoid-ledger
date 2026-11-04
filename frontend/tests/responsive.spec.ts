@@ -129,7 +129,7 @@ test('mobile dashboard presents financial position and accessible navigation', a
   const position = page.getByRole('region', { name: 'Financial position' })
   await expect(position.getByText('Verified bank assets')).toBeVisible()
   await expect(position.getByText('₫100,000,000')).toBeVisible()
-  await expect(page.getByRole('navigation', { name: 'Mobile navigation' }).getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByRole('navigation', { name: 'Mobile navigation' }).getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page')
   await expectViewportContained(page)
   await page.screenshot({ path: testInfo.outputPath('mobile-dashboard.png'), fullPage: true })
 })

@@ -52,7 +52,7 @@ export function Layout() {
 
       <nav aria-label="Mobile navigation" className="matte-glass fixed right-4 bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-4 z-30 mx-auto max-w-md rounded-full p-1 sm:hidden">
         <div className="grid grid-cols-4 gap-0.5">
-          <MobileTab to="/dashboard" label="Overview" icon="overview" />
+          <MobileTab to="/dashboard" label="Dashboard" icon="overview" />
           <MobileTab to="/cashflow" label="Cash Flow" icon="cashflow" />
           <MobileTab to="/net-worth" label="Net Worth" icon="wealth" />
           <button type="button" aria-label="Open navigation" aria-expanded={mobileNavigationOpen} onClick={() => setMobileNavigationOpen(true)} className={`matte-nav-item flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-full font-medium transition-colors ${moreActive ? 'bg-[var(--matte-active)] text-[var(--matte-active-text)]' : 'text-ledger-text-secondary'}`}><MobileIcon name="more" />More</button>
