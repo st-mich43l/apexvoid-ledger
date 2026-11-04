@@ -26,7 +26,7 @@ export function AccountMenu({ user, onLogout }: AccountMenuProps) {
         <ChevronDownIcon className="h-3.5 w-3.5 shrink-0" />
       </Button>
       {open && (
-        <div role="menu" aria-label="Account menu" className="absolute top-full right-0 z-50 mt-2 w-56 rounded-[var(--ledger-radius-card)] border border-ledger-border bg-ledger-elevated p-1.5 shadow-[var(--ledger-shadow-card)]">
+        <div role="menu" aria-label="Account menu" className="matte-glass absolute top-full right-0 z-50 mt-2 w-56 rounded-[var(--ledger-radius-card)] p-1.5">
           <div className="border-b border-ledger-border px-3 py-2.5">
             <p className="truncate text-sm font-semibold text-ledger-text">{user.username}</p>
             <p className="mt-0.5 text-xs text-ledger-text-secondary">Ledger account</p>

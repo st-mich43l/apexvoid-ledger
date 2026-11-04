@@ -43,6 +43,12 @@
   --ledger-shadow-card: 0 1px 2px rgb(24 16 54 / 0.04), 0 10px 24px rgb(24 16 54 / 0.06);
   --ledger-page-gutter: 1rem;
   --ledger-control-height: 2.75rem;
+  --matte-surface-solid: #f9f8fb;
+  --matte-surface: rgba(249, 248, 251, 0.94);
+  --matte-border: rgba(91, 78, 105, 0.18);
+  --matte-shadow: 0 8px 28px rgba(32, 24, 42, 0.14), 0 2px 6px rgba(32, 24, 42, 0.06);
+  --matte-active: #eae3f4;
+  --matte-active-text: #68459a;
 }
 
 html.dark {
@@ -63,6 +69,34 @@ html.dark {
   --ledger-danger: #fb7185;
   --ledger-info: #67e8f9;
   --ledger-shadow-card: 0 1px 2px rgb(0 0 0 / 0.14), 0 10px 28px rgb(0 0 0 / 0.16);
+  --matte-surface-solid: #292631;
+  --matte-surface: rgba(41, 38, 49, 0.94);
+  --matte-border: rgba(220, 211, 234, 0.16);
+  --matte-shadow: 0 8px 28px rgba(0, 0, 0, 0.34), 0 2px 6px rgba(0, 0, 0, 0.18);
+  --matte-active: #42394e;
+  --matte-active-text: #e2d3f1;
+}
+
+.matte-glass {
+  background: var(--matte-surface-solid);
+  border: 1px solid var(--matte-border);
+  box-shadow: var(--matte-shadow);
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .matte-glass {
+    background: var(--matte-surface);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .matte-glass {
+    background: var(--matte-surface-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 @media (min-width: 640px) {
@@ -97,6 +131,8 @@ button,
 input,
 select,
 textarea { font: inherit; }
+
+.matte-nav-item { font-size: 0.6875rem; line-height: 1rem; }
 
 button,
 [role="button"],

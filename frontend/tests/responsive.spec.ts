@@ -144,6 +144,35 @@ test('desktop dashboard retains primary navigation', async ({ page }, testInfo) 
   await page.screenshot({ path: testInfo.outputPath('desktop-dashboard.png'), fullPage: true })
 })
 
+for (const theme of ['light', 'dark'] as const) {
+  test(`floating navigation stays usable in ${theme} theme`, async ({ page }, testInfo) => {
+    await mockApi(page)
+    await page.addInitScript((value) => localStorage.setItem('apexvoid-ledger:theme', value), theme)
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/cashflow')
+    const nav = page.getByRole('navigation', { name: 'Mobile navigation' })
+    await expect(nav.getByRole('link', { name: 'Cash Flow' })).toHaveAttribute('aria-current', 'page')
+    const initial = await nav.boundingBox()
+    expect(initial).not.toBeNull()
+    expect(initial!.x).toBeGreaterThan(0)
+    expect(initial!.x + initial!.width).toBeLessThan(390)
+    const background = await nav.evaluate((el) => getComputedStyle(el).backgroundColor)
+    expect(background).toContain(theme === 'dark' ? '41, 38, 49' : '249, 248, 251')
+    await page.screenshot({ path: testInfo.outputPath(`matte-navigation-${theme}.png`) })
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+    await expect(nav).toBeVisible()
+    const scrolled = await nav.boundingBox()
+    expect(Math.abs(scrolled!.y - initial!.y)).toBeLessThan(1)
+    await expectViewportContained(page)
+    await nav.getByRole('button', { name: 'Open navigation' }).focus()
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('dialog', { name: 'Application navigation' })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog', { name: 'Application navigation' })).toBeHidden()
+    await expect(nav.getByRole('button', { name: 'Open navigation' })).toBeFocused()
+  })
+}
+
 for (const route of ['/home', '/dashboard', '/cashflow', '/net-worth', '/saving-pot', '/loan', '/budget', '/monthly-routine', '/monthly-close', '/settings/users']) {
   test(`mobile route ${route} renders without page overflow`, async ({ page }, testInfo) => {
     await mockApi(page)

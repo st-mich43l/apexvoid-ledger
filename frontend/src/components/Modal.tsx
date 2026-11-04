@@ -7,6 +7,7 @@ interface ModalProps {
   children: React.ReactNode
   dismissible?: boolean
   variant?: 'dialog' | 'drawer'
+  matte?: boolean
 }
 
 const FOCUSABLE_SELECTOR = [
@@ -27,7 +28,7 @@ function getFocusableElements(dialog: HTMLElement): HTMLElement[] {
 // Reusable dialog shell (edit/delete confirmations, and future modals) with
 // native focus management. Callers can block Escape/backdrop dismissal during
 // an in-flight action without replacing onClose with an unstable no-op.
-export function Modal({ onClose, label, children, dismissible = true, variant = 'dialog' }: ModalProps) {
+export function Modal({ onClose, label, children, dismissible = true, variant = 'dialog', matte = false }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const previouslyFocusedRef = useRef<HTMLElement | null>(
     document.activeElement instanceof HTMLElement ? document.activeElement : null,
@@ -101,9 +102,9 @@ export function Modal({ onClose, label, children, dismissible = true, variant = 
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
-        className={variant === 'drawer'
-          ? 'relative h-full w-[min(24rem,calc(100vw-1rem))] overflow-y-auto border-r border-ledger-border bg-ledger-elevated p-5 pt-16 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:p-6 sm:pt-16'
-          : 'relative max-h-[calc(100dvh-1rem)] w-full max-w-2xl overflow-y-auto rounded-t-[var(--ledger-radius-modal)] border border-ledger-border bg-ledger-elevated p-5 pt-16 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:max-h-[90vh] sm:rounded-[var(--ledger-radius-modal)] sm:p-7 sm:pt-16'}
+        className={`${matte ? 'matte-glass' : 'border border-ledger-border bg-ledger-elevated shadow-2xl'} ${variant === 'drawer'
+          ? 'relative h-full w-[min(24rem,calc(100vw-1rem))] overflow-y-auto p-5 pt-16 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:p-6 sm:pt-16'
+          : 'relative max-h-[calc(100dvh-1rem)] w-full max-w-2xl overflow-y-auto rounded-t-[var(--ledger-radius-modal)] p-5 pt-16 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:max-h-[90vh] sm:rounded-[var(--ledger-radius-modal)] sm:p-7 sm:pt-16'}`}
       >
         {dismissible && (
           <button

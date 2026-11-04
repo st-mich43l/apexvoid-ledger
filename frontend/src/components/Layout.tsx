@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { CurrencySelector } from './CurrencySelector'
 import { ThemeToggle } from './ThemeToggle'
 import { BrandMark } from './BrandMark'
@@ -14,7 +14,9 @@ export function Layout() {
   const { theme, toggleTheme } = useTheme()
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false)
+  const moreActive = mobileNavigationOpen || !['/dashboard', '/cashflow', '/net-worth'].includes(pathname)
 
   async function handleLogout() {
     await logout()
@@ -44,16 +46,16 @@ export function Layout() {
         </div>
       </header>
 
-      <main className="mx-auto min-w-0 max-w-7xl px-[var(--ledger-page-gutter)] pt-5 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:py-8">
+      <main className="mx-auto min-w-0 max-w-7xl px-[var(--ledger-page-gutter)] pt-5 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:py-8">
         <Outlet />
       </main>
 
-      <nav aria-label="Mobile navigation" className="fixed inset-x-0 bottom-0 z-30 border-t border-ledger-border bg-ledger-elevated/95 px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(24,16,54,0.08)] backdrop-blur sm:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-4">
+      <nav aria-label="Mobile navigation" className="matte-glass fixed right-4 bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-4 z-30 mx-auto max-w-md rounded-full p-1 sm:hidden">
+        <div className="grid grid-cols-4 gap-0.5">
           <MobileTab to="/dashboard" label="Overview" icon="overview" />
           <MobileTab to="/cashflow" label="Cash Flow" icon="cashflow" />
           <MobileTab to="/net-worth" label="Net Worth" icon="wealth" />
-          <button type="button" aria-label="Open navigation" aria-expanded={mobileNavigationOpen} onClick={() => setMobileNavigationOpen(true)} className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium text-ledger-text-secondary"><MobileIcon name="more" />More</button>
+          <button type="button" aria-label="Open navigation" aria-expanded={mobileNavigationOpen} onClick={() => setMobileNavigationOpen(true)} className={`matte-nav-item flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-full font-medium transition-colors ${moreActive ? 'bg-[var(--matte-active)] text-[var(--matte-active-text)]' : 'text-ledger-text-secondary'}`}><MobileIcon name="more" />More</button>
         </div>
       </nav>
 
@@ -63,7 +65,7 @@ export function Layout() {
 }
 
 function MobileTab({ to, label, icon }: { to: string; label: string; icon: 'overview' | 'cashflow' | 'wealth' }) {
-  return <NavLink to={to} className={({ isActive }) => `flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium ${isActive ? 'text-ledger-primary' : 'text-ledger-text-secondary'}`}><MobileIcon name={icon} />{label}</NavLink>
+  return <NavLink to={to} className={({ isActive }) => `matte-nav-item flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-full font-medium transition-colors ${isActive ? 'bg-[var(--matte-active)] text-[var(--matte-active-text)]' : 'text-ledger-text-secondary hover:bg-ledger-subtle'}`}><MobileIcon name={icon} />{label}</NavLink>
 }
 
 function MobileIcon({ name }: { name: 'overview' | 'cashflow' | 'wealth' | 'more' }) {
