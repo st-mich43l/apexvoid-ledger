@@ -52,6 +52,8 @@ jobs:
         working-directory: frontend
       - run: npm run build
         working-directory: frontend
+      - run: npm run test:service-worker
+        working-directory: frontend
 
   push-worker-test:
     runs-on: ubuntu-latest
