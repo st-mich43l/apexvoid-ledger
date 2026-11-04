@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { CurrencySelector } from './CurrencySelector'
 import { ThemeToggle } from './ThemeToggle'
+import { MoneyPrivacyToggle } from './MoneyPrivacyToggle'
 import { BrandMark } from './BrandMark'
 import { AccountMenu } from './layout/AccountMenu'
 import { MobileNavigation } from './layout/MobileNavigation'
@@ -45,6 +46,7 @@ export function Layout() {
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <div className="hidden items-center rounded-[var(--ledger-radius-control)] border border-ledger-border bg-ledger-elevated p-0.5 shadow-sm sm:flex"><CurrencySelector /><span aria-hidden="true" className="h-4 w-px bg-ledger-border" /><ThemeToggle theme={theme} onToggle={toggleTheme} /></div>
             <div className="hidden max-sm:block"><ThemeToggle theme={theme} onToggle={toggleTheme} /></div>
+            <MoneyPrivacyToggle />
             {user && <NotificationBell />}
             {user && <AccountMenu user={user} onLogout={handleLogout} />}
             <div className="hidden sm:block xl:hidden"><Button type="button" variant="ghost" size="sm" aria-label="Open navigation" aria-expanded={mobileNavigationOpen} onClick={() => setMobileNavigationOpen(true)} className="h-11 min-h-11 w-11 px-0">

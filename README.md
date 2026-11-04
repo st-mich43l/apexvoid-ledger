@@ -126,6 +126,10 @@ activity ledger:
   (enforced server-side).
 - Currency is a per-account preference (chosen once on first login, editable
   anytime from the header), not a per-browser setting.
+- The eye control in the header hides displayed monetary amounts until toggled
+  back on. The preference is stored in the browser and shared across its tabs.
+  This is a visual privacy aid: editable inputs, chart shapes, and data available
+  to the browser are not secured or removed by hiding amounts.
 - Locked out, or need to bootstrap a recovery account without the UI?
   `python -m app.cli create-user` / `reset-password` (inside the backend
   container or a local venv) — see `backend/app/cli.py`.

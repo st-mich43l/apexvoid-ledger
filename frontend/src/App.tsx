@@ -1,9 +1,10 @@
-import { lazy, Suspense, type ReactNode } from 'react'
+import { cloneElement, isValidElement, lazy, Suspense, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { RequireAdmin } from './components/RequireAdmin'
 import { RequireAuth } from './components/RequireAuth'
 import { useAuth } from './hooks/useAuth'
+import { useMoneyPrivacy } from './lib/moneyPrivacy'
 
 const AdminUsersPage = lazy(() => import('./pages/admin/Users').then((module) => ({ default: module.AdminUsersPage })))
 const CashFlowPage = lazy(() => import('./pages/CashFlow').then((module) => ({ default: module.CashFlowPage })))
@@ -68,7 +69,9 @@ function App() {
 }
 
 function LazyPage({ children }: { children: ReactNode }) {
-  return <Suspense fallback={<div className="min-h-36 rounded-[var(--ledger-radius-card)] border border-ledger-border bg-ledger-surface p-5 text-sm text-ledger-text-secondary">Loading workspace…</div>}>{children}</Suspense>
+  // Re-render the current page on a privacy change without remounting it or losing form state.
+  useMoneyPrivacy()
+  return <Suspense fallback={<div className="min-h-36 rounded-[var(--ledger-radius-card)] border border-ledger-border bg-ledger-surface p-5 text-sm text-ledger-text-secondary">Loading workspace…</div>}>{isValidElement(children) ? cloneElement(children) : children}</Suspense>
 }
 
 export default App
