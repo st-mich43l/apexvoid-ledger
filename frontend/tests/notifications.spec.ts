@@ -30,3 +30,11 @@ test('settings explain unconfigured delivery without prompting for permission', 
   await expect(page.getByRole('button', { name: 'Enable on this device' })).toBeDisabled()
   await expect(page.getByText('Bank activity', { exact: true })).toBeVisible()
 })
+
+test('an earlier account push device is discarded when another user signs in', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('apexvoid-ledger:push-device', JSON.stringify({ userId: 'previous-user', id: 'old-device' }))
+  })
+  await page.goto('/dashboard')
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('apexvoid-ledger:push-device'))).toBeNull()
+})

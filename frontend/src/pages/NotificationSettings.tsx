@@ -39,6 +39,15 @@ export function NotificationSettingsPage() {
       if (granted !== 'granted') return
       const registration = await navigator.serviceWorker.ready
       let subscription = await registration.pushManager.getSubscription()
+      // A browser subscription is unique to an origin, not a Ledger account.
+      // After an account change, discard an untracked previous subscription
+      // before trying to associate its endpoint with the new account.
+      const remembered = storedPushDevice()
+      if (subscription && remembered?.userId !== user.id) {
+        await subscription.unsubscribe()
+        subscription = null
+        rememberPushDevice(null)
+      }
       let created = false
       if (!subscription) { subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodeVapidKey(publicKey) }); created = true }
       try {

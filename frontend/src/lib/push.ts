@@ -11,14 +11,38 @@ export function decodeVapidKey(value: string): Uint8Array<ArrayBuffer> {
   const padded = value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - value.length % 4) % 4)
   return Uint8Array.from(atob(padded), char => char.charCodeAt(0))
 }
+
+// Browser subscriptions outlive an authenticated web session. Never leave an
+// old account's subscription attached to this browser after a sign-out or
+// account change, even when the server can no longer revoke its record.
+export async function discardLocalPush() {
+  try {
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.getRegistration('/')
+      const subscription = await registration?.pushManager?.getSubscription()
+      await subscription?.unsubscribe()
+    }
+  } finally {
+    rememberPushDevice(null)
+  }
+}
+
+export async function reconcileLocalPushForUser(userId: string | null) {
+  const stored = storedPushDevice()
+  if (stored && stored.userId !== userId) await discardLocalPush()
+}
+
 export async function releaseCurrentPush(userId: string) {
   const stored = storedPushDevice()
-  if (!stored || stored.userId !== userId) return
-  try { await deletePushDevice(stored.id) } catch (error) { if (!(error instanceof ApiError) || error.status !== 404) throw error }
-  if ('serviceWorker' in navigator) {
-    const registration = await navigator.serviceWorker.getRegistration('/')
-    const subscription = await registration?.pushManager.getSubscription()
-    await subscription?.unsubscribe()
+  try {
+    if (stored?.userId === userId) {
+      try { await deletePushDevice(stored.id) } catch (error) {
+        // A missing/expired session cannot revoke the server record, but its
+        // browser endpoint still has to be unsubscribed immediately.
+        if (!(error instanceof ApiError) || ![401, 403, 404].includes(error.status)) throw error
+      }
+    }
+  } finally {
+    await discardLocalPush()
   }
-  rememberPushDevice(null)
 }
