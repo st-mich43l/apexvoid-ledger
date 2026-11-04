@@ -11,12 +11,14 @@ on:
     paths:
       - "backend/**"
       - "frontend/**"
+      - "push-worker/**"
       - "deployment-template/**"
       - ".github/workflows/deploy.yml"
   pull_request:
     paths:
       - "backend/**"
       - "frontend/**"
+      - "push-worker/**"
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
@@ -50,6 +52,19 @@ jobs:
         working-directory: frontend
       - run: npm run build
         working-directory: frontend
+      - run: npm run test:service-worker
+        working-directory: frontend
+
+  push-worker-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache-dependency-path: push-worker/go.sum
+      - run: go test ./...
+        working-directory: push-worker
 
   release:
     # Quality-checked on every PR, but only deployed from master - a PR run
@@ -57,7 +72,7 @@ jobs:
     if: >
       github.ref == 'refs/heads/master' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    needs: [backend-test, frontend-check]
+    needs: [backend-test, frontend-check, push-worker-test]
     uses: st-mich43l/action-library/.github/workflows/build-push-deploy.yml@master
     with:
       project: apexvoid-ledger
@@ -65,7 +80,8 @@ jobs:
       images: >-
         [
           {"name": "apexvoid-ledger-backend", "context": "backend", "dockerfile": "backend/Dockerfile"},
-          {"name": "apexvoid-ledger-frontend", "context": "frontend", "dockerfile": "frontend/Dockerfile"}
+          {"name": "apexvoid-ledger-frontend", "context": "frontend", "dockerfile": "frontend/Dockerfile"},
+          {"name": "apexvoid-ledger-push-worker", "context": "push-worker", "dockerfile": "push-worker/Dockerfile"}
         ]
     secrets:
       registry-token: ${{ secrets.DOCKERHUB_TOKEN }}

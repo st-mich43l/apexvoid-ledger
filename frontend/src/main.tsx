@@ -6,6 +6,14 @@ import App from './App.tsx'
 import { AuthProvider } from './context/AuthContext.tsx'
 import { CurrencyProvider } from './context/CurrencyContext.tsx'
 
+if (window.isSecureContext && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.register('/service-worker.js', { scope: '/' }).catch(() => {
+      // Push is optional; registration failure must not prevent using Ledger.
+    })
+  })
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>

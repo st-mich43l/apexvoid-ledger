@@ -32,6 +32,7 @@ export function AccountMenu({ user, onLogout }: AccountMenuProps) {
             <p className="mt-0.5 text-xs text-ledger-text-secondary">Ledger account</p>
           </div>
           <Link to="/settings/users" role="menuitem" onClick={() => setOpen(false)} className="mt-1 flex min-h-10 items-center rounded-[var(--ledger-radius-control)] px-3 text-sm font-medium text-ledger-text-secondary hover:bg-ledger-subtle hover:text-ledger-text">User account</Link>
+          <Link to="/notifications" role="menuitem" onClick={() => setOpen(false)} className="flex min-h-10 items-center rounded-[var(--ledger-radius-control)] px-3 text-sm font-medium text-ledger-text-secondary hover:bg-ledger-subtle hover:text-ledger-text">Notifications</Link>
           {user.isAdmin && <Link to="/home" role="menuitem" onClick={() => setOpen(false)} className="flex min-h-10 items-center rounded-[var(--ledger-radius-control)] px-3 text-sm font-medium text-ledger-text-secondary hover:bg-ledger-subtle hover:text-ledger-text">Administration</Link>}
           <div className="mt-1 border-t border-ledger-border pt-1">
             <button type="button" role="menuitem" onClick={() => void onLogout()} className="flex min-h-10 w-full items-center rounded-[var(--ledger-radius-control)] px-3 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-500/10">Log out</button>
