@@ -16,6 +16,8 @@ const LoginPage = lazy(() => import('./pages/Login').then((module) => ({ default
 const MonthlyClosePage = lazy(() => import('./pages/MonthlyClose').then((module) => ({ default: module.MonthlyClosePage })))
 const MonthlyRoutinePage = lazy(() => import('./pages/MonthlyRoutine').then((module) => ({ default: module.MonthlyRoutinePage })))
 const NetWorthPage = lazy(() => import('./pages/NetWorth').then((module) => ({ default: module.NetWorthPage })))
+const NotificationsPage = lazy(() => import('./pages/Notifications').then((module) => ({ default: module.NotificationsPage })))
+const NotificationSettingsPage = lazy(() => import('./pages/NotificationSettings').then((module) => ({ default: module.NotificationSettingsPage })))
 const SavingPotPage = lazy(() => import('./pages/SavingPot').then((module) => ({ default: module.SavingPotPage })))
 const SelectCurrencyPage = lazy(() => import('./pages/SelectCurrency').then((module) => ({ default: module.SelectCurrencyPage })))
 
@@ -51,6 +53,8 @@ function App() {
           <Route path="tools" element={<Navigate to="/home" replace />} />
 
           <Route path="settings/users" element={<LazyPage><AdminUsersPage /></LazyPage>} />
+          <Route path="notifications" element={<LazyPage><NotificationsPage /></LazyPage>} />
+          <Route path="settings/notifications" element={<LazyPage><NotificationSettingsPage /></LazyPage>} />
 
           <Route element={<RequireAdmin />}>
             <Route path="home" element={<LazyPage><HomePage /></LazyPage>} />

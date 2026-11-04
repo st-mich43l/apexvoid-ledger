@@ -33,6 +33,8 @@ services:
       DATABASE_URL: {{ apexvoid_ledger_secrets.DATABASE_URL | to_json }}
       SECRET_KEY: {{ apexvoid_ledger_secrets.SECRET_KEY | to_json }}
       PORT: "4000"
+      VAPID_PUBLIC_KEY: {{ apexvoid_ledger_secrets.VAPID_PUBLIC_KEY | default('') | to_json }}
+      PUSH_SUBSCRIPTION_KEY: {{ apexvoid_ledger_secrets.PUSH_SUBSCRIPTION_KEY | default('') | to_json }}
     volumes:
       - backend_secrets:/var/lib/apexvoid-ledger
     networks:
@@ -48,6 +50,24 @@ services:
     networks:
       - default
       - routing
+
+{% if apexvoid_ledger_secrets.VAPID_PUBLIC_KEY | default('') and apexvoid_ledger_secrets.VAPID_PRIVATE_KEY | default('') and apexvoid_ledger_secrets.VAPID_SUBJECT | default('') and apexvoid_ledger_secrets.PUSH_SUBSCRIPTION_KEY | default('') %}
+  push-worker:
+    image: "{{ registry_namespace }}/apexvoid-ledger-push-worker:{{ image_tag }}"
+    container_name: apexvoid-ledger-push-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    environment:
+      DATABASE_URL: {{ apexvoid_ledger_secrets.DATABASE_URL | to_json }}
+      PUSH_SUBSCRIPTION_KEY: {{ apexvoid_ledger_secrets.PUSH_SUBSCRIPTION_KEY | to_json }}
+      VAPID_PUBLIC_KEY: {{ apexvoid_ledger_secrets.VAPID_PUBLIC_KEY | to_json }}
+      VAPID_PRIVATE_KEY: {{ apexvoid_ledger_secrets.VAPID_PRIVATE_KEY | to_json }}
+      VAPID_SUBJECT: {{ apexvoid_ledger_secrets.VAPID_SUBJECT | to_json }}
+{% endif %}
 
 volumes:
   pgdata:

@@ -30,6 +30,8 @@ services:
       PORT: ${PORT:-4000}
       SECRET_KEY: ${SECRET_KEY:-dev-only-change-me}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      PUSH_SUBSCRIPTION_KEY: ${PUSH_SUBSCRIPTION_KEY:-}
     volumes:
       - backend_secrets:/var/lib/apexvoid-ledger
     ports:
@@ -42,6 +44,22 @@ services:
       - backend
     ports:
       - "8080:80"
+
+  push-worker:
+    profiles: ["push"]
+    build: ./push-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://ledger:ledger@postgres:5432/apexvoid_ledger?schema=public}
+      PUSH_SUBSCRIPTION_KEY: ${PUSH_SUBSCRIPTION_KEY:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
 
 volumes:
   backend_secrets:

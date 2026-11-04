@@ -12,6 +12,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 load_dotenv()
 
 from app.models import Base  # noqa: E402
+from app import notification_models  # noqa: E402,F401
 
 config = context.config
 

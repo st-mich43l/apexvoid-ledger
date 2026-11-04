@@ -12,6 +12,8 @@ from .routers.monthly_budget import router as monthly_budget_router
 from .routers.monthly_close import router as monthly_close_router
 from .routers.monthly_routine import router as monthly_routine_router
 from .routers.net_worth import router as net_worth_router
+from .routers.notifications import router as notifications_router
+from .routers.push import router as push_router
 from .routers.recurring_expenses import router as recurring_expenses_router
 from .routers.recurring_incomes import router as recurring_incomes_router
 from .routers.saving_pot import router as saving_pot_router
@@ -44,6 +46,8 @@ app.include_router(monthly_routine_router)
 app.include_router(monthly_budget_router)
 app.include_router(monthly_close_router)
 app.include_router(net_worth_router)
+app.include_router(notifications_router)
+app.include_router(push_router)
 app.include_router(saving_pot_router)
 app.include_router(sepay_webhook_router)
 

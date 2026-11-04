@@ -5,6 +5,7 @@ import { ThemeToggle } from './ThemeToggle'
 import { BrandMark } from './BrandMark'
 import { AccountMenu } from './layout/AccountMenu'
 import { MobileNavigation } from './layout/MobileNavigation'
+import { NotificationBell } from './layout/NotificationBell'
 import { PrimaryNavigation } from './layout/PrimaryNavigation'
 import { Button } from './ui/Button'
 import { useAuth } from '../hooks/useAuth'
@@ -16,11 +17,17 @@ export function Layout() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false)
+  const [logoutError, setLogoutError] = useState(false)
   const moreActive = mobileNavigationOpen || !['/dashboard', '/cashflow', '/net-worth'].includes(pathname)
 
   async function handleLogout() {
-    await logout()
-    navigate('/login', { replace: true })
+    try {
+      setLogoutError(false)
+      await logout()
+      navigate('/login', { replace: true })
+    } catch {
+      setLogoutError(true)
+    }
   }
 
   const homePath = user?.isAdmin ? '/home' : '/dashboard'
@@ -38,6 +45,7 @@ export function Layout() {
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <div className="hidden items-center rounded-[var(--ledger-radius-control)] border border-ledger-border bg-ledger-elevated p-0.5 shadow-sm sm:flex"><CurrencySelector /><span aria-hidden="true" className="h-4 w-px bg-ledger-border" /><ThemeToggle theme={theme} onToggle={toggleTheme} /></div>
             <div className="hidden max-sm:block"><ThemeToggle theme={theme} onToggle={toggleTheme} /></div>
+            {user && <NotificationBell />}
             {user && <AccountMenu user={user} onLogout={handleLogout} />}
             <div className="hidden sm:block xl:hidden"><Button type="button" variant="ghost" size="sm" aria-label="Open navigation" aria-expanded={mobileNavigationOpen} onClick={() => setMobileNavigationOpen(true)} className="h-11 min-h-11 w-11 px-0">
               <MenuIcon className="h-5 w-5" />
@@ -47,6 +55,7 @@ export function Layout() {
       </header>
 
       <main className="mx-auto min-w-0 max-w-7xl px-[var(--ledger-page-gutter)] pt-5 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:py-8">
+        {logoutError && <p role="alert" className="mb-4 rounded-xl border border-rose-300 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-200">Could not safely disable this device’s notifications or log out. Check your connection and try again.</p>}
         <Outlet />
       </main>
 

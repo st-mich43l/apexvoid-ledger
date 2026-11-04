@@ -454,6 +454,8 @@ def ingest_webhook(db: Session, payload: Any) -> SePayBankActivity:
 
   if account is not None:
     process_activity(db, activity)
+    from .notification_events import queue_bank_activity
+    queue_bank_activity(db, account.user_id, activity.id, activity.processing_status == "pending_review")
   db.commit()
 
   if account is not None:

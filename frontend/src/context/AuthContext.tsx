@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import * as api from '../api'
 import type { AuthUser } from '../types'
 import { AuthContext } from './authStore'
+import { releaseCurrentPush } from '../lib/push'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -19,6 +20,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout() {
+    if (user) await releaseCurrentPush(user.id)
     await api.logout()
     setUser(null)
   }

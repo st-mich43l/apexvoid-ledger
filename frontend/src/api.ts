@@ -475,6 +475,21 @@ export function fetchSavingPotHistory(
 
 const AUTH_URL = '/api/auth'
 
+export interface InboxNotification { id: string; eventType: string; title: string; body: string; destination: string; createdAt: string; readAt: string | null }
+export interface NotificationPreferences { bankActivity: boolean; budgetAlerts: boolean; paymentReminders: boolean; monthlySummary: boolean; timezone: string; quietStart: number | null; quietEnd: number | null }
+export interface PushDevice { id: string; deviceName: string; enabled: boolean; createdAt: string; lastSeenAt: string }
+export function fetchNotifications(): Promise<InboxNotification[]> { return authedRequest('/api/notifications?limit=50') }
+export function fetchNotificationCount(): Promise<{ count: number }> { return authedRequest('/api/notifications/unread-count') }
+export function markNotificationRead(id: string): Promise<InboxNotification> { return authedRequest(`/api/notifications/${encodeURIComponent(id)}/read`, { method: 'PATCH' }) }
+export function markAllNotificationsRead(): Promise<void> { return authedRequest('/api/notifications/read-all', { method: 'POST' }) }
+export function fetchNotificationPreferences(): Promise<NotificationPreferences> { return authedRequest('/api/notifications/preferences') }
+export function saveNotificationPreferences(input: NotificationPreferences): Promise<NotificationPreferences> { return authedRequest('/api/notifications/preferences', { method: 'PUT', body: JSON.stringify(input) }) }
+export function fetchPushConfig(): Promise<{ configured: boolean; publicKey: string | null }> { return authedRequest('/api/push/config') }
+export function fetchPushDevices(): Promise<PushDevice[]> { return authedRequest('/api/push/subscriptions') }
+export function savePushDevice(subscription: PushSubscriptionJSON): Promise<PushDevice> { return authedRequest('/api/push/subscriptions', { method: 'POST', body: JSON.stringify({ ...subscription, deviceName: navigator.userAgent.slice(0, 120) }) }) }
+export function deletePushDevice(id: string): Promise<void> { return authedRequest(`/api/push/subscriptions/${encodeURIComponent(id)}`, { method: 'DELETE' }) }
+export function sendTestPush(id: string): Promise<{ status: string }> { return authedRequest('/api/push/test', { method: 'POST', body: JSON.stringify({ subscriptionId: id }) }) }
+
 // Special-cased: a 401 here just means "not logged in yet" (the normal state
 // on first load), not a session-died event — doesn't go through
 // onUnauthorized, and resolves to null instead of throwing.
