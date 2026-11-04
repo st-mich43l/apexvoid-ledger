@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Outlet, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { CurrencySelector } from './CurrencySelector'
 import { ThemeToggle } from './ThemeToggle'
 import { BrandMark } from './BrandMark'
@@ -35,22 +35,40 @@ export function Layout() {
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <div className="hidden items-center rounded-[var(--ledger-radius-control)] border border-ledger-border bg-ledger-elevated p-0.5 shadow-sm sm:flex"><CurrencySelector /><span aria-hidden="true" className="h-4 w-px bg-ledger-border" /><ThemeToggle theme={theme} onToggle={toggleTheme} /></div>
-            <div className="sm:hidden"><ThemeToggle theme={theme} onToggle={toggleTheme} /></div>
+            <div className="hidden max-sm:block"><ThemeToggle theme={theme} onToggle={toggleTheme} /></div>
             {user && <AccountMenu user={user} onLogout={handleLogout} />}
-            <Button type="button" variant="ghost" size="sm" aria-label="Open navigation" aria-expanded={mobileNavigationOpen} onClick={() => setMobileNavigationOpen(true)} className="h-11 min-h-11 w-11 px-0 xl:hidden">
+            <div className="hidden sm:block xl:hidden"><Button type="button" variant="ghost" size="sm" aria-label="Open navigation" aria-expanded={mobileNavigationOpen} onClick={() => setMobileNavigationOpen(true)} className="h-11 min-h-11 w-11 px-0">
               <MenuIcon className="h-5 w-5" />
-            </Button>
+            </Button></div>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto min-w-0 max-w-7xl px-[var(--ledger-page-gutter)] py-5 sm:py-8">
+      <main className="mx-auto min-w-0 max-w-7xl px-[var(--ledger-page-gutter)] pt-5 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:py-8">
         <Outlet />
       </main>
+
+      <nav aria-label="Mobile navigation" className="fixed inset-x-0 bottom-0 z-30 border-t border-ledger-border bg-ledger-elevated/95 px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(24,16,54,0.08)] backdrop-blur sm:hidden">
+        <div className="mx-auto grid max-w-md grid-cols-4">
+          <MobileTab to="/dashboard" label="Overview" icon="overview" />
+          <MobileTab to="/cashflow" label="Cash Flow" icon="cashflow" />
+          <MobileTab to="/net-worth" label="Net Worth" icon="wealth" />
+          <button type="button" aria-label="Open navigation" aria-expanded={mobileNavigationOpen} onClick={() => setMobileNavigationOpen(true)} className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium text-ledger-text-secondary"><MobileIcon name="more" />More</button>
+        </div>
+      </nav>
 
       <MobileNavigation open={mobileNavigationOpen} onClose={() => setMobileNavigationOpen(false)} theme={theme} onToggleTheme={toggleTheme} />
     </div>
   )
+}
+
+function MobileTab({ to, label, icon }: { to: string; label: string; icon: 'overview' | 'cashflow' | 'wealth' }) {
+  return <NavLink to={to} className={({ isActive }) => `flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium ${isActive ? 'text-ledger-primary' : 'text-ledger-text-secondary'}`}><MobileIcon name={icon} />{label}</NavLink>
+}
+
+function MobileIcon({ name }: { name: 'overview' | 'cashflow' | 'wealth' | 'more' }) {
+  const paths = { overview: 'M4 10 12 3l8 7v10h-6v-6h-4v6H4z', cashflow: 'M4 8h15m-4-4 4 4-4 4M20 16H5m4-4-4 4 4 4', wealth: 'M3 10 12 4l9 6M5 10v8m5-8v8m4-8v8m5-8v8M3 20h18', more: 'M5 12h.01M12 12h.01M19 12h.01' }
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true"><path d={paths[name]} /></svg>
 }
 
 function MenuIcon({ className }: { className?: string }) {

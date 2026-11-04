@@ -1,0 +1,7 @@
+# Mobile UX 2.0 review
+
+The prior responsive pass prevented major overflow, but still presented the dashboard as a long stack of desktop cards, kept frequently used destinations behind a drawer, and showed four filters before any Cash Flow activity. Long dialog content also lost horizontal space to the close button.
+
+The mobile shell now exposes Overview, Cash Flow, Net Worth, and More at the bottom, with safe-area spacing. The existing navigation remains available through More and at tablet sizes. On the dashboard, verified bank assets and monthly figures share one compact summary, attention items link to their source, and the leading spending categories are visible before the optional detailed reports. Cash Flow prioritizes adding and reviewing activity, uses compact figures and expandable filters, and opens administrative actions in a mobile sheet. Desktop navigation and the independently positioned Insights rail remain in place.
+
+The browser suite covers Cash Flow at ten viewport sizes and smoke-tests the main authenticated routes at 390px, saving actual screenshots in Playwright's test output. It checks mobile navigation, the Insights drawer, the action sheet, long values, and a desktop dashboard navigation state. Fixtures deliberately exercise unavailable-data states for several services; these screenshots are not substitutes for review with populated production-like data. Device keyboard behavior, real touch hardware, populated loan details, increased text scaling, and screenshot comparison baselines still require additional verification.

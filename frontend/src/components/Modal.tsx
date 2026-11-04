@@ -102,8 +102,8 @@ export function Modal({ onClose, label, children, dismissible = true, variant = 
         aria-label={label}
         tabIndex={-1}
         className={variant === 'drawer'
-          ? 'relative h-full w-[min(24rem,calc(100vw-1rem))] overflow-y-auto border-r border-ledger-border bg-ledger-elevated p-5 pr-14 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:p-6 sm:pr-16'
-          : 'relative max-h-[calc(100dvh-1rem)] w-full max-w-2xl overflow-y-auto rounded-t-[var(--ledger-radius-modal)] border border-ledger-border bg-ledger-elevated p-5 pr-14 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:max-h-[90vh] sm:rounded-[var(--ledger-radius-modal)] sm:p-7 sm:pr-16'}
+          ? 'relative h-full w-[min(24rem,calc(100vw-1rem))] overflow-y-auto border-r border-ledger-border bg-ledger-elevated p-5 pt-16 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:p-6 sm:pt-16'
+          : 'relative max-h-[calc(100dvh-1rem)] w-full max-w-2xl overflow-y-auto rounded-t-[var(--ledger-radius-modal)] border border-ledger-border bg-ledger-elevated p-5 pt-16 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:max-h-[90vh] sm:rounded-[var(--ledger-radius-modal)] sm:p-7 sm:pt-16'}
       >
         {dismissible && (
           <button
