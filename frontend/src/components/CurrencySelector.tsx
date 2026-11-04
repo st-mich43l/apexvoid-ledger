@@ -7,14 +7,22 @@ import { CURRENCY_FLAG_SRC } from '../lib/flags'
 export function CurrencySelector() {
   const { currency, setCurrency } = useCurrency()
   const [open, setOpen] = useState(false)
-  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 })
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 8 })
   const buttonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLUListElement>(null)
 
   function updatePosition() {
     const rect = buttonRef.current?.getBoundingClientRect()
     if (!rect) return
-    setMenuPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right })
+    const gutter = 8
+    const menuWidth = Math.min(192, window.innerWidth - gutter * 2)
+    const left = Math.min(Math.max(gutter, rect.right - menuWidth), window.innerWidth - menuWidth - gutter)
+    const estimatedMenuHeight = 176
+    const below = rect.bottom + gutter
+    const top = below + estimatedMenuHeight <= window.innerHeight - gutter
+      ? below
+      : Math.max(gutter, rect.top - estimatedMenuHeight - gutter)
+    setMenuPos({ top, left })
   }
 
   useEffect(() => {
@@ -69,8 +77,8 @@ export function CurrencySelector() {
             ref={menuRef}
             role="listbox"
             aria-label="Display currency"
-            style={{ top: menuPos.top, right: menuPos.right }}
-            className="fixed z-50 w-48 overflow-hidden rounded-[var(--ledger-radius-card)] border border-ledger-border bg-ledger-elevated py-1.5 shadow-[var(--ledger-shadow-card)]"
+            style={menuPos}
+            className="fixed z-50 w-48 max-w-[calc(100vw-1rem)] overflow-hidden rounded-[var(--ledger-radius-card)] border border-ledger-border bg-ledger-elevated py-1.5 shadow-[var(--ledger-shadow-card)]"
           >
             {SUPPORTED_CURRENCIES.map((code) => (
               <li key={code} role="option" aria-selected={code === currency}>

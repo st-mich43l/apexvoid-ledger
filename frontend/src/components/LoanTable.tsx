@@ -25,8 +25,8 @@ export function LoanTable({ loans, onRequestDelete }: LoanTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-3xl border border-neutral-200/80 bg-white shadow-[0_2px_8px_-2px_rgba(24,16,54,0.08),0_16px_32px_-12px_rgba(24,16,54,0.10)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none">
-      <table className="min-w-full divide-y divide-neutral-200 dark:divide-neutral-800">
+    <div className="responsive-table rounded-3xl border border-neutral-200/80 bg-white shadow-[0_2px_8px_-2px_rgba(24,16,54,0.08),0_16px_32px_-12px_rgba(24,16,54,0.10)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none">
+      <table className="min-w-[62rem] divide-y divide-neutral-200 dark:divide-neutral-800">
         <thead className="bg-neutral-50 dark:bg-neutral-900/60">
           <tr>
             <Th>Bank</Th>
