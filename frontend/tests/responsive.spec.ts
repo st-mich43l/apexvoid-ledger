@@ -144,6 +144,24 @@ test('desktop dashboard retains primary navigation', async ({ page }, testInfo) 
   await page.screenshot({ path: testInfo.outputPath('desktop-dashboard.png'), fullPage: true })
 })
 
+test('installable app registers a service worker without requesting notification permission', async ({ page }) => {
+  await mockApi(page)
+  await page.addInitScript(() => {
+    Object.defineProperty(Notification, 'requestPermission', { value: () => { throw new Error('Unexpected permission prompt') } })
+  })
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  await page.goto('/dashboard')
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', '/manifest.webmanifest')
+  const registration = await page.evaluate(async () => {
+    const worker = await navigator.serviceWorker.ready
+    return { scope: worker.scope, script: worker.active?.scriptURL }
+  })
+  expect(new URL(registration.scope).pathname).toBe('/')
+  expect(new URL(registration.script!).pathname).toBe('/service-worker.js')
+  expect(errors).toEqual([])
+})
+
 for (const theme of ['light', 'dark'] as const) {
   test(`floating navigation stays usable in ${theme} theme`, async ({ page }, testInfo) => {
     await mockApi(page)
