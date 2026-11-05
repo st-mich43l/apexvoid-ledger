@@ -167,6 +167,29 @@ test('desktop dashboard retains primary navigation', async ({ page }, testInfo) 
   await page.screenshot({ path: testInfo.outputPath('desktop-dashboard.png'), fullPage: true })
 })
 
+test('desktop navigation dropdown items are compact, left-aligned, and keyboard dismissible', async ({ page }) => {
+  await mockApi(page)
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/dashboard')
+  for (const group of ['Planning', 'Wealth']) {
+    const trigger = page.getByRole('button', { name: group })
+    await trigger.click()
+    const menu = page.getByRole('menu', { name: `${group} navigation` })
+    await expect(menu).toBeVisible()
+    const entries = menu.getByRole('menuitem')
+    for (const entry of await entries.all()) {
+      await expect(entry).toHaveCSS('justify-content', 'space-between')
+      const itemBox = await entry.boundingBox()
+      const labelBox = await entry.locator('span').first().boundingBox()
+      expect(labelBox!.x - itemBox!.x).toBeLessThanOrEqual(16)
+      expect(itemBox!.height).toBeGreaterThanOrEqual(40)
+    }
+    expect((await menu.boundingBox())!.width).toBeLessThanOrEqual(200)
+    await page.keyboard.press('Escape')
+    await expect(menu).toBeHidden()
+  }
+})
+
 test('installable app registers a service worker without requesting notification permission', async ({ page }) => {
   await mockApi(page)
   await page.addInitScript(() => {

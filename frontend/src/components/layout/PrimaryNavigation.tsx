@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { buttonClassName } from '../ui/buttonStyles'
 import { cn } from '../ui/utils'
 import { isNavigationGroup, navigationDestination, primaryNavigation } from './navigation'
 
@@ -50,10 +49,10 @@ export function PrimaryNavigation() {
               {item.matches(pathname) && <span className="sr-only">, current section</span>}
             </button>
             {openGroup === item.label && (
-              <div role="menu" aria-label={`${item.label} navigation`} className="matte-glass absolute top-full left-0 z-50 mt-2 w-52 rounded-[var(--ledger-radius-card)] p-1.5">
+              <div role="menu" aria-label={`${item.label} navigation`} className="matte-glass absolute top-full left-0 z-50 mt-2 w-48 rounded-[var(--ledger-radius-card)] p-1.5">
                 {item.items.map((child) => (
-                  <Link key={child.to} to={navigationDestination(child, item, search)} role="menuitem" aria-current={child.matches(pathname) ? 'page' : undefined} className={buttonClassName({ variant: 'ghost', size: 'md', className: cn('w-full justify-between px-3', child.matches(pathname) && 'bg-ledger-primary-subtle text-ledger-primary') })}>
-                    {child.label}{child.matches(pathname) && <span className="text-xs">Current</span>}
+                  <Link key={child.to} to={navigationDestination(child, item, search)} role="menuitem" aria-current={child.matches(pathname) ? 'page' : undefined} className={cn('flex min-h-10 w-full items-center justify-between gap-3 rounded-[var(--ledger-radius-control)] px-3 text-left text-sm font-semibold transition-colors', child.matches(pathname) ? 'bg-ledger-primary-subtle text-ledger-primary' : 'text-ledger-text-secondary hover:bg-ledger-subtle hover:text-ledger-text')}>
+                    <span>{child.label}</span>{child.matches(pathname) && <span className="text-xs">Current</span>}
                   </Link>
                 ))}
               </div>
