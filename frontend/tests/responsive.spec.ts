@@ -166,6 +166,8 @@ test('mobile navigation, Insights drawer, and More menu remain reachable', async
 
   await page.getByRole('button', { name: 'Insights' }).click()
   await expect(page.getByRole('dialog', { name: 'Cash flow insights' })).toBeVisible()
+  await expect(page.getByRole('dialog', { name: 'Cash flow insights' }).getByRole('heading', { name: 'Spending by category' })).toBeVisible()
+  await expect(page.getByRole('dialog', { name: 'Cash flow insights' }).getByRole('heading', { name: 'Income vs expenses' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Close Cash flow insights' }).click()
 
   await page.getByRole('button', { name: 'More', exact: true }).click()
@@ -180,6 +182,16 @@ test('mobile navigation, Insights drawer, and More menu remain reachable', async
   await page.getByText('Search & filters').click()
   await expect(page.getByRole('textbox', { name: 'Search activity' })).toBeVisible()
   await expectViewportContained(page)
+})
+
+test('desktop cash-flow insights retain spending and bank activity without the income chart', async ({ page }) => {
+  await mockApi(page)
+  await page.setViewportSize({ width: 1920, height: 1080 })
+  await page.goto('/cashflow')
+  const rail = page.getByRole('complementary', { name: 'Cash flow insights' })
+  await expect(rail.getByRole('heading', { name: 'Spending by category' })).toBeVisible()
+  await expect(rail.getByRole('heading', { name: 'Bank activity' })).toBeVisible()
+  await expect(rail.getByRole('heading', { name: 'Income vs expenses' })).toHaveCount(0)
 })
 
 test.describe('touch navigation', () => {
