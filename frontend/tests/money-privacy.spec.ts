@@ -105,6 +105,29 @@ for (const width of [320, 390, 430]) {
   })
 }
 
+test.describe('mobile browser privacy persistence', () => {
+  test.use({ isMobile: true, hasTouch: true })
+  test('remembers independent dashboard eyes after reload and reopening a tab', async ({ page, context }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/dashboard')
+    const position = page.getByRole('region', { name: 'Financial position' })
+    const income = position.getByRole('button', { name: 'Hide monetary amounts (Income)', exact: true })
+    const expenses = position.getByRole('button', { name: 'Hide monetary amounts (Expenses)', exact: true })
+    await income.tap()
+    await expect(income).toHaveAttribute('aria-pressed', 'true')
+    await page.reload()
+    await expect(income).toHaveAttribute('aria-pressed', 'true')
+    await expect(expenses).toHaveAttribute('aria-pressed', 'false')
+    await page.close()
+    const reopened = await context.newPage()
+    await reopened.setViewportSize({ width: 390, height: 844 })
+    await reopened.goto('/dashboard')
+    const restored = reopened.getByRole('region', { name: 'Financial position' })
+    await expect(restored.getByRole('button', { name: 'Hide monetary amounts (Income)', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await expect(restored.getByRole('button', { name: 'Hide monetary amounts (Expenses)', exact: true })).toHaveAttribute('aria-pressed', 'false')
+  })
+})
+
 test('hides and restores amounts across navigation and reload without losing input', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/cashflow')

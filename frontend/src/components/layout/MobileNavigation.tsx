@@ -7,7 +7,7 @@ import { ThemeToggle } from '../ThemeToggle'
 import { isNavigationGroup, navigationDestination, primaryNavigation } from './navigation'
 
 interface MobileNavigationProps { open: boolean; onClose: () => void; theme: 'light' | 'dark'; onToggleTheme: () => void }
-const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 export function MobileNavigation({ open, onClose, theme, onToggleTheme }: MobileNavigationProps) {
   const { pathname, search } = useLocation()
@@ -18,13 +18,19 @@ export function MobileNavigation({ open, onClose, theme, onToggleTheme }: Mobile
   useEffect(() => {
     if (!open) return
     previousFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    closeButtonRef.current?.focus()
+    const scrollY = window.scrollY
+    const body = document.body
+    const previous = { overflow: body.style.overflow, position: body.style.position, top: body.style.top, width: body.style.width }
+    Object.assign(body.style, { overflow: 'hidden', position: 'fixed', top: `-${scrollY}px`, width: '100%' })
+    closeButtonRef.current?.focus({ preventScroll: true })
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') { onClose(); return }
+      if (event.key === 'Escape') {
+        if (drawerRef.current?.querySelector('[aria-haspopup="listbox"][aria-expanded="true"]')) return
+        onClose()
+        return
+      }
       if (event.key !== 'Tab') return
-      const focusable = Array.from(drawerRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? [])
+      const focusable = Array.from(drawerRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? []).filter(element => element.getClientRects().length > 0)
       if (focusable.length === 0) return
       const first = focusable[0]
       const last = focusable[focusable.length - 1]
@@ -33,9 +39,10 @@ export function MobileNavigation({ open, onClose, theme, onToggleTheme }: Mobile
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => {
-      document.body.style.overflow = previousOverflow
+      Object.assign(body.style, previous)
+      window.scrollTo(0, scrollY)
       document.removeEventListener('keydown', handleKeyDown)
-      previousFocus.current?.focus()
+      previousFocus.current?.focus({ preventScroll: true })
     }
   }, [open, onClose])
 
@@ -43,7 +50,7 @@ export function MobileNavigation({ open, onClose, theme, onToggleTheme }: Mobile
   return (
     <div className="fixed inset-0 z-50 xl:hidden" role="dialog" aria-modal="true" aria-label="Application navigation">
       <button type="button" tabIndex={-1} aria-hidden="true" className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" onClick={onClose} />
-      <nav ref={drawerRef} aria-label="Mobile primary navigation" className="matte-glass relative flex h-full w-[min(21rem,calc(100vw-1.5rem))] flex-col overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <nav ref={drawerRef} aria-label="Mobile primary navigation" className="matte-glass relative flex h-full max-h-dvh w-[min(21rem,calc(100vw-1.5rem))] flex-col overflow-y-auto overscroll-contain p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="mb-5 flex items-center justify-between">
           <p className="text-sm font-semibold text-ledger-text">Navigate Ledger</p>
           <Button ref={closeButtonRef} type="button" variant="ghost" size="sm" onClick={onClose} className="min-h-11 px-4">Close</Button>
