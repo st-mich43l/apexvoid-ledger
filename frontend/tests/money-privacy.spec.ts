@@ -6,6 +6,10 @@ const summary = { year: 2026, month: 11, currency: 'VND', income: 25521658, expe
 test.beforeEach(async ({ context }) => {
   await context.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname
+    if (['/api/monthly-routine', '/api/monthly-budget', '/api/monthly-close', '/api/cashflow/trend'].includes(path)) {
+      await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ detail: 'Fixture unavailable' }) })
+      return
+    }
     let body: unknown = []
     if (path === '/api/auth/me') body = user
     else if (path === '/api/cashflow/summary') body = summary
@@ -16,10 +20,42 @@ test.beforeEach(async ({ context }) => {
   })
 })
 
+test('inline income and net cash flow controls share the header privacy state', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/cashflow')
+  const header = page.getByRole('button', { name: 'Hide monetary amounts', exact: true })
+  const income = page.getByRole('button', { name: 'Hide monetary amounts (Income)', exact: true })
+  const net = page.getByRole('button', { name: 'Hide monetary amounts (Net cash flow)', exact: true })
+  await expect(income).toBeVisible()
+  await expect(net).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Hide monetary amounts (Savings rate)', exact: true })).toHaveCount(0)
+  await income.click()
+  await expect(header).toHaveAttribute('aria-pressed', 'true')
+  await expect(net).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByText('₫25,521,658', { exact: true })).toHaveCount(0)
+  await net.click()
+  await expect(header).toHaveAttribute('aria-pressed', 'false')
+  await expect(page.locator('.financial-amount').filter({ hasText: '₫25,521,658' })).toBeVisible()
+})
+
+test('financial position eye hides and restores values on desktop', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/dashboard')
+  const position = page.getByRole('button', { name: 'Hide monetary amounts (Financial position)', exact: true })
+  const amount = position.locator('..').getByText('₫50,000,000', { exact: true })
+  await expect(position).toBeVisible()
+  await expect(amount).toBeVisible()
+  await position.click()
+  await expect(position).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByText('₫50,000,000', { exact: true })).toHaveCount(0)
+  await position.click()
+  await expect(amount).toBeVisible()
+})
+
 test('hides and restores amounts across navigation and reload without losing input', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/cashflow')
-  const toggle = page.getByRole('button', { name: 'Hide monetary amounts' })
+  const toggle = page.getByRole('button', { name: 'Hide monetary amounts', exact: true })
   await expect(toggle).toHaveAttribute('aria-pressed', 'false')
   await expect(page.locator('.financial-amount').filter({ hasText: '₫25,521,658' })).toBeVisible()
   await page.getByText('Search & filters').click()
@@ -45,9 +81,9 @@ test('desktop chart labels and other tabs update when money is hidden', async ({
   const second = await context.newPage()
   await second.setViewportSize({ width: 1920, height: 1080 })
   await second.goto('/cashflow')
-  await page.getByRole('button', { name: 'Hide monetary amounts' }).click()
+  await page.getByRole('button', { name: 'Hide monetary amounts', exact: true }).click()
   await expect(page.getByLabel(/Income ₫25,521,658; expenses/)).toHaveCount(0)
   await expect(page.getByLabel(/Income ••••; expenses ••••/)).toBeVisible()
-  await expect(second.getByRole('button', { name: 'Hide monetary amounts' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(second.getByRole('button', { name: 'Hide monetary amounts', exact: true })).toHaveAttribute('aria-pressed', 'true')
   await expect(second.getByText('₫25,521,658', { exact: true })).toHaveCount(0)
 })
