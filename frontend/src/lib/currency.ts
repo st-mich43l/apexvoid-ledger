@@ -23,8 +23,8 @@ export function formatCurrency(amount: number, code: string, hide = isMoneyHidde
   return formatter.format(amount)
 }
 
-export function formatCompactCurrency(amount: number, code: string): string {
-  if (isMoneyHidden()) return '••••'
+export function formatCompactCurrency(amount: number, code: string, hide = isMoneyHidden()): string {
+  if (hide) return '••••'
   let formatter = compactFormatters.get(code)
   if (!formatter) {
     formatter = new Intl.NumberFormat('en-US', {
