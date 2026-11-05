@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { formatCompactCurrency, formatCurrency, type CurrencyCode } from '../../lib/currency'
 import type { CashFlowTrendPoint } from '../../types'
 import { cashFlowPointKey, dashboardMonthLabel } from './chartUtils'
+import { MoneyPrivacyToggle } from '../MoneyPrivacyToggle'
+import { useCardMoneyPrivacy } from '../../lib/moneyPrivacy'
 
 interface CashFlowTrendChartProps {
   points: CashFlowTrendPoint[]
@@ -23,6 +25,7 @@ export function CashFlowTrendChart({
   selectedKey,
   onSelect,
 }: CashFlowTrendChartProps) {
+  const [hidden, setHidden] = useCardMoneyPrivacy('/dashboard:Income vs expenses')
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const selected = points.find((point) => cashFlowPointKey(point) === selectedKey) ?? points.at(-1)
@@ -66,6 +69,7 @@ export function CashFlowTrendChart({
             Monthly cash-flow movement in {currency}
           </p>
         </div>
+        <div className="flex items-center gap-2">
         {selected && (
           <Link
             to={`/cashflow?year=${selected.year}&month=${selected.month}`}
@@ -74,16 +78,19 @@ export function CashFlowTrendChart({
             View month →
           </Link>
         )}
+        <MoneyPrivacyToggle context="Income vs expenses" cardHidden={hidden} onCardChange={setHidden} />
+        </div>
       </div>
 
       {selected && (
         <div className="mt-5 grid grid-cols-3 gap-3 rounded-2xl bg-neutral-50 px-4 py-3 dark:bg-neutral-950/60">
-          <ChartMetric label="Income" value={formatCurrency(selected.income, currency)} tone="income" />
-          <ChartMetric label="Expenses" value={formatCurrency(selected.expenses, currency)} tone="expense" />
-          <ChartMetric label="Net" value={formatCurrency(selected.netCashFlow, currency)} tone={selected.netCashFlow >= 0 ? 'income' : 'expense'} />
+          <ChartMetric label="Income" value={formatCurrency(selected.income, currency, hidden)} tone="income" />
+          <ChartMetric label="Expenses" value={formatCurrency(selected.expenses, currency, hidden)} tone="expense" />
+          <ChartMetric label="Net" value={formatCurrency(selected.netCashFlow, currency, hidden)} tone={selected.netCashFlow >= 0 ? 'income' : 'expense'} />
         </div>
       )}
 
+      {hidden ? <p className="mt-5 rounded-2xl bg-neutral-50 px-4 py-8 text-center text-sm text-neutral-500 dark:bg-neutral-950/60 dark:text-neutral-400">Chart hidden for privacy. Use the eye to show it.</p> : <>
       <div ref={scrollRef} className="relative mt-4 overflow-x-auto pb-1">
         <svg
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
@@ -109,7 +116,7 @@ export function CashFlowTrendChart({
                   textAnchor="end"
                   className="fill-neutral-400 text-[9px] dark:fill-neutral-500"
                 >
-                  {hasActivity || fraction === 0 ? formatCompactCurrency(maximum * fraction, currency) : ''}
+                  {hasActivity || fraction === 0 ? formatCompactCurrency(maximum * fraction, currency, false) : ''}
                 </text>
               </g>
             )
@@ -128,7 +135,7 @@ export function CashFlowTrendChart({
                 role="button"
                 tabIndex={0}
                 aria-pressed={isSelected}
-                aria-label={`${label}. Income ${formatCurrency(point.income, currency)}. Expenses ${formatCurrency(point.expenses, currency)}. Net ${formatCurrency(point.netCashFlow, currency)}. Select month.`}
+                aria-label={`${label}. Income ${formatCurrency(point.income, currency, false)}. Expenses ${formatCurrency(point.expenses, currency, false)}. Net ${formatCurrency(point.netCashFlow, currency, false)}. Select month.`}
                 onClick={() => onSelect(point)}
                 onKeyDown={(event) => handleKey(event, point)}
                 onMouseEnter={() => setHoverIndex(index)}
@@ -198,8 +205,8 @@ export function CashFlowTrendChart({
             <p className="font-medium text-neutral-900 dark:text-neutral-50">
               {dashboardMonthLabel(hovered.year, hovered.month)}
             </p>
-            <p className="mt-1 text-emerald-600 dark:text-emerald-400">Income {formatCurrency(hovered.income, currency)}</p>
-            <p className="text-violet-600 dark:text-violet-400">Expenses {formatCurrency(hovered.expenses, currency)}</p>
+            <p className="mt-1 text-emerald-600 dark:text-emerald-400">Income {formatCurrency(hovered.income, currency, false)}</p>
+            <p className="text-violet-600 dark:text-violet-400">Expenses {formatCurrency(hovered.expenses, currency, false)}</p>
           </div>
         )}
       </div>
@@ -227,11 +234,12 @@ export function CashFlowTrendChart({
         <ul>
           {points.map((point) => (
             <li key={cashFlowPointKey(point)}>
-              {dashboardMonthLabel(point.year, point.month)}: income {formatCurrency(point.income, currency)}, expenses {formatCurrency(point.expenses, currency)}, net cash flow {formatCurrency(point.netCashFlow, currency)}.
+              {dashboardMonthLabel(point.year, point.month)}: income {formatCurrency(point.income, currency, false)}, expenses {formatCurrency(point.expenses, currency, false)}, net cash flow {formatCurrency(point.netCashFlow, currency, false)}.
             </li>
           ))}
         </ul>
       </div>
+      </>}
     </article>
   )
 }

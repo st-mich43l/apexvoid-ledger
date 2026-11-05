@@ -5,9 +5,12 @@ import { useNetWorth } from '../hooks/useNetWorth'
 import { FinanceCalculators } from './Tools'
 import { formatCurrency } from '../lib/currency'
 import { PageHeader } from '../components/layout/PageHeader'
+import { MoneyPrivacyToggle } from '../components/MoneyPrivacyToggle'
+import { useCardMoneyPrivacy } from '../lib/moneyPrivacy'
 
 export function HomePage() {
   const netWorth = useNetWorth()
+  const [dashboardHidden, setDashboardHidden] = useCardMoneyPrivacy('/home:Dashboard')
   const [userCount, setUserCount] = useState<number | null>(null)
 
   useEffect(() => {
@@ -38,7 +41,7 @@ export function HomePage() {
               ? '…'
               : netWorth.summary?.netWorth === null || netWorth.summary?.netWorth === undefined
                 ? 'Incomplete'
-                : formatCurrency(netWorth.summary.netWorth, netWorth.summary.reportingCurrency)
+                : formatCurrency(netWorth.summary.netWorth, netWorth.summary.reportingCurrency, dashboardHidden)
           }
           subtitle={
             netWorth.loading
@@ -49,6 +52,7 @@ export function HomePage() {
           }
           to="/dashboard"
           icon={<GridIcon />}
+          action={<MoneyPrivacyToggle context="Dashboard" cardHidden={dashboardHidden} onCardChange={setDashboardHidden} />}
         />
       </div>
 

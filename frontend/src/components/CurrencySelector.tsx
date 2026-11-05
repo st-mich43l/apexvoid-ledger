@@ -17,11 +17,11 @@ export function CurrencySelector() {
     const gutter = 8
     const menuWidth = Math.min(192, window.innerWidth - gutter * 2)
     const left = Math.min(Math.max(gutter, rect.right - menuWidth), window.innerWidth - menuWidth - gutter)
-    const estimatedMenuHeight = 176
+    const menuHeight = menuRef.current?.getBoundingClientRect().height ?? 264
     const below = rect.bottom + gutter
-    const top = below + estimatedMenuHeight <= window.innerHeight - gutter
+    const top = below + menuHeight <= window.innerHeight - gutter
       ? below
-      : Math.max(gutter, rect.top - estimatedMenuHeight - gutter)
+      : Math.max(gutter, rect.top - menuHeight - gutter)
     setMenuPos({ top, left })
   }
 
@@ -78,7 +78,7 @@ export function CurrencySelector() {
             role="listbox"
             aria-label="Display currency"
             style={menuPos}
-            className="matte-glass fixed z-50 w-48 max-w-[calc(100vw-1rem)] overflow-hidden rounded-[var(--ledger-radius-card)] py-1.5"
+            className="matte-glass fixed z-50 max-h-[min(18rem,calc(100dvh-1rem))] w-48 max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain rounded-[var(--ledger-radius-card)] py-1.5"
           >
             {SUPPORTED_CURRENCIES.map((code) => (
               <li key={code} role="option" aria-selected={code === currency}>

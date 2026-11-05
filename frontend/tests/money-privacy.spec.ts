@@ -6,13 +6,14 @@ const summary = { year: 2026, month: 11, currency: 'VND', income: 25521658, expe
 test.beforeEach(async ({ context }) => {
   await context.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname
-    if (['/api/monthly-routine', '/api/monthly-budget', '/api/monthly-close', '/api/cashflow/trend'].includes(path)) {
+    if (['/api/monthly-routine', '/api/monthly-budget', '/api/monthly-close'].includes(path)) {
       await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ detail: 'Fixture unavailable' }) })
       return
     }
     let body: unknown = []
     if (path === '/api/auth/me') body = user
     else if (path === '/api/cashflow/summary') body = summary
+    else if (path === '/api/cashflow/trend') body = { startYear: 2026, startMonth: 11, endYear: 2026, endMonth: 11, monthCount: 6, currency: 'VND', points: [{ year: 2026, month: 11, income: 25521658, expenses: 12000000, netCashFlow: 13521658, savingsRatePercent: 53, categoryBreakdown: [] }], convertedCurrencies: [], unconvertedCurrencies: [], exchangeRateProvider: null, exchangeRateProviderUrl: null }
     else if (path === '/api/notifications/unread-count') body = { count: 0 }
     else if (path === '/api/net-worth/summary') body = { reportingCurrency: 'VND', totalAssets: 100000000, totalLiabilities: 50000000, netWorth: 50000000, conversionComplete: true, valuationComplete: true, assetBreakdown: [], liabilityBreakdown: [], warnings: [], lastUpdatedAt: null }
     else if (path === '/api/bank-activities/categorization-rule') body = { financialAccountId: 'account', enabled: false, categoryId: null, categoryName: null, descriptionContains: null, referenceContains: null }
@@ -104,6 +105,29 @@ for (const width of [320, 390, 430]) {
   })
 }
 
+test.describe('mobile browser privacy persistence', () => {
+  test.use({ isMobile: true, hasTouch: true })
+  test('remembers independent dashboard eyes after reload and reopening a tab', async ({ page, context }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/dashboard')
+    const position = page.getByRole('region', { name: 'Financial position' })
+    const income = position.getByRole('button', { name: 'Hide monetary amounts (Income)', exact: true })
+    const expenses = position.getByRole('button', { name: 'Hide monetary amounts (Expenses)', exact: true })
+    await income.tap()
+    await expect(income).toHaveAttribute('aria-pressed', 'true')
+    await page.reload()
+    await expect(income).toHaveAttribute('aria-pressed', 'true')
+    await expect(expenses).toHaveAttribute('aria-pressed', 'false')
+    await page.close()
+    const reopened = await context.newPage()
+    await reopened.setViewportSize({ width: 390, height: 844 })
+    await reopened.goto('/dashboard')
+    const restored = reopened.getByRole('region', { name: 'Financial position' })
+    await expect(restored.getByRole('button', { name: 'Hide monetary amounts (Income)', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await expect(restored.getByRole('button', { name: 'Hide monetary amounts (Expenses)', exact: true })).toHaveAttribute('aria-pressed', 'false')
+  })
+})
+
 test('hides and restores amounts across navigation and reload without losing input', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/cashflow')
@@ -138,4 +162,44 @@ test('desktop chart labels and other tabs update when money is hidden', async ({
   await expect(page.getByLabel(/Income ••••; expenses ••••/)).toBeVisible()
   await expect(second.getByRole('button', { name: 'Hide monetary amounts', exact: true })).toHaveAttribute('aria-pressed', 'true')
   await expect(second.getByText('₫25,521,658', { exact: true })).toHaveCount(0)
+})
+
+test('dashboard chart privacy hides amounts and bars and remembers the choice across reloads and tabs', async ({ page, context }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/dashboard')
+  const chart = page.locator('article').filter({ has: page.getByRole('heading', { name: 'Income vs expenses' }) })
+  const eye = chart.getByRole('button', { name: 'Hide monetary amounts (Income vs expenses)', exact: true })
+  await expect(chart.getByText('₫25,521,658', { exact: true })).toBeVisible()
+  await eye.click()
+  await expect(chart.getByText('Chart hidden for privacy. Use the eye to show it.')).toBeVisible()
+  await expect(chart.getByText('₫25,521,658', { exact: true })).toHaveCount(0)
+  await expect(chart.locator('svg[role="group"]')).toHaveCount(0)
+  await page.reload()
+  await expect(eye).toHaveAttribute('aria-pressed', 'true')
+  await expect(chart.getByText('Chart hidden for privacy. Use the eye to show it.')).toBeVisible()
+  const second = await context.newPage()
+  await second.setViewportSize({ width: 1440, height: 900 })
+  await second.goto('/dashboard')
+  const secondEye = second.getByRole('button', { name: 'Hide monetary amounts (Income vs expenses)', exact: true })
+  await expect(secondEye).toHaveAttribute('aria-pressed', 'true')
+  await secondEye.click()
+  await expect(eye).toHaveAttribute('aria-pressed', 'false')
+  await expect(chart.getByText('₫25,521,658', { exact: true })).toBeVisible()
+})
+
+test('individual card privacy choices persist until the global control resets them', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/cashflow')
+  const income = page.getByRole('button', { name: 'Hide monetary amounts (Income)', exact: true })
+  const expenses = page.getByRole('button', { name: 'Hide monetary amounts (Expenses)', exact: true })
+  await income.click()
+  await page.reload()
+  await expect(income).toHaveAttribute('aria-pressed', 'true')
+  await expect(expenses).toHaveAttribute('aria-pressed', 'false')
+  await page.getByRole('button', { name: 'Hide monetary amounts', exact: true }).click()
+  await expect(expenses).toHaveAttribute('aria-pressed', 'true')
+  await income.click()
+  await page.reload()
+  await expect(income).toHaveAttribute('aria-pressed', 'false')
+  await expect(expenses).toHaveAttribute('aria-pressed', 'true')
 })

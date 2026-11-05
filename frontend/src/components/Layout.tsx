@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { CurrencySelector } from './CurrencySelector'
 import { ThemeToggle } from './ThemeToggle'
@@ -18,6 +18,7 @@ export function Layout() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false)
+  const closeMobileNavigation = useCallback(() => setMobileNavigationOpen(false), [])
   const [logoutError, setLogoutError] = useState(false)
   const moreActive = mobileNavigationOpen || !['/dashboard', '/cashflow', '/net-worth'].includes(pathname)
 
@@ -70,7 +71,7 @@ export function Layout() {
         </div>
       </nav>
 
-      <MobileNavigation open={mobileNavigationOpen} onClose={() => setMobileNavigationOpen(false)} theme={theme} onToggleTheme={toggleTheme} />
+      <MobileNavigation open={mobileNavigationOpen} onClose={closeMobileNavigation} theme={theme} onToggleTheme={toggleTheme} />
     </div>
   )
 }
