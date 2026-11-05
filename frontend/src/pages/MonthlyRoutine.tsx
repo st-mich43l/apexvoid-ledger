@@ -25,6 +25,7 @@ import { useMonthlyRoutine } from '../hooks/useMonthlyRoutine'
 import { useMonthlyBudget } from '../hooks/useMonthlyBudget'
 import { useRecurringExpenses } from '../hooks/useRecurringExpenses'
 import { useRecurringIncomes } from '../hooks/useRecurringIncomes'
+import { useAuth } from '../hooks/useAuth'
 import { formatCurrency } from '../lib/currency'
 import { formatDate } from '../lib/date'
 import { planningMonthLabel, planningPeriodFromSearch, shiftPlanningPeriod } from '../lib/planningPeriod'
@@ -36,11 +37,13 @@ import type {
   RecurringIncomeInput,
   RecurringIncomeUpdateInput,
 } from '../types'
+import { invalidateRecurring } from '../lib/queryClient'
 
 export function MonthlyRoutinePage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { year, month } = useMemo(() => planningPeriodFromSearch(searchParams), [searchParams])
   const { currency } = useCurrency()
+  const { user } = useAuth()
   const categoriesState = useCategories(true)
   const routineState = useMonthlyRoutine(year, month, currency)
   const budgetState = useMonthlyBudget(year, month)
@@ -70,7 +73,7 @@ export function MonthlyRoutinePage() {
   }
 
   async function refresh() {
-    await Promise.all([routineState.reload(), incomesState.reload(), expensesState.reload()])
+    await invalidateRecurring(user?.id ?? null)
   }
 
   async function handleCreate(input: RecurringIncomeInput) {

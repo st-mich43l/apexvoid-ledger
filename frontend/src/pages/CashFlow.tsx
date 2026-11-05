@@ -19,8 +19,10 @@ import { useCurrency } from '../hooks/useCurrency'
 import { useBankActivities } from '../hooks/useBankActivities'
 import { useCashFlowSummary } from '../hooks/useCashFlowSummary'
 import { useCategories } from '../hooks/useCategories'
+import { useAuth } from '../hooks/useAuth'
 import { useTransactions } from '../hooks/useTransactions'
 import type { LedgerTransaction, TransactionInput, WeeklyExpenseBatchInput } from '../types'
+import { invalidateCashFlow } from '../lib/queryClient'
 
 function selectedMonth(searchParams: URLSearchParams): { year: number; month: number } {
   const today = new Date()
@@ -40,6 +42,7 @@ export function CashFlowPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { year, month } = useMemo(() => selectedMonth(searchParams), [searchParams])
   const { currency } = useCurrency()
+  const { user } = useAuth()
   const categoriesState = useCategories(true)
   const transactionsState = useTransactions(year, month)
   const summaryState = useCashFlowSummary(year, month, currency)
@@ -68,7 +71,7 @@ export function CashFlowPage() {
   }
 
   async function refreshFinancials() {
-    await Promise.all([transactionsState.reload(), summaryState.reload(), bankActivitiesState.reload()])
+    await invalidateCashFlow(user?.id ?? null)
   }
 
   async function handleCreate(input: TransactionInput) { await createTransaction(input); await refreshFinancials(); setShowCreate(false) }
@@ -88,7 +91,7 @@ export function CashFlowPage() {
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto"><Button type="button" onClick={() => setShowCreate(true)} className="w-full sm:order-last sm:w-auto">Add transaction</Button><Button type="button" variant="outline" onClick={() => setShowBankReview(true)} className="flex-1 sm:hidden">Review bank activity</Button><Button type="button" variant="outline" onClick={() => setShowInsights(true)} aria-expanded={showInsights} className="min-[1816px]:hidden">Insights</Button><CashFlowActionsMenu year={year} month={month} onManageCategories={() => setShowCategories(true)} onWeeklyExpenses={() => setShowWeeklyExpenses(true)} /></div>
       </div>
       <div className="min-w-0">
-        {error && <Alert tone="danger" className="mb-4">{error}</Alert>}
+        {error && <Alert tone="danger" className="mb-4"><span>{error}</span><Button type="button" variant="outline" size="sm" className="ml-3" onClick={() => void refreshFinancials()}>Retry</Button></Alert>}
         {summaryState.summary && <CurrencyConversionNotice summary={summaryState.summary} />}
         {summaryState.summary?.recurringIncomeCount ? <Alert tone="success" className="mb-4">Includes {summaryState.summary.recurringIncomeCount} scheduled income {summaryState.summary.recurringIncomeCount === 1 ? 'entry' : 'entries'} from Monthly Routine. These entries map automatically to every covered month without creating manual transactions.</Alert> : null}
         <CashFlowSummaryCards summary={summaryState.summary} loading={summaryState.loading} currency={currency} />

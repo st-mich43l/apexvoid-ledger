@@ -1,32 +1,23 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { fetchCashFlowSummary } from '../api'
+import { useAuth } from './useAuth'
+import { periodStaleTime, queryKeys } from '../lib/queryClient'
 import type { CurrencyCode } from '../lib/currency'
 import type { CashFlowMonthlySummary } from '../types'
 
 export function useCashFlowSummary(year: number, month: number, currency: CurrencyCode) {
-  const [summary, setSummary] = useState<CashFlowMonthlySummary | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const requestId = useRef(0)
-
-  const reload = useCallback(async () => {
-    const activeRequest = ++requestId.current
-    setLoading(true)
-    try {
-      const next = await fetchCashFlowSummary(year, month, currency)
-      if (activeRequest !== requestId.current) return
-      setSummary(next)
-      setError(null)
-    } catch {
-      if (activeRequest === requestId.current) setError('Failed to load cash-flow summary.')
-    } finally {
-      if (activeRequest === requestId.current) setLoading(false)
-    }
-  }, [year, month, currency])
-
-  useEffect(() => {
-    void reload()
-  }, [reload])
-
-  return { summary, loading, error, reload }
+  const { user } = useAuth()
+  const query = useQuery({
+    queryKey: queryKeys.cashFlowSummary(user?.id ?? null, year, month, currency),
+    queryFn: () => fetchCashFlowSummary(year, month, currency),
+    enabled: Boolean(user),
+    staleTime: periodStaleTime(year, month, 30_000, 5 * 60_000),
+    gcTime: 30 * 60_000,
+  })
+  return {
+    summary: query.data ?? null as CashFlowMonthlySummary | null,
+    loading: query.isLoading,
+    error: query.error ? 'Failed to load cash-flow summary.' : null,
+    reload: async () => { await query.refetch() },
+  }
 }

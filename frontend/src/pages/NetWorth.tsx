@@ -14,7 +14,7 @@ import { Modal } from '../components/Modal'
 
 export function NetWorthPage() {
   const { currency } = useCurrency()
-  const { summary, accounts, loading, refreshing, connecting, error, refresh, connect, disconnect } = useNetWorth()
+  const { summary, accounts, loading, refreshing, connecting, error, refresh, connect, disconnect, reload } = useNetWorth()
   const reportingCurrency = summary?.reportingCurrency ?? currency
   const [showConnect, setShowConnect] = useState(false)
   const [pendingDisconnect, setPendingDisconnect] = useState<FinancialAccount | null>(null)
@@ -25,7 +25,7 @@ export function NetWorthPage() {
 
       {error && (
         <Alert tone="danger" className="mb-5">
-          {error}
+          <span>{error}</span><Button type="button" variant="outline" size="sm" className="ml-3" onClick={() => void reload()}>Retry</Button>
         </Alert>
       )}
 
