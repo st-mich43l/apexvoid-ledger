@@ -45,9 +45,9 @@ function statusClasses(status: MonthlyCloseStatus): string {
   return 'border-neutral-200 bg-neutral-50 text-neutral-700 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200'
 }
 
-function money(amount: number | null | undefined, currency: CurrencyCode | null | undefined): string {
+function money(amount: number | null | undefined, currency: CurrencyCode | null | undefined, hide?: boolean): string {
   if (amount === null || amount === undefined || !currency) return '—'
-  return formatCurrency(amount, currency)
+  return formatCurrency(amount, currency, hide)
 }
 
 function Line({ label, amount, currency }: { label: string; amount: number | null | undefined; currency: CurrencyCode | null | undefined }) {
@@ -220,13 +220,13 @@ function CloseBody({
       </Card>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <FinancialMetric label="Income" value={money(current.incomeTotal, reporting)} detail="Scheduled and recorded" />
-        <FinancialMetric label="Expenses" value={money(-current.expenseTotal, reporting)} detail="Fixed and variable" />
-        <FinancialMetric label="Net cash flow" value={money(current.netCashFlow, reporting)} tone={current.netCashFlow < 0 ? 'negative' : 'positive'} detail={current.netCashFlow < 0 ? 'Deficit for this month' : 'Available after expenses'} />
+        <FinancialMetric label="Income" value={money(current.incomeTotal, reporting, false)} detail="Scheduled and recorded" />
+        <FinancialMetric label="Expenses" value={money(-current.expenseTotal, reporting, false)} detail="Fixed and variable" />
+        <FinancialMetric label="Net cash flow" value={money(current.netCashFlow, reporting, false)} tone={current.netCashFlow < 0 ? 'negative' : 'positive'} detail={current.netCashFlow < 0 ? 'Deficit for this month' : 'Available after expenses'} />
         <FinancialMetric label="Budget result"
           value={
             current.hasBudget && current.safeToSpend !== null && budgetCurrency
-              ? `${money(Math.abs(current.safeToSpend), budgetCurrency)} ${current.safeToSpend < 0 ? 'over' : 'under'}`
+              ? `${money(Math.abs(current.safeToSpend), budgetCurrency, false)} ${current.safeToSpend < 0 ? 'over' : 'under'}`
               : current.hasBudget ? 'Incomplete' : 'No budget'
           }
           detail={current.hasBudget ? 'Existing budget comparison' : 'No monthly plan'}

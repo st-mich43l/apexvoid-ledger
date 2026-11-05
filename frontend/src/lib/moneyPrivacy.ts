@@ -8,6 +8,7 @@ function readPreference(): boolean {
 }
 
 let hidden = readPreference()
+const cardPreferences = new Map<string, boolean>()
 
 function notify() { listeners.forEach(listener => listener()) }
 
@@ -15,6 +16,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('storage', event => {
     if (event.key === STORAGE_KEY || event.key === null) {
       hidden = readPreference()
+      cardPreferences.clear()
       notify()
     }
   })
@@ -23,10 +25,19 @@ if (typeof window !== 'undefined') {
 export function isMoneyHidden() { return hidden }
 
 export function setMoneyHidden(value: boolean) {
-  if (hidden === value) return
   hidden = value
+  cardPreferences.clear()
   try { localStorage.setItem(STORAGE_KEY, String(value)) } catch { /* Remains active in this tab. */ }
   notify()
+}
+
+export function useCardMoneyPrivacy(key: string) {
+  const value = useSyncExternalStore(
+    (listener) => { listeners.add(listener); return () => { listeners.delete(listener) } },
+    () => cardPreferences.get(key) ?? hidden,
+    () => false,
+  )
+  return [value, (next: boolean) => { cardPreferences.set(key, next); notify() }] as const
 }
 
 export function useMoneyPrivacy() {

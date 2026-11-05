@@ -148,27 +148,27 @@ export function MonthlyRoutinePage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <FinancialMetric
           label="Expected income"
-          value={summary ? formatCurrency(summary.expectedIncomeTotal, currency) : 'Unavailable'}
+          value={summary ? formatCurrency(summary.expectedIncomeTotal, currency, false) : 'Unavailable'}
           loading={routineState.loading}
           detail="Scheduled, not bank-confirmed"
           tone="positive"
         />
         <FinancialMetric
           label="Committed costs"
-          value={summary ? formatCurrency(summary.committedExpenseTotal, currency) : 'Unavailable'}
+          value={summary ? formatCurrency(summary.committedExpenseTotal, currency, false) : 'Unavailable'}
           loading={routineState.loading}
           detail="Fixed bills and loan obligations"
         />
         <FinancialMetric
           label="Baseline available"
-          value={summary ? formatCurrency(summary.baselineAvailable, currency) : 'Unavailable'}
+          value={summary ? formatCurrency(summary.baselineAvailable, currency, false) : 'Unavailable'}
           loading={routineState.loading}
           tone={summary && summary.baselineAvailable < 0 ? 'negative' : 'primary'}
           detail={summary && summary.baselineAvailable < 0 ? 'Projected deficit before variable spending' : 'After fixed bills and loans'}
         />
         <FinancialMetric
           label="Projected remainder"
-          value={summary ? formatCurrency(summary.projectedRemainder, currency) : 'Unavailable'}
+          value={summary ? formatCurrency(summary.projectedRemainder, currency, false) : 'Unavailable'}
           loading={routineState.loading}
           tone={summary && summary.projectedRemainder < 0 ? 'negative' : 'positive'}
           detail="Baseline minus recorded variable spending"

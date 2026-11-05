@@ -12,20 +12,20 @@ export function CashFlowSummaryCards({ summary, loading, currency }: CashFlowSum
   const cards = [
     {
       label: 'Income',
-      value: summary ? formatCurrency(summary.income, currency) : 'Unavailable',
+      value: summary ? formatCurrency(summary.income, currency, false) : 'Unavailable',
       tone: 'positive' as const,
       detail: 'Recorded this month',
     },
     {
       label: 'Expenses',
-      value: summary ? formatCurrency(summary.expenses, currency) : 'Unavailable',
+      value: summary ? formatCurrency(summary.expenses, currency, false) : 'Unavailable',
       tone: 'default' as const,
       detail: 'Recorded this month',
     },
     {
       label: 'Net cash flow',
       value: summary
-        ? `${summary.netCashFlow > 0 ? '+' : ''}${formatCurrency(summary.netCashFlow, currency)}`
+        ? `${summary.netCashFlow > 0 ? '+' : ''}${formatCurrency(summary.netCashFlow, currency, false)}`
         : 'Unavailable',
       tone:
         summary && summary.netCashFlow < 0
