@@ -15,10 +15,10 @@ export function MobileDashboard({ netWorth, cashFlow, attention, loading, incomp
       <div className="mt-1 flex min-w-0 items-center gap-2"><p className="financial-amount min-w-0 text-3xl font-semibold tracking-tight text-ledger-text">{loading ? '…' : netWorth?.totalAssets == null ? 'Unavailable' : formatCurrency(netWorth.totalAssets, netWorth.reportingCurrency, positionHidden)}</p><MoneyPrivacyToggle context="Financial position" cardHidden={positionHidden} onCardChange={setPositionHidden} /></div>
       {netWorth && !netWorth.valuationComplete && <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">Valuation incomplete</p>}
       <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-violet-200 pt-3 text-sm dark:border-violet-900">
-        <Metric label="Income" value={money(cashFlow?.income, cashFlow?.currency ?? 'VND')} />
-        <Metric label="Expenses" value={money(cashFlow?.expenses, cashFlow?.currency ?? 'VND')} />
-        <Metric label="Net cash flow" value={money(cashFlow?.netCashFlow, cashFlow?.currency ?? 'VND')} />
-        <Metric label="Net worth" value={money(netWorth?.netWorth, netWorth?.reportingCurrency ?? 'VND')} />
+        <Metric label="Income" privacyKey="Monthly income" value={cashFlow?.income} currency={cashFlow?.currency ?? 'VND'} />
+        <Metric label="Expenses" privacyKey="Monthly expenses" value={cashFlow?.expenses} currency={cashFlow?.currency ?? 'VND'} />
+        <Metric label="Net cash flow" value={cashFlow?.netCashFlow} currency={cashFlow?.currency ?? 'VND'} />
+        <Metric label="Net worth" value={netWorth?.netWorth} currency={netWorth?.reportingCurrency ?? 'VND'} />
       </dl>
     </section>
     <section aria-labelledby="mobile-attention"><div className="flex items-center justify-between"><h2 id="mobile-attention" className="font-semibold text-ledger-text">Needs attention</h2><span className="text-xs text-ledger-text-secondary">{attention.length} to review</span></div>
@@ -30,4 +30,7 @@ export function MobileDashboard({ netWorth, cashFlow, attention, loading, incomp
   </div>
 }
 
-function Metric({ label, value }: { label: string; value: string }) { return <div className="min-w-0"><dt className="text-xs text-ledger-text-secondary">{label}</dt><dd className="financial-amount mt-1 font-semibold text-ledger-text">{value}</dd></div> }
+function Metric({ label, privacyKey = label, value, currency }: { label: string; privacyKey?: string; value: number | null | undefined; currency: string }) {
+  const [hidden, setHidden] = useCardMoneyPrivacy(`/dashboard:${privacyKey}`)
+  return <div className="min-w-0"><dt className="flex items-center justify-between gap-1 text-xs text-ledger-text-secondary"><span>{label}</span><MoneyPrivacyToggle context={label} cardHidden={hidden} onCardChange={setHidden} /></dt><dd className="financial-amount font-semibold text-ledger-text">{value == null ? 'Unavailable' : formatCurrency(value, currency, hidden)}</dd></div>
+}
