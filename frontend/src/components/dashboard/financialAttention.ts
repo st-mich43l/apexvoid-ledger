@@ -1,4 +1,5 @@
 import type { BankActivity, FinancialAccount, MonthlyBudgetSummary, MonthlyCloseSummary, NetWorthSummary } from '../../types'
+import { isEmptyUnclosedMonth } from '../../lib/monthlyClose'
 
 export type AttentionTone = 'danger' | 'warning' | 'info'
 export interface FinancialAttentionItem {
@@ -41,7 +42,7 @@ export function deriveFinancialAttention({
   }
   const pendingReview = activities.filter((activity) => activity.processingStatus === 'pending_review').length
   if (pendingReview > 0) items.push({ id: 'bank-review', tone: 'info', title: `${pendingReview} bank activit${pendingReview === 1 ? 'y' : 'ies'} awaiting review`, detail: 'Review unclassified SePay activity before relying on the monthly picture.', to: '/cashflow' })
-  if (close && ['needs_review', 'blocked', 'ready_to_close'].includes(close.status)) {
+  if (close && !isEmptyUnclosedMonth(close) && ['needs_review', 'blocked', 'ready_to_close'].includes(close.status)) {
     const title = close.status === 'needs_review' ? 'Previous month changed after close' : close.status === 'blocked' ? 'Previous month cannot close yet' : 'Previous month is ready to close'
     items.push({ id: 'monthly-close', tone: close.status === 'blocked' ? 'warning' : 'info', title, detail: close.blockers[0] ?? 'Review the month-end checkpoint and its current status.', to: `/monthly-close?year=${close.year}&month=${close.month}` })
   }

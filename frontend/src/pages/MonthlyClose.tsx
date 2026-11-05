@@ -10,6 +10,7 @@ import { Card } from '../components/ui/Card'
 import { FinancialMetric } from '../components/ui/FinancialMetric'
 import { useMonthlyClose } from '../hooks/useMonthlyClose'
 import { formatCurrency } from '../lib/currency'
+import { isEmptyUnclosedMonth } from '../lib/monthlyClose'
 import { planningMonthLabel, planningPeriodFromSearch, shiftPlanningPeriod } from '../lib/planningPeriod'
 import type { CurrencyCode } from '../lib/currency'
 import type {
@@ -119,6 +120,10 @@ export function MonthlyClosePage() {
 
       {closeState.loading || !summary || !current || !reporting ? (
         <p className="rounded-2xl border border-neutral-200 bg-white px-5 py-8 text-sm text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">Loading monthly close…</p>
+      ) : isEmptyUnclosedMonth(summary) ? (
+        <Card className="text-sm text-ledger-text-secondary">
+          No cash-flow activity or budget was recorded for {label}. There is nothing to review. Saving Pot records are managed separately.
+        </Card>
       ) : (
         <CloseBody
           summary={summary}
