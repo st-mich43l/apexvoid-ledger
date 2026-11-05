@@ -240,7 +240,7 @@ function ConnectSePayCard({
   }
 
   return (
-    <Modal label="Connect SePay bank account" onClose={onClose} dismissible={!connecting}><section className="overflow-hidden rounded-[var(--ledger-radius-card)] border border-violet-200 bg-ledger-surface dark:border-violet-900">
+    <Modal label="Connect SePay bank account" onClose={onClose} dismissible={!connecting}><section className="min-w-0 overflow-hidden rounded-[var(--ledger-radius-card)] border border-violet-200 bg-ledger-surface dark:border-violet-900">
       <div className="border-b border-violet-100 bg-ledger-primary-subtle px-5 py-4 dark:border-violet-900/50">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-400">Personal connection</p>
         <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -248,9 +248,9 @@ function ConnectSePayCard({
           <p className="text-xs text-neutral-500 dark:text-neutral-400">Encrypted locally to your Ledger account</p>
         </div>
       </div>
-      <form className="grid gap-4 p-5" onSubmit={(event) => void submit(event)}>
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+      <form className="grid min-w-0 gap-4 p-4 sm:p-5" onSubmit={(event) => void submit(event)}>
+        <div className="grid min-w-0 gap-3 md:grid-cols-2">
+          <label className="min-w-0 text-sm font-medium text-neutral-700 dark:text-neutral-200">
           SePay API token
           <input
             type="password"
@@ -261,7 +261,7 @@ function ConnectSePayCard({
             className={'mt-1 block font-normal ' + controlClassName}
           />
         </label>
-        <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+        <label className="min-w-0 text-sm font-medium text-neutral-700 dark:text-neutral-200">
           Bank account number
           <input
             type="text"
@@ -275,11 +275,9 @@ function ConnectSePayCard({
         </label>
         </div>
 
-        <fieldset>
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <legend className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">Webhook authentication</legend>
-            <span className="text-[11px] text-neutral-500 dark:text-neutral-400">Match this in SePay → Security</span>
-          </div>
+        <fieldset className="min-w-0">
+          <legend className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">Webhook authentication</legend>
+          <p className="mt-1 mb-2 text-[11px] text-neutral-500 dark:text-neutral-400">Match this in SePay → Security</p>
           <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
             <AuthMethodOption type="hmac_sha256" title="HMAC-SHA256" detail="Recommended" selected={webhookAuthType} onSelect={setWebhookAuthType} />
             <AuthMethodOption type="api_key" title="API key" detail="Simple header" selected={webhookAuthType} onSelect={setWebhookAuthType} />
@@ -289,8 +287,8 @@ function ConnectSePayCard({
         </fieldset>
 
         {isOauth ? (
-          <div className="grid gap-3 rounded-xl border border-violet-200/80 bg-violet-50/50 p-3 md:grid-cols-2 dark:border-violet-900/60 dark:bg-violet-950/20">
-            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+          <div className="grid min-w-0 gap-3 rounded-xl border border-violet-200/80 bg-violet-50/50 p-3 md:grid-cols-2 dark:border-violet-900/60 dark:bg-violet-950/20">
+            <label className="min-w-0 text-sm font-medium text-neutral-700 dark:text-neutral-200">
               OAuth client ID
               <input
                 type="text"
@@ -301,7 +299,7 @@ function ConnectSePayCard({
                 className={'mt-1 block font-normal ' + controlClassName}
               />
             </label>
-            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+            <label className="min-w-0 text-sm font-medium text-neutral-700 dark:text-neutral-200">
               OAuth client secret
               <input
                 type="password"
@@ -312,12 +310,12 @@ function ConnectSePayCard({
                 className={'mt-1 block font-normal ' + controlClassName}
               />
             </label>
-            <p className="md:col-span-2 rounded-lg bg-white/80 px-3 py-2 text-xs text-neutral-600 dark:bg-neutral-950/70 dark:text-neutral-300">
-              In SePay, set the OAuth token URL to <code className="font-mono text-violet-700 dark:text-violet-300">{oauthTokenUrl}</code>.
+            <p className="min-w-0 rounded-lg bg-white/80 px-3 py-2 text-xs text-neutral-600 md:col-span-2 dark:bg-neutral-950/70 dark:text-neutral-300">
+              In SePay, set the OAuth token URL to <code className="break-all font-mono text-violet-700 dark:text-violet-300">{oauthTokenUrl}</code>.
             </p>
           </div>
         ) : needsSecret ? (
-          <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
+          <label className="min-w-0 text-sm font-medium text-neutral-700 dark:text-neutral-200">
             {webhookAuthType === 'hmac_sha256' ? 'HMAC secret key' : 'SePay webhook API key'}
             <input
               type="password"
@@ -363,12 +361,13 @@ function AuthMethodOption({
     <button
       type="button"
       onClick={() => onSelect(type)}
+      aria-pressed={active}
       className={(active
         ? 'border-violet-500 bg-violet-50 text-violet-950 shadow-sm dark:border-violet-500 dark:bg-violet-950/60 dark:text-violet-50'
-        : 'border-neutral-200 bg-white text-neutral-700 hover:border-violet-300 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200 dark:hover:border-violet-800') + ' rounded-xl border px-3 py-2 text-left transition'}
+        : 'border-neutral-200 bg-white text-neutral-700 hover:border-violet-300 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200 dark:hover:border-violet-800') + ' min-h-14 min-w-0 rounded-xl border px-2 py-2 text-left transition sm:px-3'}
     >
-      <span className="flex items-center gap-2 text-sm font-semibold"><span className={(active ? 'bg-violet-600' : warning ? 'bg-amber-500' : 'bg-neutral-300 dark:bg-neutral-700') + ' h-1.5 w-1.5 rounded-full'} />{title}</span>
-      <span className="mt-0.5 block text-[11px] font-normal text-neutral-500 dark:text-neutral-400">{detail}</span>
+      <span className="flex min-w-0 items-center gap-1.5 break-words text-sm font-semibold"><span className={(active ? 'bg-violet-600' : warning ? 'bg-amber-500' : 'bg-neutral-300 dark:bg-neutral-700') + ' h-1.5 w-1.5 shrink-0 rounded-full'} />{title}</span>
+      <span className="mt-0.5 block break-words text-[11px] font-normal text-neutral-500 dark:text-neutral-400">{detail}</span>
     </button>
   )
 }

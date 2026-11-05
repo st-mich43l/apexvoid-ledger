@@ -20,8 +20,8 @@ export function FinancialOverview({ summary, accounts, loading }: { summary: Net
           <p className="mt-2 text-sm text-ledger-text-secondary">{loading ? 'Loading current position…' : summary ? `Current position in ${summary.reportingCurrency}; separate from monthly Cash Flow.` : 'Current position is unavailable.'}</p>
         </div>
         <dl className="grid grid-cols-2 gap-x-7 gap-y-3 text-sm sm:min-w-80">
-          <Metric label="Verified assets" value={loading ? '…' : summary?.totalAssets === null || summary?.totalAssets === undefined ? 'Unavailable' : formatCurrency(summary.totalAssets, summary.reportingCurrency)} />
-          <Metric label="Liabilities" value={loading ? '…' : summary?.totalLiabilities === null || summary?.totalLiabilities === undefined ? 'Unavailable' : formatCurrency(summary.totalLiabilities, summary.reportingCurrency)} />
+          <Metric label="Verified assets" value={loading ? '…' : summary?.totalAssets === null || summary?.totalAssets === undefined ? 'Unavailable' : formatCurrency(summary.totalAssets, summary.reportingCurrency, positionHidden)} />
+          <Metric label="Liabilities" value={loading ? '…' : summary?.totalLiabilities === null || summary?.totalLiabilities === undefined ? 'Unavailable' : formatCurrency(summary.totalLiabilities, summary.reportingCurrency, positionHidden)} />
           <Metric label="Connected accounts" value={loading ? '…' : `${verified} of ${connected} verified`} />
           <Metric label="Updated" value={loading ? '…' : summary?.lastUpdatedAt ? formatUpdated(summary.lastUpdatedAt) : 'No update time'} />
         </dl>

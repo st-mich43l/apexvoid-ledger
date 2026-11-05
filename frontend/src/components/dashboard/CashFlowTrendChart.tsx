@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { formatCompactCurrency, formatCurrency, type CurrencyCode } from '../../lib/currency'
+import { formatCurrency, type CurrencyCode } from '../../lib/currency'
 import type { CashFlowTrendPoint } from '../../types'
 import { cashFlowPointKey, dashboardMonthLabel } from './chartUtils'
 import { MoneyPrivacyToggle } from '../MoneyPrivacyToggle'
@@ -12,10 +12,9 @@ interface CashFlowTrendChartProps {
   selectedKey: string
   onSelect: (point: CashFlowTrendPoint) => void
 }
-
 const WIDTH = 720
 const HEIGHT = 280
-const PADDING = { top: 28, right: 16, bottom: 42, left: 56 }
+const PADDING = { top: 28, right: 16, bottom: 42, left: 16 }
 const INCOME_COLOR = '#10b981'
 const EXPENSE_COLOR = '#8b5cf6'
 
@@ -82,14 +81,6 @@ export function CashFlowTrendChart({
         </div>
       </div>
 
-      {selected && (
-        <div className="mt-5 grid grid-cols-3 gap-3 rounded-2xl bg-neutral-50 px-4 py-3 dark:bg-neutral-950/60">
-          <ChartMetric label="Income" value={formatCurrency(selected.income, currency, hidden)} tone="income" />
-          <ChartMetric label="Expenses" value={formatCurrency(selected.expenses, currency, hidden)} tone="expense" />
-          <ChartMetric label="Net" value={formatCurrency(selected.netCashFlow, currency, hidden)} tone={selected.netCashFlow >= 0 ? 'income' : 'expense'} />
-        </div>
-      )}
-
       {hidden ? <p className="mt-5 rounded-2xl bg-neutral-50 px-4 py-8 text-center text-sm text-neutral-500 dark:bg-neutral-950/60 dark:text-neutral-400">Chart hidden for privacy. Use the eye to show it.</p> : <>
       <div ref={scrollRef} className="relative mt-4 overflow-x-auto pb-1">
         <svg
@@ -110,14 +101,6 @@ export function CashFlowTrendChart({
                   className="stroke-neutral-100 dark:stroke-neutral-800"
                   strokeWidth={1}
                 />
-                <text
-                  x={PADDING.left - 8}
-                  y={y + 3}
-                  textAnchor="end"
-                  className="fill-neutral-400 text-[9px] dark:fill-neutral-500"
-                >
-                  {hasActivity || fraction === 0 ? formatCompactCurrency(maximum * fraction, currency, false) : ''}
-                </text>
               </g>
             )
           })}
@@ -205,8 +188,6 @@ export function CashFlowTrendChart({
             <p className="font-medium text-neutral-900 dark:text-neutral-50">
               {dashboardMonthLabel(hovered.year, hovered.month)}
             </p>
-            <p className="mt-1 text-emerald-600 dark:text-emerald-400">Income {formatCurrency(hovered.income, currency, false)}</p>
-            <p className="text-violet-600 dark:text-violet-400">Expenses {formatCurrency(hovered.expenses, currency, false)}</p>
           </div>
         )}
       </div>
@@ -214,7 +195,7 @@ export function CashFlowTrendChart({
       <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-neutral-500 dark:text-neutral-400">
         <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: INCOME_COLOR }} />Income</span>
         <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: EXPENSE_COLOR }} />Expenses</span>
-        <span>Select a month to update both charts.</span>
+        <span>Includes scheduled income and expenses. Select a month to update both charts.</span>
       </div>
 
       <div
@@ -241,14 +222,5 @@ export function CashFlowTrendChart({
       </div>
       </>}
     </article>
-  )
-}
-
-function ChartMetric({ label, value, tone }: { label: string; value: string; tone: 'income' | 'expense' }) {
-  return (
-    <div className="min-w-0">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">{label}</p>
-      <p className={`financial-amount mt-0.5 break-words text-sm font-semibold ${tone === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-violet-600 dark:text-violet-400'}`}>{value}</p>
-    </div>
   )
 }
