@@ -1,51 +1,25 @@
-import { useCallback, useEffect, useState } from 'react'
-import {
-  copyPreviousMonthlyBudget,
-  fetchMonthlyBudget,
-  resetMonthlyBudget,
-  saveMonthlyBudget,
-} from '../api'
+import { useQuery } from '@tanstack/react-query'
+import { copyPreviousMonthlyBudget, fetchMonthlyBudget, resetMonthlyBudget, saveMonthlyBudget } from '../api'
+import { periodStaleTime, queryClient, queryKeys } from '../lib/queryClient'
+import { useAuth } from './useAuth'
 import type { MonthlyBudgetInput, MonthlyBudgetSummary } from '../types'
 
-export function useMonthlyBudget(year: number, month: number) {
-  const [summary, setSummary] = useState<MonthlyBudgetSummary | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const reload = useCallback(async () => {
-    setLoading(true)
-    try {
-      setSummary(await fetchMonthlyBudget(year, month))
-      setError(null)
-    } catch {
-      setError('Failed to load the monthly budget.')
-    } finally {
-      setLoading(false)
-    }
-  }, [year, month])
-
-  useEffect(() => {
-    void reload()
-  }, [reload])
-
-  const save = useCallback(async (input: MonthlyBudgetInput) => {
-    const result = await saveMonthlyBudget(year, month, input)
-    setSummary(result)
-    setError(null)
+export function useMonthlyBudget(year: number, month: number, enabled = true) {
+  const { user } = useAuth()
+  const key = queryKeys.budget(user?.id ?? null, year, month)
+  const query = useQuery({ queryKey: key, queryFn: () => fetchMonthlyBudget(year, month), enabled: Boolean(user && enabled), staleTime: periodStaleTime(year, month, 60_000, 10 * 60_000), gcTime: 60 * 60_000 })
+  async function apply(result: MonthlyBudgetSummary) {
+    queryClient.setQueryData(key, result)
+    await queryClient.invalidateQueries({ queryKey: queryKeys.monthlyClose(user?.id ?? null, year, month) })
     return result
-  }, [year, month])
-
-  const copyPrevious = useCallback(async () => {
-    const result = await copyPreviousMonthlyBudget(year, month)
-    setSummary(result)
-    setError(null)
-    return result
-  }, [year, month])
-
-  const reset = useCallback(async () => {
-    await resetMonthlyBudget(year, month)
-    await reload()
-  }, [year, month, reload])
-
-  return { summary, loading, error, reload, save, copyPrevious, reset }
+  }
+  return {
+    summary: query.data ?? null as MonthlyBudgetSummary | null,
+    loading: query.isLoading,
+    error: query.error ? 'Failed to load the monthly budget.' : null,
+    reload: async () => { await query.refetch() },
+    save: async (input: MonthlyBudgetInput) => apply(await saveMonthlyBudget(year, month, input)),
+    copyPrevious: async () => apply(await copyPreviousMonthlyBudget(year, month)),
+    reset: async () => { await resetMonthlyBudget(year, month); await queryClient.invalidateQueries({ queryKey: key }); await queryClient.invalidateQueries({ queryKey: queryKeys.monthlyClose(user?.id ?? null, year, month) }) },
+  }
 }

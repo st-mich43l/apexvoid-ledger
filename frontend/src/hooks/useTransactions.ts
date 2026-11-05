@@ -1,31 +1,22 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { fetchTransactions } from '../api'
+import { queryKeys } from '../lib/queryClient'
+import { useAuth } from './useAuth'
 import type { LedgerTransaction } from '../types'
 
 export function useTransactions(year: number, month: number) {
-  const [transactions, setTransactions] = useState<LedgerTransaction[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const requestId = useRef(0)
-
-  const reload = useCallback(async () => {
-    const activeRequest = ++requestId.current
-    setLoading(true)
-    try {
-      const next = await fetchTransactions({ year, month })
-      if (activeRequest !== requestId.current) return
-      setTransactions(next)
-      setError(null)
-    } catch {
-      if (activeRequest === requestId.current) setError('Failed to load transactions.')
-    } finally {
-      if (activeRequest === requestId.current) setLoading(false)
-    }
-  }, [year, month])
-
-  useEffect(() => {
-    void reload()
-  }, [reload])
-
-  return { transactions, loading, error, reload }
+  const { user } = useAuth()
+  const query = useQuery({
+    queryKey: queryKeys.transactions(user?.id ?? null, year, month),
+    queryFn: () => fetchTransactions({ year, month }),
+    enabled: Boolean(user),
+    staleTime: 30_000,
+    gcTime: 30 * 60_000,
+  })
+  return {
+    transactions: query.data ?? [] as LedgerTransaction[],
+    loading: query.isLoading,
+    error: query.error ? 'Failed to load transactions.' : null,
+    reload: async () => { await query.refetch() },
+  }
 }

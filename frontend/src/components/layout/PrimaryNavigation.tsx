@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '../ui/utils'
 import { isNavigationGroup, navigationDestination, primaryNavigation } from './navigation'
+import { preloadRoute } from '../../lib/routePreload'
 
 const itemClassName = (active: boolean) => cn(
   'inline-flex min-h-9 items-center gap-1 rounded-[var(--ledger-radius-control)] px-3 text-sm font-semibold transition-colors',
@@ -51,7 +52,7 @@ export function PrimaryNavigation() {
             {openGroup === item.label && (
               <div role="menu" aria-label={`${item.label} navigation`} className="matte-glass absolute top-full left-0 z-50 mt-2 w-48 rounded-[var(--ledger-radius-card)] p-1.5">
                 {item.items.map((child) => (
-                  <Link key={child.to} to={navigationDestination(child, item, search)} role="menuitem" aria-current={child.matches(pathname) ? 'page' : undefined} className={cn('flex min-h-10 w-full items-center justify-between gap-3 rounded-[var(--ledger-radius-control)] px-3 text-left text-sm font-semibold transition-colors', child.matches(pathname) ? 'bg-ledger-primary-subtle text-ledger-primary' : 'text-ledger-text-secondary hover:bg-ledger-subtle hover:text-ledger-text')}>
+                  <Link key={child.to} to={navigationDestination(child, item, search)} onPointerEnter={() => preloadRoute(child.to)} onFocus={() => preloadRoute(child.to)} role="menuitem" aria-current={child.matches(pathname) ? 'page' : undefined} className={cn('flex min-h-10 w-full items-center justify-between gap-3 rounded-[var(--ledger-radius-control)] px-3 text-left text-sm font-semibold transition-colors', child.matches(pathname) ? 'bg-ledger-primary-subtle text-ledger-primary' : 'text-ledger-text-secondary hover:bg-ledger-subtle hover:text-ledger-text')}>
                     <span>{child.label}</span>{child.matches(pathname) && <span className="text-xs">Current</span>}
                   </Link>
                 ))}
@@ -60,7 +61,7 @@ export function PrimaryNavigation() {
           </li>
         ) : (
           <li key={item.to}>
-            <Link to={item.to} aria-current={item.matches(pathname) ? 'page' : undefined} className={itemClassName(item.matches(pathname))}>
+            <Link to={item.to} onPointerEnter={() => preloadRoute(item.to)} onFocus={() => preloadRoute(item.to)} aria-current={item.matches(pathname) ? 'page' : undefined} className={itemClassName(item.matches(pathname))}>
               {item.label}{item.matches(pathname) && <span className="sr-only">, current page</span>}
             </Link>
           </li>

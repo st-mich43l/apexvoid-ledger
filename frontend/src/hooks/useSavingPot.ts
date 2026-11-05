@@ -1,89 +1,45 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import {
-  adjustSavingPot,
-  fetchSavingPot,
-  fetchSavingPotHistory,
-  upsertSavingPot,
-} from '../api'
-import type {
-  SavingPot,
-  SavingPotAdjustInput,
-  SavingPotEntry,
-  SavingPotInput,
-} from '../types'
+import { useQuery } from '@tanstack/react-query'
+import { adjustSavingPot, fetchSavingPot, fetchSavingPotHistory, upsertSavingPot } from '../api'
+import { queryClient, queryKeys } from '../lib/queryClient'
+import { useAuth } from './useAuth'
+import type { SavingPot, SavingPotAdjustInput, SavingPotEntry, SavingPotInput } from '../types'
 
 export function useSavingPot() {
-  const [pot, setPot] = useState<SavingPot | null>(null)
-  const [history, setHistory] = useState<SavingPotEntry[]>([])
-  const [historyTotal, setHistoryTotal] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [historyLoading, setHistoryLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const requestId = useRef(0)
-
-  const reloadHistory = useCallback(async () => {
-    setHistoryLoading(true)
-    try {
-      const page = await fetchSavingPotHistory(50, 0)
-      setHistory(page.items)
-      setHistoryTotal(page.total)
-    } catch {
-      // Pot may not exist yet; leave history empty.
-      setHistory([])
-      setHistoryTotal(0)
-    } finally {
-      setHistoryLoading(false)
-    }
-  }, [])
-
-  const reload = useCallback(async () => {
-    const activeRequest = ++requestId.current
-    setLoading(true)
-    try {
-      const next = await fetchSavingPot()
-      if (activeRequest !== requestId.current) return
-      setPot(next)
-      setError(null)
-      if (next) {
-        await reloadHistory()
-      } else {
-        setHistory([])
-        setHistoryTotal(0)
-      }
-    } catch {
-      if (activeRequest === requestId.current) setError('Failed to load saving pot.')
-    } finally {
-      if (activeRequest === requestId.current) setLoading(false)
-    }
-  }, [reloadHistory])
-
-  useEffect(() => {
-    void reload()
-  }, [reload])
-
-  const save = useCallback(async (input: SavingPotInput) => {
+  const { user } = useAuth()
+  const userId = user?.id ?? null
+  const potKey = queryKeys.savingPot(userId)
+  const historyKey = queryKeys.savingPotHistory(userId, 50, 0)
+  const potQuery = useQuery({ queryKey: potKey, queryFn: fetchSavingPot, enabled: Boolean(user), staleTime: 60_000, gcTime: 60 * 60_000 })
+  const historyQuery = useQuery({
+    queryKey: historyKey,
+    queryFn: async () => {
+      try { return await fetchSavingPotHistory(50, 0) }
+      catch { return { items: [] as SavingPotEntry[], total: 0 } }
+    },
+    enabled: Boolean(user && potQuery.data),
+    staleTime: 30_000,
+    gcTime: 30 * 60_000,
+  })
+  async function reload() { await Promise.all([potQuery.refetch(), historyQuery.refetch()]) }
+  async function save(input: SavingPotInput) {
     const next = await upsertSavingPot(input)
-    setPot(next)
-    setError(null)
-    await reloadHistory()
+    queryClient.setQueryData(potKey, next)
+    await queryClient.invalidateQueries({ queryKey: historyKey })
     return next
-  }, [reloadHistory])
-
-  const adjust = useCallback(async (input: SavingPotAdjustInput) => {
+  }
+  async function adjust(input: SavingPotAdjustInput) {
     const next = await adjustSavingPot(input)
-    setPot(next)
-    setError(null)
-    await reloadHistory()
+    queryClient.setQueryData(potKey, next)
+    await queryClient.invalidateQueries({ queryKey: historyKey })
     return next
-  }, [reloadHistory])
-
+  }
   return {
-    pot,
-    history,
-    historyTotal,
-    loading,
-    historyLoading,
-    error,
+    pot: potQuery.data ?? null as SavingPot | null,
+    history: historyQuery.data?.items ?? [],
+    historyTotal: historyQuery.data?.total ?? 0,
+    loading: potQuery.isLoading,
+    historyLoading: historyQuery.isFetching,
+    error: potQuery.error ? 'Failed to load saving pot.' : null,
     reload,
     save,
     adjust,

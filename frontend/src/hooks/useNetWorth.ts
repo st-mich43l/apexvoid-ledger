@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   connectNetWorthAccount,
   disconnectNetWorthAccount,
@@ -6,87 +7,75 @@ import {
   fetchNetWorthSummary,
   refreshNetWorthAccount,
 } from '../api'
+import { queryClient, queryKeys } from '../lib/queryClient'
+import { useAuth } from './useAuth'
 import type { FinancialAccount, NetWorthSummary, SePayConnectionInput } from '../types'
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000
 
 export function useNetWorth() {
-  const [summary, setSummary] = useState<NetWorthSummary | null>(null)
-  const [accounts, setAccounts] = useState<FinancialAccount[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
+  const { user } = useAuth()
   const [connecting, setConnecting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const alive = useRef(true)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const query = useQuery({
+    queryKey: queryKeys.netWorth(user?.id ?? null),
+    queryFn: async () => {
+      const [summary, accounts] = await Promise.all([fetchNetWorthSummary(), fetchNetWorthAccounts()])
+      return { summary, accounts }
+    },
+    enabled: Boolean(user),
+    staleTime: 30_000,
+    gcTime: 30 * 60_000,
+    refetchInterval: REFRESH_INTERVAL_MS,
+    refetchIntervalInBackground: false,
+  })
 
-  const load = useCallback(async (initial = false) => {
-    if (initial) setLoading(true)
-    setError(null)
-    try {
-      const [nextSummary, nextAccounts] = await Promise.all([
-        fetchNetWorthSummary(),
-        fetchNetWorthAccounts(),
-      ])
-      if (!alive.current) return
-      setSummary(nextSummary)
-      setAccounts(nextAccounts)
-    } catch (err) {
-      if (!alive.current) return
-      setError(err instanceof Error ? err.message : 'Unable to load net worth')
-    } finally {
-      if (alive.current && initial) setLoading(false)
-    }
-  }, [])
+  async function reload() { await query.refetch() }
 
-  useEffect(() => {
-    alive.current = true
-    void load(true)
-    const timer = window.setInterval(() => void load(), REFRESH_INTERVAL_MS)
-    return () => {
-      alive.current = false
-      window.clearInterval(timer)
-    }
-  }, [load])
-
-  const refresh = useCallback(async (accountId: string) => {
-    setRefreshing(true)
-    setError(null)
+  async function refresh(accountId: string) {
+    setActionError(null)
     try {
       await refreshNetWorthAccount(accountId)
-      await load()
+      await queryClient.invalidateQueries({ queryKey: queryKeys.netWorth(user?.id ?? null) })
     } catch (err) {
-      if (alive.current) setError(err instanceof Error ? err.message : 'Unable to refresh bank balance')
-    } finally {
-      if (alive.current) setRefreshing(false)
+      setActionError(err instanceof Error ? err.message : 'Unable to refresh bank balance')
     }
-  }, [load])
+  }
 
-  const connect = useCallback(async (input: SePayConnectionInput) => {
+  async function connect(input: SePayConnectionInput) {
     setConnecting(true)
-    setError(null)
+    setActionError(null)
     try {
       await connectNetWorthAccount(input)
-      await load()
+      await queryClient.invalidateQueries({ queryKey: queryKeys.netWorth(user?.id ?? null) })
     } catch (err) {
-      if (alive.current) setError(err instanceof Error ? err.message : 'Unable to connect SePay account')
+      setActionError(err instanceof Error ? err.message : 'Unable to connect SePay account')
       throw err
     } finally {
-      if (alive.current) setConnecting(false)
+      setConnecting(false)
     }
-  }, [load])
+  }
 
-  const disconnect = useCallback(async (accountId: string) => {
-    setRefreshing(true)
-    setError(null)
+  async function disconnect(accountId: string) {
+    setActionError(null)
     try {
       await disconnectNetWorthAccount(accountId)
-      await load()
+      await queryClient.invalidateQueries({ queryKey: queryKeys.netWorth(user?.id ?? null) })
     } catch (err) {
-      if (alive.current) setError(err instanceof Error ? err.message : 'Unable to disconnect SePay account')
-    } finally {
-      if (alive.current) setRefreshing(false)
+      setActionError(err instanceof Error ? err.message : 'Unable to disconnect SePay account')
     }
-  }, [load])
+  }
 
-  return { summary, accounts, loading, refreshing, connecting, error, refresh, connect, disconnect, reload: load }
+  return {
+    summary: query.data?.summary ?? null as NetWorthSummary | null,
+    accounts: query.data?.accounts ?? [] as FinancialAccount[],
+    loading: query.isLoading,
+    refreshing: query.isFetching && !query.isLoading,
+    connecting,
+    error: actionError ?? (query.error ? (query.error instanceof Error ? query.error.message : 'Unable to load net worth') : null),
+    refresh,
+    connect,
+    disconnect,
+    reload,
+  }
 }

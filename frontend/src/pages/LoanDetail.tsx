@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { deleteLoan } from '../api'
+import { useAuth } from '../hooks/useAuth'
+import { invalidateAccountData } from '../lib/queryClient'
 import { PremiumCard } from '../components/PremiumCard'
 import { DeleteLoanDialog } from '../components/loan/DeleteLoanDialog'
 import { EditLoanDialog } from '../components/loan/EditLoanDialog'
@@ -14,6 +16,7 @@ import { useLoanDetail } from '../hooks/useLoanDetail'
 import { formatCurrency } from '../lib/currency'
 
 export function LoanDetailPage() {
+  const { user } = useAuth()
   const { loanId } = useParams<{ loanId: string }>()
   const { detail, schedule, loading, notFound, error, refetch } = useLoanDetail(loanId ?? '')
   const navigate = useNavigate()
@@ -117,6 +120,7 @@ export function LoanDetailPage() {
           onCancel={() => setDeleteOpen(false)}
           onConfirm={async () => {
             await deleteLoan(detail.id)
+            await invalidateAccountData(user?.id ?? null, ['loans', 'net-worth', 'loan-detail'])
             navigate('/loan')
           }}
         />

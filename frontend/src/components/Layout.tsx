@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { CurrencySelector } from './CurrencySelector'
 import { ThemeToggle } from './ThemeToggle'
@@ -11,6 +11,7 @@ import { PrimaryNavigation } from './layout/PrimaryNavigation'
 import { Button } from './ui/Button'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
+import { canPreloadRoute, preloadRoute } from '../lib/routePreload'
 
 export function Layout() {
   const { theme, toggleTheme } = useTheme()
@@ -21,6 +22,20 @@ export function Layout() {
   const closeMobileNavigation = useCallback(() => setMobileNavigationOpen(false), [])
   const [logoutError, setLogoutError] = useState(false)
   const moreActive = mobileNavigationOpen || !['/dashboard', '/cashflow', '/net-worth'].includes(pathname)
+
+  useEffect(() => {
+    if (!canPreloadRoute()) return
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
+      cancelIdleCallback?: (id: number) => void
+    }
+    if (idleWindow.requestIdleCallback) {
+      const idleId = idleWindow.requestIdleCallback(() => preloadRoute('/dashboard'), { timeout: 1500 })
+      return () => idleWindow.cancelIdleCallback?.(idleId)
+    }
+    const timer = window.setTimeout(() => preloadRoute('/dashboard'), 800)
+    return () => window.clearTimeout(timer)
+  }, [])
 
   async function handleLogout() {
     try {
@@ -77,7 +92,7 @@ export function Layout() {
 }
 
 function MobileTab({ to, label, icon }: { to: string; label: string; icon: 'overview' | 'cashflow' | 'wealth' }) {
-  return <NavLink to={to} className={({ isActive }) => `matte-nav-item flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-full font-medium transition-colors ${isActive ? 'bg-[var(--matte-active)] text-[var(--matte-active-text)]' : 'text-ledger-text-secondary hover:bg-ledger-subtle'}`}><MobileIcon name={icon} />{label}</NavLink>
+  return <NavLink to={to} onPointerEnter={() => preloadRoute(to)} onFocus={() => preloadRoute(to)} className={({ isActive }) => `matte-nav-item flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-full font-medium transition-colors ${isActive ? 'bg-[var(--matte-active)] text-[var(--matte-active-text)]' : 'text-ledger-text-secondary hover:bg-ledger-subtle'}`}><MobileIcon name={icon} />{label}</NavLink>
 }
 
 function MobileIcon({ name }: { name: 'overview' | 'cashflow' | 'wealth' | 'more' }) {

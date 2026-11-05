@@ -1,41 +1,20 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { closeMonth, fetchMonthlyClose, recloseMonth } from '../api'
+import { queryClient, queryKeys } from '../lib/queryClient'
+import { useAuth } from './useAuth'
 import type { MonthlyCloseSummary } from '../types'
 
 export function useMonthlyClose(year: number, month: number) {
-  const [summary, setSummary] = useState<MonthlyCloseSummary | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const reload = useCallback(async () => {
-    setLoading(true)
-    try {
-      setSummary(await fetchMonthlyClose(year, month))
-      setError(null)
-    } catch {
-      setError('Failed to load monthly close.')
-    } finally {
-      setLoading(false)
-    }
-  }, [year, month])
-
-  useEffect(() => {
-    void reload()
-  }, [reload])
-
-  const close = useCallback(async (note?: string) => {
-    const result = await closeMonth(year, month, note)
-    setSummary(result)
-    setError(null)
-    return result
-  }, [year, month])
-
-  const reclose = useCallback(async (reason: string) => {
-    const result = await recloseMonth(year, month, reason)
-    setSummary(result)
-    setError(null)
-    return result
-  }, [year, month])
-
-  return { summary, loading, error, reload, close, reclose }
+  const { user } = useAuth()
+  const key = queryKeys.monthlyClose(user?.id ?? null, year, month)
+  const query = useQuery({ queryKey: key, queryFn: () => fetchMonthlyClose(year, month), enabled: Boolean(user), staleTime: 60_000, gcTime: 60 * 60_000 })
+  async function apply(result: MonthlyCloseSummary) { queryClient.setQueryData(key, result); return result }
+  return {
+    summary: query.data ?? null as MonthlyCloseSummary | null,
+    loading: query.isLoading,
+    error: query.error ? 'Failed to load monthly close.' : null,
+    reload: async () => { await query.refetch() },
+    close: async (note?: string) => apply(await closeMonth(year, month, note)),
+    reclose: async (reason: string) => apply(await recloseMonth(year, month, reason)),
+  }
 }

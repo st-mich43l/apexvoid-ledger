@@ -4,6 +4,8 @@ import { loanToFormValues, useLoanFormState } from '../../hooks/useLoanFormState
 import { Modal } from '../Modal'
 import { LoanFormFields } from './LoanFormFields'
 import type { CurrencyCode } from '../../lib/currency'
+import { useAuth } from '../../hooks/useAuth'
+import { invalidateAccountData } from '../../lib/queryClient'
 
 interface EditableLoan {
   id: string
@@ -23,6 +25,7 @@ interface EditLoanDialogProps {
 }
 
 export function EditLoanDialog({ loan, onClose, onSaved }: EditLoanDialogProps) {
+  const { user } = useAuth()
   const { values, handleChange, handleAmountChange, handleDateChange, handleLoanTypeChange, handleCurrencyChange, validate, toLoanInput } =
     useLoanFormState(loan.currency, loanToFormValues(loan))
   const [saving, setSaving] = useState(false)
@@ -40,6 +43,7 @@ export function EditLoanDialog({ loan, onClose, onSaved }: EditLoanDialogProps) 
     setSaving(true)
     try {
       await updateLoan(loan.id, toLoanInput())
+      await invalidateAccountData(user?.id ?? null, ['loans', 'net-worth', 'loan-detail'])
       onSaved()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to save changes. Please try again.')

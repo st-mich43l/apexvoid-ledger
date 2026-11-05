@@ -5,6 +5,7 @@ import { cn } from '../ui/utils'
 import { CurrencySelector } from '../CurrencySelector'
 import { ThemeToggle } from '../ThemeToggle'
 import { isNavigationGroup, navigationDestination, primaryNavigation } from './navigation'
+import { preloadRoute } from '../../lib/routePreload'
 
 interface MobileNavigationProps { open: boolean; onClose: () => void; theme: 'light' | 'dark'; onToggleTheme: () => void }
 const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -64,10 +65,10 @@ export function MobileNavigation({ open, onClose, theme, onToggleTheme }: Mobile
             <li key={item.label} className="pt-3 first:pt-0">
               <p className="px-3 pb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-ledger-muted">{item.label}</p>
               <ul className="space-y-1">
-                {item.items.map((child) => <li key={child.to}><Link to={navigationDestination(child, item, search)} onClick={onClose} aria-current={child.matches(pathname) ? 'page' : undefined} className={mobileItemClassName(child.matches(pathname))}>{child.label}{child.matches(pathname) && <span className="text-xs">Current</span>}</Link></li>)}
+                {item.items.map((child) => <li key={child.to}><Link to={navigationDestination(child, item, search)} onPointerEnter={() => preloadRoute(child.to)} onFocus={() => preloadRoute(child.to)} onClick={onClose} aria-current={child.matches(pathname) ? 'page' : undefined} className={mobileItemClassName(child.matches(pathname))}>{child.label}{child.matches(pathname) && <span className="text-xs">Current</span>}</Link></li>)}
               </ul>
             </li>
-          ) : <li key={item.to}><Link to={item.to} onClick={onClose} aria-current={item.matches(pathname) ? 'page' : undefined} className={mobileItemClassName(item.matches(pathname))}>{item.label}{item.matches(pathname) && <span className="text-xs">Current</span>}</Link></li>)}
+          ) : <li key={item.to}><Link to={item.to} onPointerEnter={() => preloadRoute(item.to)} onFocus={() => preloadRoute(item.to)} onClick={onClose} aria-current={item.matches(pathname) ? 'page' : undefined} className={mobileItemClassName(item.matches(pathname))}>{item.label}{item.matches(pathname) && <span className="text-xs">Current</span>}</Link></li>)}
         </ul>
       </nav>
     </div>

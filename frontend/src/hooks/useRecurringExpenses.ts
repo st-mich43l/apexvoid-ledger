@@ -1,27 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { fetchRecurringExpenses } from '../api'
+import { queryKeys } from '../lib/queryClient'
+import { useAuth } from './useAuth'
 import type { RecurringExpense } from '../types'
 
 export function useRecurringExpenses() {
-  const [items, setItems] = useState<RecurringExpense[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const reload = useCallback(async () => {
-    setLoading(true)
-    try {
-      setItems(await fetchRecurringExpenses())
-      setError(null)
-    } catch {
-      setError('Failed to load monthly fixed costs.')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    void reload()
-  }, [reload])
-
-  return { items, loading, error, reload }
+  const { user } = useAuth()
+  const query = useQuery({ queryKey: queryKeys.recurringExpenses(user?.id ?? null), queryFn: () => fetchRecurringExpenses(), enabled: Boolean(user), staleTime: 60_000, gcTime: 60 * 60_000 })
+  return { items: query.data ?? [] as RecurringExpense[], loading: query.isLoading, error: query.error ? 'Failed to load monthly fixed costs.' : null, reload: async () => { await query.refetch() } }
 }

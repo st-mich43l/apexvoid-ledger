@@ -88,16 +88,16 @@ async function authedRequest<T>(url: string, options?: RequestInit): Promise<T> 
 
 const LOANS_URL = '/api/loans'
 
-export function fetchLoans(): Promise<Loan[]> {
-  return authedRequest<Loan[]>(LOANS_URL)
+export function fetchLoans(signal?: AbortSignal): Promise<Loan[]> {
+  return authedRequest<Loan[]>(LOANS_URL, { signal })
 }
 
-export function fetchNetWorthSummary(): Promise<NetWorthSummary> {
-  return authedRequest<NetWorthSummary>('/api/net-worth/summary')
+export function fetchNetWorthSummary(signal?: AbortSignal): Promise<NetWorthSummary> {
+  return authedRequest<NetWorthSummary>('/api/net-worth/summary', { signal })
 }
 
-export function fetchNetWorthAccounts(): Promise<FinancialAccount[]> {
-  return authedRequest<FinancialAccount[]>('/api/net-worth/accounts')
+export function fetchNetWorthAccounts(signal?: AbortSignal): Promise<FinancialAccount[]> {
+  return authedRequest<FinancialAccount[]>('/api/net-worth/accounts', { signal })
 }
 
 export function connectNetWorthAccount(input: SePayConnectionInput): Promise<FinancialAccount> {
@@ -144,9 +144,9 @@ export function fetchLoanSchedule(id: string): Promise<LoanScheduleItem[]> {
 const CATEGORIES_URL = '/api/categories'
 const TRANSACTIONS_URL = '/api/transactions'
 
-export function fetchCategories(includeInactive = false): Promise<Category[]> {
+export function fetchCategories(includeInactive = false, signal?: AbortSignal): Promise<Category[]> {
   const query = new URLSearchParams({ includeInactive: String(includeInactive) })
-  return authedRequest<Category[]>(`${CATEGORIES_URL}?${query}`)
+  return authedRequest<Category[]>(`${CATEGORIES_URL}?${query}`, { signal })
 }
 
 export function createCategory(input: CategoryInput): Promise<Category> {
@@ -177,11 +177,11 @@ interface TransactionFilters {
   categoryId?: string
 }
 
-export function fetchTransactions(filters: TransactionFilters): Promise<LedgerTransaction[]> {
+export function fetchTransactions(filters: TransactionFilters, signal?: AbortSignal): Promise<LedgerTransaction[]> {
   const query = new URLSearchParams({ year: String(filters.year), month: String(filters.month) })
   if (filters.type) query.set('type', filters.type)
   if (filters.categoryId) query.set('categoryId', filters.categoryId)
-  return authedRequest<LedgerTransaction[]>(`${TRANSACTIONS_URL}?${query}`)
+  return authedRequest<LedgerTransaction[]>(`${TRANSACTIONS_URL}?${query}`, { signal })
 }
 
 export function createTransaction(input: TransactionInput): Promise<LedgerTransaction> {
@@ -219,14 +219,14 @@ export function fetchBankActivities(filters: {
   categoryId?: string
   accountId?: string
   processingStatus?: string
-}): Promise<BankActivity[]> {
+}, signal?: AbortSignal): Promise<BankActivity[]> {
   const query = new URLSearchParams({ year: String(filters.year), month: String(filters.month) })
   if (filters.direction) query.set('direction', filters.direction)
   if (filters.classification) query.set('classification', filters.classification)
   if (filters.categoryId) query.set('categoryId', filters.categoryId)
   if (filters.accountId) query.set('accountId', filters.accountId)
   if (filters.processingStatus) query.set('processingStatus', filters.processingStatus)
-  return authedRequest<BankActivity[]>(`/api/bank-activities?${query}`)
+  return authedRequest<BankActivity[]>(`/api/bank-activities?${query}`, { signal })
 }
 
 export function classifyBankActivity(
@@ -257,9 +257,10 @@ export function fetchCashFlowSummary(
   year: number,
   month: number,
   currency: CurrencyCode,
+  signal?: AbortSignal,
 ): Promise<CashFlowMonthlySummary> {
   const query = new URLSearchParams({ year: String(year), month: String(month), currency })
-  return authedRequest<CashFlowMonthlySummary>(`/api/cashflow/summary?${query}`)
+  return authedRequest<CashFlowMonthlySummary>(`/api/cashflow/summary?${query}`, { signal })
 }
 
 export function fetchCashFlowTrend(
@@ -267,6 +268,7 @@ export function fetchCashFlowTrend(
   endMonth: number,
   months: 6 | 12,
   currency: CurrencyCode,
+  signal?: AbortSignal,
 ): Promise<CashFlowTrendSummary> {
   const query = new URLSearchParams({
     endYear: String(endYear),
@@ -274,13 +276,13 @@ export function fetchCashFlowTrend(
     months: String(months),
     currency,
   })
-  return authedRequest<CashFlowTrendSummary>(`/api/cashflow/trend?${query}`)
+  return authedRequest<CashFlowTrendSummary>(`/api/cashflow/trend?${query}`, { signal })
 }
 
 const RECURRING_EXPENSES_URL = '/api/recurring-expenses'
 
-export function fetchRecurringExpenses(): Promise<RecurringExpense[]> {
-  return authedRequest<RecurringExpense[]>(RECURRING_EXPENSES_URL)
+export function fetchRecurringExpenses(signal?: AbortSignal): Promise<RecurringExpense[]> {
+  return authedRequest<RecurringExpense[]>(RECURRING_EXPENSES_URL, { signal })
 }
 
 export function createRecurringExpense(input: RecurringExpenseInput): Promise<RecurringExpense> {
@@ -326,8 +328,8 @@ export function deleteRecurringExpense(id: string): Promise<void> {
 
 const RECURRING_INCOMES_URL = '/api/recurring-incomes'
 
-export function fetchRecurringIncomes(): Promise<RecurringIncome[]> {
-  return authedRequest<RecurringIncome[]>(RECURRING_INCOMES_URL)
+export function fetchRecurringIncomes(signal?: AbortSignal): Promise<RecurringIncome[]> {
+  return authedRequest<RecurringIncome[]>(RECURRING_INCOMES_URL, { signal })
 }
 
 export function createRecurringIncome(input: RecurringIncomeInput): Promise<RecurringIncome> {
@@ -375,9 +377,10 @@ export function fetchMonthlyRoutine(
   year: number,
   month: number,
   currency: CurrencyCode,
+  signal?: AbortSignal,
 ): Promise<MonthlyRoutineSummary> {
   const query = new URLSearchParams({ year: String(year), month: String(month), currency })
-  return authedRequest<MonthlyRoutineSummary>(`/api/monthly-routine?${query}`)
+  return authedRequest<MonthlyRoutineSummary>(`/api/monthly-routine?${query}`, { signal })
 }
 
 const MONTHLY_BUDGET_URL = '/api/monthly-budget'
@@ -386,8 +389,8 @@ function monthlyBudgetQuery(year: number, month: number): URLSearchParams {
   return new URLSearchParams({ year: String(year), month: String(month) })
 }
 
-export function fetchMonthlyBudget(year: number, month: number): Promise<MonthlyBudgetSummary> {
-  return authedRequest<MonthlyBudgetSummary>(`${MONTHLY_BUDGET_URL}?${monthlyBudgetQuery(year, month)}`)
+export function fetchMonthlyBudget(year: number, month: number, signal?: AbortSignal): Promise<MonthlyBudgetSummary> {
+  return authedRequest<MonthlyBudgetSummary>(`${MONTHLY_BUDGET_URL}?${monthlyBudgetQuery(year, month)}`, { signal })
 }
 
 export function saveMonthlyBudget(
@@ -419,8 +422,8 @@ export function copyPreviousMonthlyBudget(
 
 const MONTHLY_CLOSE_URL = '/api/monthly-close'
 
-export function fetchMonthlyClose(year: number, month: number): Promise<MonthlyCloseSummary> {
-  return authedRequest<MonthlyCloseSummary>(`${MONTHLY_CLOSE_URL}?${monthlyBudgetQuery(year, month)}`)
+export function fetchMonthlyClose(year: number, month: number, signal?: AbortSignal): Promise<MonthlyCloseSummary> {
+  return authedRequest<MonthlyCloseSummary>(`${MONTHLY_CLOSE_URL}?${monthlyBudgetQuery(year, month)}`, { signal })
 }
 
 export function closeMonth(year: number, month: number, note?: string): Promise<MonthlyCloseSummary> {

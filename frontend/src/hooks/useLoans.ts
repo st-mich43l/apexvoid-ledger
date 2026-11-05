@@ -1,52 +1,37 @@
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { createLoan, deleteLoan, fetchLoans } from '../api'
+import { invalidateLoans, queryKeys } from '../lib/queryClient'
+import { useAuth } from './useAuth'
 import type { Loan, LoanInput } from '../types'
 
-const REFRESH_INTERVAL_MS = 60_000
-
 export function useLoans() {
-  const [loans, setLoans] = useState<Loan[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { user } = useAuth()
+  const query = useQuery({
+    queryKey: queryKeys.loans(user?.id ?? null),
+    queryFn: () => fetchLoans(),
+    enabled: Boolean(user),
+    staleTime: 30_000,
+    gcTime: 30 * 60_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
+  })
 
-  useEffect(() => {
-    loadLoans()
-
-    // Balances/maturity depend on the current date, so refresh periodically
-    // and whenever the tab regains focus, instead of only on page load.
-    const interval = setInterval(() => loadLoans({ silent: true }), REFRESH_INTERVAL_MS)
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') loadLoans({ silent: true })
-    }
-    document.addEventListener('visibilitychange', onVisible)
-
-    return () => {
-      clearInterval(interval)
-      document.removeEventListener('visibilitychange', onVisible)
-    }
-  }, [])
-
-  async function loadLoans(options?: { silent?: boolean }) {
-    if (!options?.silent) setLoading(true)
-    try {
-      setLoans(await fetchLoans())
-      setError(null)
-    } catch {
-      setError('Failed to load loans. Is the backend running?')
-    } finally {
-      if (!options?.silent) setLoading(false)
-    }
-  }
-
-  async function handleCreate(input: LoanInput) {
+  async function refresh() { await query.refetch() }
+  async function create(input: LoanInput) {
     await createLoan(input)
-    await loadLoans()
+    await invalidateLoans(user?.id ?? null)
   }
-
-  async function handleDelete(id: string) {
+  async function remove(id: string) {
     await deleteLoan(id)
-    await loadLoans()
+    await invalidateLoans(user?.id ?? null)
   }
 
-  return { loans, loading, error, createLoan: handleCreate, deleteLoan: handleDelete }
+  return {
+    loans: query.data ?? [] as Loan[],
+    loading: query.isLoading,
+    error: query.error ? 'Failed to load loans. Is the backend running?' : null,
+    createLoan: create,
+    deleteLoan: remove,
+    reload: refresh,
+  }
 }
