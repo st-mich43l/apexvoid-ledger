@@ -62,6 +62,52 @@ async function expectViewportContained(page: Page) {
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 }
 
+for (const width of [320, 390, 430]) {
+  test(`SePay connection form fits the mobile dialog at ${width}px`, async ({ page }, testInfo) => {
+    await mockApi(page)
+    await page.addInitScript(() => localStorage.setItem('apexvoid-ledger:theme', 'dark'))
+    await page.setViewportSize({ width, height: 800 })
+    await page.goto('/net-worth')
+    await page.getByRole('button', { name: 'Connect bank account' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Connect SePay bank account' })
+    await expect(dialog).toBeVisible()
+    const checkWidth = async () => {
+      expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+      const dialogBox = await dialog.boundingBox()
+      for (const item of await dialog.locator('input, fieldset, button').all()) {
+        const box = await item.boundingBox()
+        if (box) {
+          expect(box.x).toBeGreaterThanOrEqual(dialogBox!.x - 1)
+          expect(box.x + box.width).toBeLessThanOrEqual(dialogBox!.x + dialogBox!.width + 1)
+        }
+      }
+    }
+    await checkWidth()
+    await dialog.getByRole('button', { name: /OAuth 2\.0/ }).click()
+    await expect(dialog.getByLabel('OAuth client ID')).toBeVisible()
+    await expect(dialog.getByLabel('OAuth client secret')).toBeVisible()
+    await checkWidth()
+    await expectViewportContained(page)
+    await page.screenshot({ path: testInfo.outputPath('sepay-oauth-mobile.png') })
+  })
+}
+
+for (const item of [
+  { route: '/loan', button: 'Add loan', dialog: 'Add loan' },
+  { route: '/cashflow', button: 'Add transaction', dialog: 'Add transaction' },
+]) {
+  test(`${item.dialog} dialog stays contained on a narrow mobile screen`, async ({ page }) => {
+    await mockApi(page)
+    await page.setViewportSize({ width: 320, height: 700 })
+    await page.goto(item.route)
+    await page.getByRole('button', { name: item.button, exact: true }).first().click()
+    const dialog = page.getByRole('dialog', { name: item.dialog })
+    await expect(dialog).toBeVisible()
+    expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+    await expectViewportContained(page)
+  })
+}
+
 for (const width of [320, 768, 1440]) {
   test(`account icon and chevron remain aligned at ${width}px`, async ({ page }) => {
     await mockApi(page)
