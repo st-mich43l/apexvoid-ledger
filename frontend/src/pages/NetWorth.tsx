@@ -388,7 +388,7 @@ function BreakdownRow({ line }: { line: NetWorthLine }) {
 }
 
 function displayAmount(value: number | null, currency: string) {
-  return value === null ? 'Incomplete' : formatCurrency(value, currency)
+  return value === null ? 'Incomplete' : formatCurrency(value, currency, false)
 }
 
 function formatDate(value: string) {

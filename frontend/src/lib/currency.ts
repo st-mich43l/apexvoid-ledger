@@ -13,8 +13,8 @@ export function currencyName(code: string): string {
 const formatters = new Map<string, Intl.NumberFormat>()
 const compactFormatters = new Map<string, Intl.NumberFormat>()
 
-export function formatCurrency(amount: number, code: string): string {
-  if (isMoneyHidden()) return '••••'
+export function formatCurrency(amount: number, code: string, hide = isMoneyHidden()): string {
+  if (hide) return '••••'
   let formatter = formatters.get(code)
   if (!formatter) {
     formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: code })

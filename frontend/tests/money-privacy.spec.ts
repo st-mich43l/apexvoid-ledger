@@ -20,7 +20,7 @@ test.beforeEach(async ({ context }) => {
   })
 })
 
-test('inline income and net cash flow controls share the header privacy state', async ({ page }) => {
+test('inline controls independently hide and reveal amounts, including after hide all', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/cashflow')
   const header = page.getByRole('button', { name: 'Hide monetary amounts', exact: true })
@@ -30,12 +30,20 @@ test('inline income and net cash flow controls share the header privacy state', 
   await expect(net).toBeVisible()
   await expect(page.getByRole('button', { name: 'Hide monetary amounts (Savings rate)', exact: true })).toHaveCount(0)
   await income.click()
-  await expect(header).toHaveAttribute('aria-pressed', 'true')
-  await expect(net).toHaveAttribute('aria-pressed', 'true')
-  await expect(page.getByText('₫25,521,658', { exact: true })).toHaveCount(0)
-  await net.click()
   await expect(header).toHaveAttribute('aria-pressed', 'false')
-  await expect(page.locator('.financial-amount').filter({ hasText: '₫25,521,658' })).toBeVisible()
+  await expect(income).toHaveAttribute('aria-pressed', 'true')
+  await expect(net).toHaveAttribute('aria-pressed', 'false')
+  await expect(income.locator('..').locator('..').locator('.financial-amount')).toHaveText('••••')
+  await net.click()
+  await expect(net).toHaveAttribute('aria-pressed', 'true')
+  await income.click()
+  await expect(income.locator('..').locator('..').locator('.financial-amount')).toHaveText('₫25,521,658')
+  await expect(net).toHaveAttribute('aria-pressed', 'true')
+  await header.click()
+  await expect(income).toHaveAttribute('aria-pressed', 'true')
+  await income.click()
+  await expect(income.locator('..').locator('..').locator('.financial-amount')).toHaveText('₫25,521,658')
+  await expect(net).toHaveAttribute('aria-pressed', 'true')
 })
 
 test('financial position eye hides and restores values on desktop', async ({ page }) => {
@@ -47,9 +55,26 @@ test('financial position eye hides and restores values on desktop', async ({ pag
   await expect(amount).toBeVisible()
   await position.click()
   await expect(position).toHaveAttribute('aria-pressed', 'true')
-  await expect(page.getByText('₫50,000,000', { exact: true })).toHaveCount(0)
+  await expect(position.locator('..').locator('.financial-amount')).toHaveText('••••')
   await position.click()
   await expect(amount).toBeVisible()
+})
+
+test('dashboard income, expenses, and net cash flow eyes work independently', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/dashboard')
+  const income = page.getByRole('button', { name: 'Hide monetary amounts (Monthly income)', exact: true })
+  const expenses = page.getByRole('button', { name: 'Hide monetary amounts (Monthly expenses)', exact: true })
+  const net = page.getByRole('button', { name: 'Hide monetary amounts (Net cash flow)', exact: true })
+  await expect(income).toBeVisible()
+  await income.click()
+  await expect(income).toHaveAttribute('aria-pressed', 'true')
+  await expect(expenses).toHaveAttribute('aria-pressed', 'false')
+  await expect(net).toHaveAttribute('aria-pressed', 'false')
+  await net.click()
+  await expect(income).toHaveAttribute('aria-pressed', 'true')
+  await expect(expenses).toHaveAttribute('aria-pressed', 'false')
+  await expect(net).toHaveAttribute('aria-pressed', 'true')
 })
 
 test('hides and restores amounts across navigation and reload without losing input', async ({ page }) => {

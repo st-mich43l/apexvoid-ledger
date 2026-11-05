@@ -3,14 +3,16 @@ import { formatCurrency } from '../../lib/currency'
 import type { CashFlowMonthlySummary, NetWorthSummary } from '../../types'
 import type { FinancialAttentionItem } from './financialAttention'
 import { MoneyPrivacyToggle } from '../MoneyPrivacyToggle'
+import { useCardMoneyPrivacy } from '../../lib/moneyPrivacy'
 
 export function MobileDashboard({ netWorth, cashFlow, attention, loading, incomplete }: { netWorth: NetWorthSummary | null; cashFlow: CashFlowMonthlySummary | null; attention: FinancialAttentionItem[]; loading: boolean; incomplete: boolean }) {
+  const [positionHidden, setPositionHidden] = useCardMoneyPrivacy('/dashboard:Financial position')
   const money = (value: number | null | undefined, currency: string) => value == null ? 'Unavailable' : formatCurrency(value, currency)
   return <div className="space-y-5 sm:hidden">
     <section aria-label="Financial position" className="rounded-2xl border border-violet-200 bg-ledger-primary-subtle p-4 dark:border-violet-900">
       <div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-widest text-ledger-primary">Financial position</p><Link to="/net-worth" className="text-sm font-semibold text-ledger-primary">Details →</Link></div>
       <p className="mt-3 text-sm text-ledger-text-secondary">Verified bank assets</p>
-      <div className="mt-1 flex min-w-0 items-center gap-2"><p className="financial-amount min-w-0 text-3xl font-semibold tracking-tight text-ledger-text">{loading ? '…' : money(netWorth?.totalAssets, netWorth?.reportingCurrency ?? 'VND')}</p><MoneyPrivacyToggle context="Financial position" /></div>
+      <div className="mt-1 flex min-w-0 items-center gap-2"><p className="financial-amount min-w-0 text-3xl font-semibold tracking-tight text-ledger-text">{loading ? '…' : netWorth?.totalAssets == null ? 'Unavailable' : formatCurrency(netWorth.totalAssets, netWorth.reportingCurrency, positionHidden)}</p><MoneyPrivacyToggle context="Financial position" cardHidden={positionHidden} onCardChange={setPositionHidden} /></div>
       {netWorth && !netWorth.valuationComplete && <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">Valuation incomplete</p>}
       <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-violet-200 pt-3 text-sm dark:border-violet-900">
         <Metric label="Income" value={money(cashFlow?.income, cashFlow?.currency ?? 'VND')} />
