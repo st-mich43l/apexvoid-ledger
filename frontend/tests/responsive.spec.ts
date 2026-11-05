@@ -167,6 +167,31 @@ test('desktop dashboard retains primary navigation', async ({ page }, testInfo) 
   await page.screenshot({ path: testInfo.outputPath('desktop-dashboard.png'), fullPage: true })
 })
 
+for (const width of [320, 1440]) {
+  test(`Home dashboard balance privacy and navigation work at ${width}px`, async ({ page }) => {
+    await mockApi(page)
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/home')
+    const dashboard = page.locator('main').getByRole('link', { name: /Dashboard/ })
+    const eye = page.getByRole('button', { name: 'Hide monetary amounts (Dashboard)', exact: true })
+    await expect(dashboard.locator('.financial-amount')).toHaveText('₫50,000,000')
+    await expect(dashboard.getByRole('button')).toHaveCount(0)
+    await eye.click()
+    await expect(eye).toHaveAttribute('aria-pressed', 'true')
+    await expect(dashboard.locator('.financial-amount')).toHaveText('••••')
+    await expect(page).toHaveURL(/\/home$/)
+    await eye.click()
+    await expect(dashboard.locator('.financial-amount')).toHaveText('₫50,000,000')
+    await page.getByRole('button', { name: 'Hide monetary amounts', exact: true }).click()
+    await expect(dashboard.locator('.financial-amount')).toHaveText('••••')
+    await eye.click()
+    await expect(dashboard.locator('.financial-amount')).toHaveText('₫50,000,000')
+    await dashboard.click()
+    await expect(page).toHaveURL(/\/dashboard$/)
+    await expectViewportContained(page)
+  })
+}
+
 test('desktop navigation dropdown items are compact, left-aligned, and keyboard dismissible', async ({ page }) => {
   await mockApi(page)
   await page.setViewportSize({ width: 1440, height: 900 })
