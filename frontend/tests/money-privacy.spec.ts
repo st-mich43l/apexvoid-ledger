@@ -77,6 +77,33 @@ test('dashboard income, expenses, and net cash flow eyes work independently', as
   await expect(net).toHaveAttribute('aria-pressed', 'true')
 })
 
+for (const width of [320, 390, 430]) {
+  test(`mobile dashboard amount eyes work independently at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 })
+    await page.goto('/dashboard')
+    const position = page.getByRole('region', { name: 'Financial position' })
+    const eye = (label: string) => position.getByRole('button', { name: `Hide monetary amounts (${label})`, exact: true })
+    const value = (label: string) => eye(label).locator('..').locator('..').locator('dd')
+    await expect(value('Income')).toHaveText('₫25,521,658')
+    await eye('Income').click()
+    await expect(value('Income')).toHaveText('••••')
+    await expect(value('Expenses')).toHaveText('₫12,000,000')
+    await expect(value('Net cash flow')).toHaveText('₫13,521,658')
+    await expect(value('Net worth')).toHaveText('₫50,000,000')
+    await eye('Net worth').click()
+    await expect(value('Net worth')).toHaveText('••••')
+    await eye('Income').click()
+    await expect(value('Income')).toHaveText('₫25,521,658')
+    await expect(value('Net worth')).toHaveText('••••')
+    await page.getByRole('button', { name: 'Hide monetary amounts', exact: true }).click()
+    for (const label of ['Income', 'Expenses', 'Net cash flow', 'Net worth']) await expect(value(label)).toHaveText('••••')
+    await eye('Net cash flow').click()
+    await expect(value('Net cash flow')).toHaveText('₫13,521,658')
+    await expect(value('Income')).toHaveText('••••')
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  })
+}
+
 test('hides and restores amounts across navigation and reload without losing input', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/cashflow')
