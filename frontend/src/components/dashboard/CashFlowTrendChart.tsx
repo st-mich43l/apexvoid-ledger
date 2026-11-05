@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom'
 import { formatCurrency, type CurrencyCode } from '../../lib/currency'
 import type { CashFlowTrendPoint } from '../../types'
 import { cashFlowPointKey, dashboardMonthLabel } from './chartUtils'
-import { MoneyPrivacyToggle } from '../MoneyPrivacyToggle'
-import { useCardMoneyPrivacy } from '../../lib/moneyPrivacy'
+import { useMoneyPrivacy } from '../../lib/moneyPrivacy'
 
 interface CashFlowTrendChartProps {
   points: CashFlowTrendPoint[]
@@ -24,7 +23,7 @@ export function CashFlowTrendChart({
   selectedKey,
   onSelect,
 }: CashFlowTrendChartProps) {
-  const [hidden, setHidden] = useCardMoneyPrivacy('/dashboard:Income vs expenses')
+  const hidden = useMoneyPrivacy()
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const selected = points.find((point) => cashFlowPointKey(point) === selectedKey) ?? points.at(-1)
@@ -68,7 +67,6 @@ export function CashFlowTrendChart({
             Monthly cash-flow movement in {currency}
           </p>
         </div>
-        <div className="flex items-center gap-2">
         {selected && (
           <Link
             to={`/cashflow?year=${selected.year}&month=${selected.month}`}
@@ -77,11 +75,9 @@ export function CashFlowTrendChart({
             View month →
           </Link>
         )}
-        <MoneyPrivacyToggle context="Income vs expenses" cardHidden={hidden} onCardChange={setHidden} />
-        </div>
       </div>
 
-      {hidden ? <p className="mt-5 rounded-2xl bg-neutral-50 px-4 py-8 text-center text-sm text-neutral-500 dark:bg-neutral-950/60 dark:text-neutral-400">Chart hidden for privacy. Use the eye to show it.</p> : <>
+      {hidden ? <p className="mt-5 rounded-2xl bg-neutral-50 px-4 py-8 text-center text-sm text-neutral-500 dark:bg-neutral-950/60 dark:text-neutral-400">Chart hidden for privacy. Use the header eye to show it.</p> : <>
       <div ref={scrollRef} className="relative mt-4 overflow-x-auto pb-1">
         <svg
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
