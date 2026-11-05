@@ -20,10 +20,12 @@ export function AccountMenu({ user, onLogout }: AccountMenuProps) {
 
   return (
     <div ref={menuRef} className="relative">
-      <Button type="button" variant="ghost" size="sm" aria-label={`Account menu for ${user.username}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((value) => !value)} className="h-10 min-h-10 w-10 whitespace-nowrap px-0 sm:h-8 sm:min-h-8 sm:w-auto sm:px-2">
-        <span aria-hidden="true" className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-ledger-primary-subtle text-[10px] font-bold text-ledger-primary">{user.username.slice(0, 1).toUpperCase()}</span>
-        <span className="hidden max-w-28 truncate sm:inline">{user.username}</span>
-        <ChevronDownIcon className="h-3.5 w-3.5 shrink-0" />
+      <Button type="button" variant="ghost" size="sm" aria-label={`Account menu for ${user.username}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((value) => !value)} className="h-10 min-h-10 w-10 whitespace-nowrap px-0 sm:w-auto sm:px-2">
+        <span className="inline-flex min-w-0 items-center gap-0.5 sm:gap-2">
+          <span aria-hidden="true" className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ledger-primary-subtle text-[10px] font-bold text-ledger-primary">{user.username.slice(0, 1).toUpperCase()}</span>
+          <span className="hidden max-w-28 truncate sm:inline">{user.username}</span>
+          <ChevronDownIcon className="h-3.5 w-3.5 shrink-0" />
+        </span>
       </Button>
       {open && (
         <div role="menu" aria-label="Account menu" className="matte-glass absolute top-full right-0 z-50 mt-2 w-56 rounded-[var(--ledger-radius-card)] p-1.5">
@@ -44,5 +46,5 @@ export function AccountMenu({ user, onLogout }: AccountMenuProps) {
 }
 
 function ChevronDownIcon({ className }: { className?: string }) {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" /></svg>
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" /></svg>
 }

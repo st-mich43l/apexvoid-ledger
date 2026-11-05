@@ -62,6 +62,29 @@ async function expectViewportContained(page: Page) {
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 }
 
+for (const width of [320, 768, 1440]) {
+  test(`account icon and chevron remain aligned at ${width}px`, async ({ page }) => {
+    await mockApi(page)
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/dashboard')
+    const trigger = page.getByRole('button', { name: 'Account menu for responsive' })
+    const avatar = trigger.locator('[aria-hidden="true"]').first()
+    const chevron = trigger.locator('svg')
+    const avatarBox = await avatar.boundingBox()
+    const chevronBox = await chevron.boundingBox()
+    expect(avatarBox).not.toBeNull()
+    expect(chevronBox).not.toBeNull()
+    expect(Math.abs((avatarBox!.y + avatarBox!.height / 2) - (chevronBox!.y + chevronBox!.height / 2))).toBeLessThan(2)
+    await trigger.focus()
+    await page.keyboard.press('Enter')
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    await expect(page.getByRole('menu', { name: 'Account menu' })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    await expectViewportContained(page)
+  })
+}
+
 const viewports = [
   { name: '320×568', width: 320, height: 568 },
   { name: '360×800', width: 360, height: 800 },
