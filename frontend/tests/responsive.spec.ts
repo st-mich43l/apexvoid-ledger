@@ -62,6 +62,29 @@ async function expectViewportContained(page: Page) {
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 }
 
+for (const width of [320, 768, 1440]) {
+  test(`account icon and chevron remain aligned at ${width}px`, async ({ page }) => {
+    await mockApi(page)
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/dashboard')
+    const trigger = page.getByRole('button', { name: 'Account menu for responsive' })
+    const avatar = trigger.locator('[aria-hidden="true"]').first()
+    const chevron = trigger.locator('svg')
+    const avatarBox = await avatar.boundingBox()
+    const chevronBox = await chevron.boundingBox()
+    expect(avatarBox).not.toBeNull()
+    expect(chevronBox).not.toBeNull()
+    expect(Math.abs((avatarBox!.y + avatarBox!.height / 2) - (chevronBox!.y + chevronBox!.height / 2))).toBeLessThan(2)
+    await trigger.focus()
+    await page.keyboard.press('Enter')
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    await expect(page.getByRole('menu', { name: 'Account menu' })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    await expectViewportContained(page)
+  })
+}
+
 const viewports = [
   { name: '320×568', width: 320, height: 568 },
   { name: '360×800', width: 360, height: 800 },
@@ -142,6 +165,29 @@ test('desktop dashboard retains primary navigation', async ({ page }, testInfo) 
   await expect(page.getByRole('navigation', { name: 'Mobile navigation' })).toBeHidden()
   await expectViewportContained(page)
   await page.screenshot({ path: testInfo.outputPath('desktop-dashboard.png'), fullPage: true })
+})
+
+test('desktop navigation dropdown items are compact, left-aligned, and keyboard dismissible', async ({ page }) => {
+  await mockApi(page)
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/dashboard')
+  for (const group of ['Planning', 'Wealth']) {
+    const trigger = page.getByRole('button', { name: group })
+    await trigger.click()
+    const menu = page.getByRole('menu', { name: `${group} navigation` })
+    await expect(menu).toBeVisible()
+    const entries = menu.getByRole('menuitem')
+    for (const entry of await entries.all()) {
+      await expect(entry).toHaveCSS('justify-content', 'space-between')
+      const itemBox = await entry.boundingBox()
+      const labelBox = await entry.locator('span').first().boundingBox()
+      expect(labelBox!.x - itemBox!.x).toBeLessThanOrEqual(16)
+      expect(itemBox!.height).toBeGreaterThanOrEqual(40)
+    }
+    expect((await menu.boundingBox())!.width).toBeLessThanOrEqual(200)
+    await page.keyboard.press('Escape')
+    await expect(menu).toBeHidden()
+  }
 })
 
 test('installable app registers a service worker without requesting notification permission', async ({ page }) => {
