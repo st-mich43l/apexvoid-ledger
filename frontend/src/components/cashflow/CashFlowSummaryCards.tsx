@@ -47,7 +47,7 @@ export function CashFlowSummaryCards({ summary, loading, currency }: CashFlowSum
   return (
     <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
       {cards.map((card) => (
-        <FinancialMetric key={card.label} label={card.label} value={card.value} detail={card.detail} tone={card.tone} loading={loading} className="max-sm:!min-h-0 max-sm:!p-3 [&_.financial-amount]:text-lg sm:[&_.financial-amount]:text-[1.7rem]" />
+        <FinancialMetric key={card.label} label={card.label} value={card.value} detail={card.detail} tone={card.tone} loading={loading} privacyToggle={card.label !== 'Savings rate'} className="max-sm:!min-h-0 max-sm:!p-3 [&_.financial-amount]:text-lg sm:[&_.financial-amount]:text-[1.7rem]" />
       ))}
     </div>
   )

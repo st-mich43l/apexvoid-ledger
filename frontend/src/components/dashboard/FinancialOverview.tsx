@@ -3,6 +3,7 @@ import { formatCurrency } from '../../lib/currency'
 import type { FinancialAccount, NetWorthSummary } from '../../types'
 import { Badge } from '../ui/Badge'
 import { Card } from '../ui/Card'
+import { MoneyPrivacyToggle } from '../MoneyPrivacyToggle'
 
 export function FinancialOverview({ summary, accounts, loading }: { summary: NetWorthSummary | null; accounts: FinancialAccount[]; loading: boolean }) {
   const netWorth = summary?.netWorth
@@ -13,7 +14,7 @@ export function FinancialOverview({ summary, accounts, loading }: { summary: Net
       <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2"><p className="text-xs font-semibold uppercase tracking-[0.14em] text-ledger-primary">Financial position</p>{!loading && summary && <Badge tone={summary.valuationComplete ? 'success' : 'warning'}>{summary.valuationComplete ? 'Valuation complete' : 'Valuation incomplete'}</Badge>}</div>
-          <p className="financial-amount mt-3 break-words text-3xl font-semibold tracking-tight text-ledger-text sm:text-4xl">{loading ? '…' : !summary || netWorth === null || netWorth === undefined ? 'Incomplete' : formatCurrency(netWorth, summary.reportingCurrency)}</p>
+          <div className="mt-3 flex min-w-0 items-center gap-2"><p className="financial-amount min-w-0 break-words text-3xl font-semibold tracking-tight text-ledger-text sm:text-4xl">{loading ? '…' : !summary || netWorth === null || netWorth === undefined ? 'Incomplete' : formatCurrency(netWorth, summary.reportingCurrency)}</p><MoneyPrivacyToggle context="Financial position" /></div>
           <p className="mt-2 text-sm text-ledger-text-secondary">{loading ? 'Loading current position…' : summary ? `Current position in ${summary.reportingCurrency}; separate from monthly Cash Flow.` : 'Current position is unavailable.'}</p>
         </div>
         <dl className="grid grid-cols-2 gap-x-7 gap-y-3 text-sm sm:min-w-80">
