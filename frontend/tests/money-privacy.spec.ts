@@ -159,16 +159,16 @@ test('hides and restores amounts across navigation and reload without losing inp
   await expect(page.getByText('₫100,000,000', { exact: true })).toBeVisible()
 })
 
-test('desktop chart labels and other tabs update when money is hidden', async ({ page, context }) => {
+test('desktop cash-flow amounts and other tabs update when money is hidden', async ({ page, context }) => {
   await page.setViewportSize({ width: 1920, height: 1080 })
   await page.goto('/cashflow')
-  await expect(page.getByLabel(/Income ₫25,521,658; expenses/)).toBeVisible()
+  await expect(page.locator('.financial-amount').filter({ hasText: '₫25,521,658' })).toBeVisible()
   const second = await context.newPage()
   await second.setViewportSize({ width: 1920, height: 1080 })
   await second.goto('/cashflow')
   await page.getByRole('button', { name: 'Hide monetary amounts', exact: true }).click()
-  await expect(page.getByLabel(/Income ₫25,521,658; expenses/)).toHaveCount(0)
-  await expect(page.getByLabel(/Income ••••; expenses ••••/)).toBeVisible()
+  await expect(page.getByText('₫25,521,658', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Hide monetary amounts (Income)', exact: true })).toHaveAttribute('aria-pressed', 'true')
   await expect(second.getByRole('button', { name: 'Hide monetary amounts', exact: true })).toHaveAttribute('aria-pressed', 'true')
   await expect(second.getByText('₫25,521,658', { exact: true })).toHaveCount(0)
 })
