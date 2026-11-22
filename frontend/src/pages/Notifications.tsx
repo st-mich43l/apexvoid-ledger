@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { fetchNotifications, markAllNotificationsRead, markNotificationRead, type InboxNotification } from '../api'
+import { clearAllNotifications, deleteNotification, fetchNotifications, markAllNotificationsRead, markNotificationRead, type InboxNotification } from '../api'
+import { setUnreadCount, useUnreadCount } from '../lib/notificationCount'
 import { PageHeader } from '../components/layout/PageHeader'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
@@ -20,15 +21,33 @@ export function NotificationsPage() {
   const load = useCallback(async () => {
     try { setItems(await fetchNotifications()); setError(null) } catch { setError('Could not load notifications.') } finally { setLoading(false) }
   }, [])
-  useEffect(() => { void load() }, [load])
+  const unread = useUnreadCount()
+  // Reload whenever the live count changes so new notifications appear without a refresh.
+  useEffect(() => { void load() }, [load, unread])
+
+  async function clearOne(item: InboxNotification) {
+    try {
+      await deleteNotification(item.id)
+      setItems(current => current.filter(entry => entry.id !== item.id))
+      if (!item.readAt) setUnreadCount(unread - 1)
+    } catch { setError('Could not clear this notification.') }
+  }
+
+  async function clearAll() {
+    try { await clearAllNotifications(); setItems([]); setUnreadCount(0) } catch { setError('Could not clear notifications.') }
+  }
+
+  async function markAll() {
+    try { await markAllNotificationsRead(); setUnreadCount(0); await load() } catch { setError('Could not mark notifications as read.') }
+  }
 
   async function open(item: InboxNotification) {
-    try { if (!item.readAt) await markNotificationRead(item.id); navigate(safeDestination(item.destination)) } catch { setError('Could not mark this notification as read.') }
+    try { if (!item.readAt) { await markNotificationRead(item.id); setUnreadCount(unread - 1) } navigate(safeDestination(item.destination)) } catch { setError('Could not mark this notification as read.') }
   }
 
   return <section className="mx-auto max-w-4xl"><PageHeader eyebrow="Your account" title="Notifications" description="Your recent Ledger activity." actions={<Link to="/settings/notifications" className="text-sm font-semibold text-ledger-primary">Notification settings →</Link>} />
     {error && <Alert tone="danger" className="mb-4">{error}</Alert>}
-    <Card padding="none" className="overflow-hidden"><div className="flex items-center justify-between gap-3 border-b border-ledger-border p-4"><h2 className="font-semibold text-ledger-text">Inbox</h2><Button variant="ghost" size="sm" disabled={!items.some(item => !item.readAt)} onClick={() => void markAllNotificationsRead().then(load).catch(() => setError('Could not mark notifications as read.'))}>Mark all read</Button></div>
-      {loading ? <p className="p-5 text-sm text-ledger-text-secondary">Loading notifications…</p> : items.length === 0 ? <p className="p-5 text-sm text-ledger-text-secondary">No notifications yet.</p> : <ul className="divide-y divide-ledger-border">{items.map(item => <li key={item.id}><button type="button" onClick={() => void open(item)} className="flex min-h-16 w-full items-start gap-3 p-4 text-left hover:bg-ledger-subtle"><span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${item.readAt ? 'bg-ledger-border' : 'bg-violet-500'}`} aria-label={item.readAt ? 'Read' : 'Unread'} /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-ledger-text">{item.title}</span><span className="mt-1 block text-sm text-ledger-text-secondary">{item.body}</span><span className="mt-1 block text-xs text-ledger-muted">{new Date(item.createdAt).toLocaleString()}</span></span><span aria-hidden="true" className="text-ledger-primary">→</span></button></li>)}</ul>}
+    <Card padding="none" className="overflow-hidden"><div className="flex items-center justify-between gap-3 border-b border-ledger-border p-4"><h2 className="font-semibold text-ledger-text">Inbox</h2><div className="flex gap-1"><Button variant="ghost" size="sm" disabled={!items.some(item => !item.readAt)} onClick={() => void markAll()}>Mark all read</Button><Button variant="ghost" size="sm" disabled={items.length === 0} onClick={() => void clearAll()}>Clear all</Button></div></div>
+      {loading ? <p className="p-5 text-sm text-ledger-text-secondary">Loading notifications…</p> : items.length === 0 ? <p className="p-5 text-sm text-ledger-text-secondary">No notifications yet.</p> : <ul className="divide-y divide-ledger-border">{items.map(item => <li key={item.id} className="flex items-stretch"><button type="button" onClick={() => void open(item)} className="flex min-h-16 min-w-0 flex-1 items-start gap-3 p-4 text-left hover:bg-ledger-subtle"><span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${item.readAt ? 'bg-ledger-border' : 'bg-violet-500'}`} aria-label={item.readAt ? 'Read' : 'Unread'} /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-ledger-text">{item.title}</span><span className="mt-1 block text-sm text-ledger-text-secondary">{item.body}</span><span className="mt-1 block text-xs text-ledger-muted">{new Date(item.createdAt).toLocaleString()}</span></span><span aria-hidden="true" className="text-ledger-primary">→</span></button><button type="button" onClick={() => void clearOne(item)} aria-label={`Clear notification: ${item.title}`} className="w-12 shrink-0 text-ledger-muted hover:bg-ledger-subtle hover:text-ledger-text">✕</button></li>)}</ul>}
     </Card></section>
 }

@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
+import asyncio
 import base64
+import json
 import os
 
 from cryptography.hazmat.primitives import serialization
@@ -16,7 +18,7 @@ from app.bank_activity import ingest_webhook
 from app.sepay import account_number_fingerprint
 from app.notification_models import Notification, NotificationDelivery, PushSubscription
 from app.notification_events import queue_bank_activity
-from app.routers.notifications import Preferences, get_preferences, list_notifications, mark_read, put_preferences, require_same_origin, unread_count
+from app.routers.notifications import Preferences, clear_all, clear_one, count_events, get_preferences, list_notifications, mark_read, put_preferences, require_same_origin, unread_count
 from app.routers.push import SubscriptionInput, delete_subscription, register_subscription
 
 
@@ -125,3 +127,45 @@ def test_state_changes_require_matching_origin():
     with pytest.raises(HTTPException) as error:
       require_same_origin(request(origin))
     assert error.value.status_code == 403
+
+
+def test_clear_one_and_clear_all_are_owner_scoped(session):
+  alice = session.get(User, "a")
+  with pytest.raises(HTTPException) as error:
+    clear_one("two", db=session, user=alice)
+  assert error.value.status_code == 404
+  assert session.get(Notification, "two") is not None
+  clear_one("one", db=session, user=alice)
+  assert session.get(Notification, "one") is None
+  session.add(Notification(id="three", user_id="a", event_type="bank", event_key="3", title="t", body="b", destination="/cashflow"))
+  session.commit()
+  clear_all(db=session, user=alice)
+  assert list_notifications(limit=30, offset=0, db=session, user=alice) == []
+  assert session.get(Notification, "two") is not None
+
+
+def test_stream_emits_count_on_connect_and_on_change(tmp_path):
+  engine = create_engine(f"sqlite:///{tmp_path / 'stream.db'}")  # file DB: the poll runs in a worker thread
+  Base.metadata.create_all(engine)
+  session = Session(engine)
+  session.add(User(id="a", username="a", hashed_password="x", is_admin=False, must_change_password=False))
+  session.add(Notification(id="one", user_id="a", event_type="bank", event_key="1", title="t", body="b", destination="/cashflow"))
+  session.commit()
+  factory = lambda: Session(engine)
+  async def never():
+    return False
+  async def collect():
+    frames = []
+    stream = count_events("a", never, factory, interval=0.01, heartbeat=0.05, max_seconds=5)
+    async for frame in stream:
+      frames.append(frame)
+      if len(frames) == 1:
+        session.query(Notification).filter(Notification.id == "one").update({"read_at": datetime.now(timezone.utc)})
+        session.commit()
+      if len(frames) == 3:
+        break
+    return frames
+  frames = asyncio.run(collect())
+  assert frames[0] == 'event: count\ndata: {"count": 1}\n\n'
+  assert json.loads(frames[1].split("data: ")[1])["count"] == 0
+  assert frames[2].startswith(": ping")

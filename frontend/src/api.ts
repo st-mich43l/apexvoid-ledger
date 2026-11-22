@@ -485,6 +485,8 @@ export function fetchNotifications(): Promise<InboxNotification[]> { return auth
 export function fetchNotificationCount(): Promise<{ count: number }> { return authedRequest('/api/notifications/unread-count') }
 export function markNotificationRead(id: string): Promise<InboxNotification> { return authedRequest(`/api/notifications/${encodeURIComponent(id)}/read`, { method: 'PATCH' }) }
 export function markAllNotificationsRead(): Promise<void> { return authedRequest('/api/notifications/read-all', { method: 'POST' }) }
+export function deleteNotification(id: string): Promise<void> { return authedRequest(`/api/notifications/${encodeURIComponent(id)}`, { method: 'DELETE' }) }
+export function clearAllNotifications(): Promise<void> { return authedRequest('/api/notifications', { method: 'DELETE' }) }
 export function fetchNotificationPreferences(): Promise<NotificationPreferences> { return authedRequest('/api/notifications/preferences') }
 export function saveNotificationPreferences(input: NotificationPreferences): Promise<NotificationPreferences> { return authedRequest('/api/notifications/preferences', { method: 'PUT', body: JSON.stringify(input) }) }
 export function fetchPushConfig(): Promise<{ configured: boolean; publicKey: string | null }> { return authedRequest('/api/push/config') }
