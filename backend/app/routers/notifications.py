@@ -1,14 +1,19 @@
+import asyncio
+import json
+import time
 from datetime import datetime, timezone
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..auth import require_password_changed
-from ..database import get_db
+from ..database import SessionLocal, get_db
 from ..models import User
 from ..notification_models import Notification, NotificationDelivery, NotificationPreference
 
@@ -69,6 +74,38 @@ def unread_count(db: Session = Depends(get_db), user: User = Depends(require_pas
   return {"count": count}
 
 
+def count_unread(user_id: str, session_factory=SessionLocal) -> int:
+  # Short-lived session per poll so an open stream never pins a pooled connection.
+  with session_factory() as db:
+    return db.query(func.count(Notification.id)).filter(Notification.user_id == user_id, Notification.read_at.is_(None)).scalar()
+
+
+async def count_events(user_id: str, is_disconnected, session_factory=SessionLocal, interval: float = 2.0, heartbeat: float = 15.0, max_seconds: float = 300.0):
+  """Yield SSE frames: the unread count on connect and on every change, plus keep-alive pings.
+
+  The stream ends after max_seconds; EventSource reconnects, which re-validates the session.
+  """
+  last: int | None = None
+  started = last_sent = time.monotonic()
+  while time.monotonic() - started < max_seconds and not await is_disconnected():
+    count = await run_in_threadpool(count_unread, user_id, session_factory)
+    now = time.monotonic()
+    if count != last:
+      last, last_sent = count, now
+      yield f"event: count\ndata: {json.dumps({'count': count})}\n\n"
+    elif now - last_sent >= heartbeat:
+      last_sent = now
+      yield ": ping\n\n"
+    await asyncio.sleep(interval)
+
+
+@router.get("/stream")
+async def stream_unread_count(request: Request, db: Session = Depends(get_db), user: User = Depends(require_password_changed)):
+  user_id = user.id
+  db.close()  # release the connection before the long-lived response starts
+  return StreamingResponse(count_events(user_id, request.is_disconnected), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
 @router.get("/preferences", response_model=Preferences)
 def get_preferences(db: Session = Depends(get_db), user: User = Depends(require_password_changed)):
   record = db.get(NotificationPreference, user.id)
@@ -105,3 +142,17 @@ def mark_read(notification_id: str, db: Session = Depends(get_db), user: User = 
     item.read_at = datetime.now(timezone.utc)
     db.commit()
   return serialize(item)
+
+
+@router.delete("", status_code=204, dependencies=[Depends(require_same_origin)])
+def clear_all(db: Session = Depends(get_db), user: User = Depends(require_password_changed)):
+  db.query(Notification).filter(Notification.user_id == user.id).delete(synchronize_session=False)
+  db.commit()
+
+
+@router.delete("/{notification_id}", status_code=204, dependencies=[Depends(require_same_origin)])
+def clear_one(notification_id: str, db: Session = Depends(get_db), user: User = Depends(require_password_changed)):
+  deleted = db.query(Notification).filter(Notification.id == notification_id, Notification.user_id == user.id).delete(synchronize_session=False)
+  if not deleted:
+    raise HTTPException(status_code=404, detail="Notification not found")
+  db.commit()
